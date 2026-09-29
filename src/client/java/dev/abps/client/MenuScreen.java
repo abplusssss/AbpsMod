@@ -114,8 +114,9 @@ public final class MenuScreen extends Screen {
         // Main panel
         Draw.panel(g, px - 1, py - 1, pw + 2, ph + 2, Draw.argb(c1, 0x60));
         Draw.panel(g, px, py, pw, ph, 0xF00C0C12);
-        Draw.hGradient(g, px + 1, py, pw - 2, 2, Draw.opaque(c1), Draw.opaque(c2));
-        Draw.hGradient(g, px + 1, py + 2, pw - 2, 22, Draw.argb(c1, 0x30), Draw.argb(c2, 0x08));
+        Draw.hGradient(g, px + 1, py, pw - 2, 1, Draw.opaque(c1), Draw.opaque(c2));
+        Draw.hGradient(g, px, py + 1, pw, 1, Draw.opaque(c1), Draw.opaque(c2));
+        Draw.hGradient(g, px, py + 2, pw, 22, Draw.argb(c1, 0x30), Draw.argb(c2, 0x08));
         Draw.text(g, "<bold>" + Draw.gradient(c1, c2, "ABPS") + "</bold> <gray>Attributes</gray>", px + 8, py + 9);
         if (s != null && c != null) {
             String right = Draw.gradient(c1, c2, c.symbol() + " " + c.name()) + " <dark_gray>|</dark_gray> <white>Lv " + s.level() + "</white><gray>/" + s.maxLevel() + "</gray>";
@@ -500,7 +501,9 @@ public final class MenuScreen extends Screen {
         int col = reroll ? 0xFF5252 : 0x69F0AE;
         Draw.panel(g, x - 1, y - 1, w + 2, h + 2, Draw.argb(col, 0x90));
         Draw.panel(g, x, y, w, h, 0xF8101016);
-        Draw.hGradient(g, x + 1, y, w - 2, 2, Draw.opaque(col), Draw.opaque(Text.lerp(col, 0xFFFFFF, 0.5f)));
+        int col2 = Text.lerp(col, 0xFFFFFF, 0.5f);
+        Draw.hGradient(g, x + 1, y, w - 2, 1, Draw.opaque(col), Draw.opaque(col2));
+        Draw.hGradient(g, x, y + 1, w, 1, Draw.opaque(col), Draw.opaque(col2));
         int yy = y + 8;
         if (reroll) {
             Draw.scaled(g, "<bold><gradient:#FF5252:#FFAB40>Reroll your attribute?</gradient></bold>", x + w / 2f, yy, 1.25f, true);

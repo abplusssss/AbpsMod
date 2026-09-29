@@ -49,10 +49,11 @@ public final class Hud implements HudElement {
         // Background with a glowing top edge in the class colors
         Draw.panel(g, x, y, WIDTH, h, Draw.PANEL);
         Draw.hGradient(g, x + 1, y, WIDTH - 2, 1, Draw.opaque(c1), Draw.opaque(c2));
-        Draw.hGradient(g, x + 1, y + 1, WIDTH - 2, 6, Draw.argb(c1, 0x40), Draw.argb(c2, 0x10));
+        // Full width: the panel only has cut corners on its very first row, so the glow must reach both edges below it
+        Draw.hGradient(g, x, y + 1, WIDTH, 6, Draw.argb(c1, 0x40), Draw.argb(c2, 0x10));
 
         // Header: icon, class name, level
-        Draw.item(g, c.icon(), x + 4, y + 4, 0.75f);
+        Draw.item(g, c.icon(), x + 4, y + 4, 0.625f); // 10px so it sits level with the name and clear of the level bar
         Draw.text(g, "<bold>" + Draw.gradient(c1, c2, c.name()) + "</bold>", x + 19, y + 5);
         boolean max = s.level() >= s.maxLevel();
         String lv = max ? "<gradient:#FFD54F:#FF8F00><bold>MAX</bold></gradient>" : "<gray>Lv</gray> <white>" + s.level() + "</white>";
