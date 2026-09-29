@@ -298,4 +298,17 @@ public final class Windwalker extends AttributeClass {
         }
         d.managedFlight = false;
     }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        int rings = ult ? 8 : 4;
+        for (int i = 0; i < rings; i++) {
+            final int h = i;
+            dev.abps.util.Tasks.later(i * 2L, () -> {
+                dev.abps.util.Vfx.groundRing(level, at.add(0, h * 0.6, 0), 0.6, ult ? 4.5 : 2.6, 22, dev.abps.util.Vfx.tint(0xE0F7FA), 0.09f, 10, 0x29B6F6);
+            });
+        }
+        dev.abps.util.Vfx.vortex(level, at, ult ? 4 : 2, ult ? 16 : 8, net.minecraft.world.level.block.Blocks.WHITE_CONCRETE.defaultBlockState(), 0.12f, ult ? 60 : 24, 1.8, 0xE0F7FA);
+    }
 }

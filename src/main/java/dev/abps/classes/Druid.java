@@ -378,4 +378,12 @@ public final class Druid extends AttributeClass {
         d.zone = null;
         Minions.removeAll(p, d);
     }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        dev.abps.util.Vfx.vortex(level, at, ult ? 6 : 3, ult ? 24 : 12, net.minecraft.world.level.block.Blocks.OAK_LEAVES.defaultBlockState(), 0.2f, ult ? 80 : 30, 0.7, -1);
+        dev.abps.util.Vfx.vortex(level, at, ult ? 5 : 2.5, ult ? 14 : 6, net.minecraft.world.level.block.Blocks.FLOWERING_AZALEA_LEAVES.defaultBlockState(), 0.18f, ult ? 80 : 30, -0.9, -1);
+        dev.abps.util.Vfx.burst(level, at.add(0, 0.3, 0), net.minecraft.world.level.block.Blocks.MOSS_BLOCK.defaultBlockState(), 12, 0.14, 0.16f, 18, -1);
+    }
 }

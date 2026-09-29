@@ -1,6 +1,11 @@
 package dev.abps.command;
 
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import dev.abps.AbpsMod;
 import dev.abps.Classes;
 import dev.abps.Combat;
@@ -32,6 +37,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 /** The ! chat commands and /abps. Every command works both ways. */
@@ -122,7 +130,65 @@ public final class Commands {
                                 handle(ctx.getSource(), StringArgumentType.getString(ctx, "command"));
                                 return 1;
                             })));
+
+            // Every command is also a real slash command (/home, /tpa, /givelevel...) so the game can tab complete it.
+            // Names that vanilla or another mod already uses are left alone.
+            Set<String> done = new HashSet<>();
+            for (Entry e : entries) {
+                registerLabel(dispatcher, e.name.toLowerCase(Locale.ROOT), e, done);
+                for (String alias : e.aliases) registerLabel(dispatcher, alias.toLowerCase(Locale.ROOT), e, done);
+            }
         });
+    }
+
+    private static void registerLabel(CommandDispatcher<CommandSourceStack> dispatcher, String label, Entry e, Set<String> done) {
+        if (!done.add(label) || dispatcher.getRoot().getChild(label) != null) return;
+        LiteralArgumentBuilder<CommandSourceStack> cmd = net.minecraft.commands.Commands.literal(label)
+                .requires(src -> !e.admin() || isAdmin(src))
+                .executes(ctx -> {
+                    handle(ctx.getSource(), e.name);
+                    return 1;
+                });
+        if (!e.args.isEmpty()) {
+            cmd.then(net.minecraft.commands.Commands.argument("args", StringArgumentType.greedyString())
+                    .suggests((ctx, builder) -> suggestArgs(ctx, builder, e))
+                    .executes(ctx -> {
+                        handle(ctx.getSource(), e.name + " " + StringArgumentType.getString(ctx, "args"));
+                        return 1;
+                    }));
+        }
+        dispatcher.register(cmd);
+    }
+
+    /** Works out what the word being typed should be (a player, an attribute, a level...) from the usage text. */
+    private static CompletableFuture<Suggestions> suggestArgs(CommandContext<CommandSourceStack> ctx, SuggestionsBuilder builder, Entry e) {
+        String remaining = builder.getRemaining();
+        int lastSpace = remaining.lastIndexOf(' ');
+        int index = 0;
+        for (char ch : remaining.toCharArray()) if (ch == ' ') index++;
+        SuggestionsBuilder sb = builder.createOffset(builder.getStart() + lastSpace + 1);
+        String typed = remaining.substring(lastSpace + 1).toLowerCase(Locale.ROOT);
+        String[] tokens = e.args.split(" ");
+        if (index >= tokens.length) return sb.buildFuture();
+        String token = tokens[index].toLowerCase(Locale.ROOT);
+
+        List<String> options = new ArrayList<>();
+        if (token.contains("player")) {
+            options.addAll(AbpsMod.server().getPlayerList().getPlayers().stream().map(p -> p.getName().getString()).toList());
+            if (e.admin()) options.addAll(List.of("@s", "@a", "@r"));
+        } else if (token.contains("attribute")) {
+            for (AttributeClass c : Classes.all()) options.add(c.name());
+        } else if (token.contains("1-25")) {
+            for (int i = 1; i <= AbpsMod.config().maxLevel; i++) options.add(String.valueOf(i));
+        } else if (token.contains("1-5")) {
+            options.addAll(List.of("1", "2", "3", "4", "5"));
+        } else if (token.contains("name") && ctx.getSource().getPlayer() != null) {
+            options.addAll(service().data(ctx.getSource().getPlayer()).homes.keySet());
+        }
+        for (String o : options) {
+            if (o.toLowerCase(Locale.ROOT).startsWith(typed)) sb.suggest(o);
+        }
+        return sb.buildFuture();
     }
 
     public static boolean isCommand(String label) {

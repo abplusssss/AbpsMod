@@ -426,4 +426,11 @@ public final class Miner extends AttributeClass {
         Mods.remove(p, Attributes.BLOCK_BREAK_SPEED, "miner_break");
         clearHighlights(p, d);
     }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        dev.abps.util.Vfx.jaws(level, at, ult ? 6 : 2.6, ult ? 16 : 7, ult ? 3.5 : 1.3, net.minecraft.world.level.block.Blocks.DEEPSLATE.defaultBlockState(), rgb());
+        dev.abps.util.Vfx.burst(level, at.add(0, 0.5, 0), net.minecraft.world.level.block.Blocks.COBBLED_DEEPSLATE.defaultBlockState(), ult ? 30 : 12, 0.2, 0.22f, 18, -1);
+    }
 }

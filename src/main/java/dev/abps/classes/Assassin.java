@@ -316,4 +316,13 @@ public final class Assassin extends AttributeClass {
     public void cleanup(ServerPlayer p, PlayerData d) {
         unvanish(p, d, null);
     }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        net.minecraft.world.phys.Vec3 look = p.getLookAngle();
+        dev.abps.util.Vfx.slash(level, at.add(0, 1.3, 0), look, 2.4, 2.4, 0.09f, net.minecraft.world.level.block.Blocks.WHITE_CONCRETE.defaultBlockState(), rgb());
+        dev.abps.util.Vfx.slash(level, at.add(0, 0.9, 0), look.yRot(0.4f), 2.4, 2.4, 0.09f, net.minecraft.world.level.block.Blocks.PURPLE_CONCRETE.defaultBlockState(), rgb2());
+        dev.abps.util.Vfx.burst(level, at.add(0, 1, 0), net.minecraft.world.level.block.Blocks.BLACK_CONCRETE.defaultBlockState(), ult ? 30 : 12, 0.2, 0.14f, 14, rgb2());
+    }
 }

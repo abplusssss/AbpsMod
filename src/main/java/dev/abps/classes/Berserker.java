@@ -315,4 +315,12 @@ public final class Berserker extends AttributeClass {
         d.leaping = false;
         d.stacks = 0;
     }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        net.minecraft.world.phys.Vec3 look = p.getLookAngle();
+        dev.abps.util.Vfx.slash(level, at.add(0, 1.1, 0), look, 2.6, 2.6, 0.16f, net.minecraft.world.level.block.Blocks.RED_CONCRETE.defaultBlockState(), 0xFF1744);
+        dev.abps.util.Vfx.slash(level, at.add(0, 0.6, 0), look, 2.2, 2.2, 0.12f, net.minecraft.world.level.block.Blocks.ORANGE_CONCRETE.defaultBlockState(), 0xFF6D00);
+    }
 }

@@ -328,4 +328,12 @@ public final class Pyromancer extends AttributeClass {
         used(p, 5);
         return true;
     }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        dev.abps.util.Vfx.pillar(level, at, ult ? 1.4 : 0.5, ult ? 9 : 4, net.minecraft.world.level.block.Blocks.ORANGE_CONCRETE.defaultBlockState(), 4, 8, 8, 0xFF6D00);
+        dev.abps.util.Vfx.burst(level, at.add(0, 0.5, 0), net.minecraft.world.level.block.Blocks.MAGMA_BLOCK.defaultBlockState(), ult ? 36 : 14, 0.22, 0.2f, 20, 0xFF3D00);
+        dev.abps.util.Vfx.vortex(level, at, ult ? 5 : 2.5, ult ? 18 : 8, net.minecraft.world.level.block.Blocks.SHROOMLIGHT.defaultBlockState(), 0.16f, ult ? 60 : 24, 2.0, 0xFFD600);
+    }
 }

@@ -386,6 +386,24 @@ public final class Service {
         return (long) (c.baseCooldown(idx) * 1000 * (1 - cut));
     }
 
+    /** Bracketed label used by the styled action bar messages, like 【⏳ COOLDOWN】. */
+    private static String tag(String label, String from, String to) {
+        return "<dark_gray>【</dark_gray><gradient:" + from + ":" + to + "><bold>" + label + "</bold></gradient><dark_gray>】</dark_gray>";
+    }
+
+    /** A small progress bar in the class colors. */
+    private static String meter(AttributeClass c, double fraction) {
+        int slots = 10;
+        int filled = (int) Math.round(slots * Math.max(0, Math.min(1, fraction)));
+        String on = filled == 0 ? "" : "<gradient:" + c.color() + ":" + c.color2() + ">" + "▰".repeat(filled) + "</gradient>";
+        return on + "<dark_gray>" + "▱".repeat(slots - filled) + "</dark_gray>";
+    }
+
+    /** Soft "can't do that right now" sound. */
+    private static void denied(ServerPlayer p) {
+        Fx.sound((ServerLevel) p.level(), p, SoundEvents.NOTE_BLOCK_BASS, 0.5f, 0.7f);
+    }
+
     public String keyName(ServerPlayer p, int idx) {
         if (hasMod(p)) {
             return switch (idx) {
@@ -424,12 +442,16 @@ public final class Service {
             return;
         }
         if (!unlocked(d, idx)) {
-            actionBar(p, "<red>" + c.abilityName(idx) + " unlocks at level " + cfg().unlockLevel(idx) + ".");
+            actionBar(p, tag("🔒 LOCKED", "#FF5252", "#FF8A65") + " <white>" + c.abilityName(idx) + "</white> <gray>unlocks at level <gold><bold>"
+                    + cfg().unlockLevel(idx) + "</bold></gold>");
+            denied(p);
             return;
         }
         long left = d.cooldownLeft(idx);
         if (left > 0 && !d.noCooldown) {
-            actionBar(p, "<red>" + c.abilityName(idx) + " is on cooldown: <white>" + Text.time(left));
+            actionBar(p, tag("⏳ COOLDOWN", "#FF5252", "#FF8A65") + " <white>" + c.abilityName(idx) + "</white> "
+                    + meter(c, 1 - (double) left / Math.max(1, cooldownMs(c, idx, d.level))) + " <gold><bold>" + Text.time(left));
+            denied(p);
             return;
         }
         boolean worked;
@@ -458,8 +480,14 @@ public final class Service {
     private void castUltimate(ServerPlayer p, PlayerData d, AttributeClass c) {
         if (d.ultCharge < 1 && !d.noCooldown) {
             long lock = d.ultLockUntil - System.currentTimeMillis();
-            if (lock > 0) actionBar(p, "<red>Your ultimate is recharging. It starts filling again in " + Text.time(lock) + ".");
-            else actionBar(p, "<red>Ultimate is " + Math.round(d.ultCharge * 100) + "% charged. Deal damage to players to fill it.");
+            if (lock > 0) {
+                actionBar(p, tag("★ ULTIMATE", "#FFD54F", "#FF8F00") + " <gray>recharging</gray> <gold><bold>" + Text.time(lock)
+                        + "</bold></gold> <gray>until it starts filling");
+            } else {
+                actionBar(p, tag("★ ULTIMATE", "#FFD54F", "#FF8F00") + " " + meter(c, d.ultCharge) + " <gold><bold>"
+                        + Math.round(d.ultCharge * 100) + "%</bold></gold> <gray>deal damage to players to charge");
+            }
+            denied(p);
             return;
         }
         boolean worked;

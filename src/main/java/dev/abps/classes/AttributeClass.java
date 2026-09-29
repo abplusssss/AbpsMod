@@ -4,6 +4,7 @@ import dev.abps.AbpsMod;
 import dev.abps.data.PlayerData;
 import dev.abps.util.Fx;
 import dev.abps.util.Tasks;
+import dev.abps.util.Vfx;
 import dev.abps.util.Text;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -20,6 +21,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -286,6 +288,35 @@ public abstract class AttributeClass {
 
     protected void used(ServerPlayer p, int idx) {
         AbpsMod.service().actionBar(p, gradient("<bold>✦ " + abilityName(idx) + "</bold>") + " <gray>used!");
+        castFx(p, idx);
+    }
+
+    /**
+     * The signature effect every cast gets: rings, shards and orbiters made from custom glowing displays
+     * (not vanilla particles), scaled up for ultimates. Each class adds its own flavor on top.
+     */
+    protected void castFx(ServerPlayer p, int idx) {
+        ServerLevel level = level(p);
+        Vec3 at = p.position();
+        boolean ult = idx == ULTIMATE;
+        net.minecraft.world.level.block.state.BlockState main = Vfx.tint(rgb()), alt = Vfx.tint(rgb2());
+        Vfx.groundRing(level, at, 0.6, ult ? 8 : 3.2, ult ? 36 : 20, main, ult ? 0.22f : 0.14f, ult ? 16 : 10, rgb());
+        Vfx.groundRing(level, at, 0.3, ult ? 6 : 2.2, ult ? 28 : 16, alt, 0.1f, ult ? 20 : 12, rgb2());
+        Vfx.burst(level, at.add(0, 0.4, 0), alt, ult ? 26 : 10, 0.16, 0.16f, 14, rgb2());
+        Vfx.orbit(level, p, ult ? 8 : 4, 1.1, 1.0, main, 0.14f, ult ? 80 : 24, 1.5, rgb());
+        if (ult) {
+            Vfx.pillar(level, at, 0.5, 14, main, 6, 12, 14, rgb());
+            Vfx.pillar(level, at, 0.25, 18, alt, 4, 16, 12, rgb2());
+            for (int i = 0; i < 6; i++) {
+                double a = Math.PI * 2 * i / 6;
+                Vfx.beam(level, at.add(Math.cos(a) * 5, 0.1, Math.sin(a) * 5), at.add(0, 11, 0), 0.08f, alt, 22, rgb2());
+            }
+        }
+        flavor(p, idx, level, at, ult);
+    }
+
+    /** Extra class-specific effect on top of {@link #castFx}. */
+    protected void flavor(ServerPlayer p, int idx, ServerLevel level, Vec3 at, boolean ult) {
     }
 
     protected static float maxHp(LivingEntity e) {

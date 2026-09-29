@@ -267,4 +267,11 @@ public final class Tank extends AttributeClass {
     public void cleanup(ServerPlayer p, PlayerData d) {
         Mods.remove(p, Attributes.SCALE, "tank_colossus");
     }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        dev.abps.util.Vfx.groundRing(level, at, 1, ult ? 10 : 5, ult ? 40 : 24, net.minecraft.world.level.block.Blocks.IRON_BLOCK.defaultBlockState(), ult ? 0.5f : 0.35f, 12, rgb());
+        dev.abps.util.Vfx.jaws(level, at, ult ? 5 : 2.2, ult ? 14 : 6, ult ? 2.8 : 1.4, net.minecraft.world.level.block.Blocks.SMOOTH_STONE.defaultBlockState(), rgb());
+    }
 }

@@ -5,6 +5,7 @@ import dev.abps.util.Fx;
 import dev.abps.util.Mods;
 import dev.abps.util.Targets;
 import dev.abps.util.Tasks;
+import dev.abps.util.Vfx;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,8 +25,10 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,6 +37,8 @@ public final class Shark extends AttributeClass {
 
     private static final int SCENT_RADIUS = 28;
     private static final int WOUNDED_MARK_TICKS = 80;
+    /** Prey marked by Blood Scent, mapped to when the mark runs out. Marked prey take extra damage from sharks. */
+    private static final Map<UUID, Long> MARKS = new HashMap<>();
 
     @Override public String id() { return "shark"; }
     @Override public String name() { return "Shark"; }
@@ -90,13 +95,15 @@ public final class Shark extends AttributeClass {
     @Override
     public String abilityDesc(int idx, int lvl) {
         return switch (idx) {
-            case 1 -> "Needs water. Rocket forward like a torpedo, dealing " + num(dashDamage(lvl)) + " damage and flinging aside everything you hit.";
-            case 2 -> "Sense every enemy within " + SCENT_RADIUS + " blocks for " + num(scentTime(lvl))
-                    + "s. They glow through walls, wounded prey are tracked with a blood trail and you get Speed.";
-            case 3 -> "Open a whirlpool where you look for 5s. Enemies within 8 blocks are spun in and take "
-                    + num(whirlDamage(lvl)) + " damage every half second.";
-            case 4 -> "For " + num(frenzyTime(lvl)) + "s get Strength, Speed and Haste, and heal " + pct(frenzySteal(lvl)) + " of the damage you deal.";
-            default -> "Leap out of the water, then crash down. The shockwave hits everything within 10 blocks for "
+            case 1 -> "Needs water. Rocket forward like a torpedo, biting everything you hit for " + num(dashDamage(lvl))
+                    + " damage and leaving it bleeding. Every enemy you hit cuts 1.5s off this cooldown.";
+            case 2 -> "Ping every enemy within " + SCENT_RADIUS + " blocks for " + num(scentTime(lvl))
+                    + "s. They glow through walls, wounded prey are tracked with a blood trail, and everything you mark takes +25% damage from you. You get Speed.";
+            case 3 -> "Open a whirlpool where you look for 5s while fins circle it. Enemies within 8 blocks are spun in and take "
+                    + num(whirlDamage(lvl)) + " damage every half second. When it ends it implodes for double damage.";
+            case 4 -> "For " + num(frenzyTime(lvl)) + "s get Strength, Speed and Haste, and heal " + pct(frenzySteal(lvl))
+                    + " of the damage you deal. Every kill adds 2s and heals 2 hearts (up to 30s).";
+            default -> "Leap out of the water, then crash down as a giant set of jaws snaps shut. The shockwave hits everything within 10 blocks for "
                     + num(breachDamage(lvl)) + " damage (+50% to enemies in water), launches and slows them, and starts a Frenzy.";
         };
     }
@@ -149,7 +156,13 @@ public final class Shark extends AttributeClass {
 
     @Override
     public double outgoing(ServerPlayer p, PlayerData d, LivingEntity victim, Hit hit) {
-        return wet(p) ? 1 + wetDamage(d.level) : 0.85;
+        double m = wet(p) ? 1 + wetDamage(d.level) : 0.85;
+        Long mark = MARKS.get(victim.getUUID());
+        if (mark != null) {
+            if (mark > now()) m *= 1.25;
+            else MARKS.remove(victim.getUUID());
+        }
+        return m;
     }
 
     @Override
@@ -175,6 +188,26 @@ public final class Shark extends AttributeClass {
         return t == EntityTypes.GUARDIAN || t == EntityTypes.ELDER_GUARDIAN || t == EntityTypes.DROWNED;
     }
 
+    @Override
+    public void onKill(ServerPlayer p, PlayerData d, LivingEntity victim) {
+        MARKS.remove(victim.getUUID());
+        if (!d.buff("frenzy")) return;
+        long left = d.buffLeft("frenzy");
+        long add = Math.min(2000, Math.max(0, 30_000 - left));
+        if (add <= 0) return;
+        d.setBuff("frenzy", left + add);
+        int ticks = (int) ((left + add) / 50);
+        p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, ticks, 0));
+        p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
+        p.addEffect(new MobEffectInstance(MobEffects.HASTE, ticks, 1));
+        heal(p, 4);
+        ServerLevel level = level(p);
+        Vec3 from = victim.position().add(0, victim.getBbHeight() / 2, 0);
+        Vfx.burst(level, from, Vfx.tint(0xB71C1C), 16, 0.18, 0.16f, 16, 0xB71C1C);
+        Vfx.beam(level, from, p.getEyePosition(), 0.12f, Vfx.tint(0xB71C1C), 8, 0xFF1744);
+        dev.abps.AbpsMod.service().actionBar(p, gradient("<bold>≋ Blood in the water</bold>") + " <gray>+2s Frenzy");
+    }
+
     // ---- Ability 1: Riptide ----
     @Override
     protected boolean ability1(ServerPlayer p, PlayerData d) {
@@ -193,17 +226,30 @@ public final class Shark extends AttributeClass {
             if (p.isRemoved() || !p.isAlive()) return;
             Targets.velocity(p, dir.scale(1.7));
             Vec3 body = p.position().add(0, p.getBbHeight() / 2, 0);
-            Fx.burst(level, ParticleTypes.BUBBLE_POP, body, 10, 0.5, 0.05);
-            Fx.burst(level, ParticleTypes.SPLASH, body, 8, 0.5, 0.1);
-            Fx.burst(level, Fx.dust(rgb2(), 1.1f), body, 6, 0.4, 0);
+            // A tunnel of rings and a streak behind you
+            if (i % 2 == 0) Vfx.ring(level, body.add(dir.scale(1.5)), dir, 0.5, 2.4, 16, Vfx.tint(rgb2()), 0.1f, 8, rgb2());
+            Vfx.beam(level, body.subtract(dir.scale(4)), body, 0.28f, Vfx.tint(rgb()), 7, rgb());
+            Fx.burst(level, ParticleTypes.BUBBLE_POP, body, 6, 0.4, 0.05);
             for (LivingEntity e : Targets.enemiesNear(p, body, 2.2)) {
                 if (!hit.add(e.getUUID())) continue;
                 Targets.damage(e, dmg, p);
                 Vec3 side = e.position().subtract(p.position());
                 Targets.velocity(e, dir.scale(0.6).add(side.normalize().scale(0.5)).add(0, 0.35, 0));
-                Fx.burst(level, ParticleTypes.SWEEP_ATTACK, e.position().add(0, e.getBbHeight() / 2, 0), 1, 0, 0);
+                // A bite: teeth snap shut around it, then it bleeds
+                Vec3 mid = e.position();
+                Vfx.jaws(level, mid, 1.1, 8, 1.3, Vfx.WHITE, 0xB71C1C);
+                Vfx.burst(level, mid.add(0, e.getBbHeight() / 2, 0), Vfx.tint(0xB71C1C), 12, 0.2, 0.14f, 16, 0xB71C1C);
                 Fx.sound(level, e, SoundEvents.PLAYER_ATTACK_STRONG, 1f, 0.7f);
+                Tasks.repeat(3, 20, b -> {
+                    if (e.isAlive()) Targets.damage(e, 2, p);
+                });
             }
+        });
+        // Every enemy bitten shaves time off the cooldown (the cooldown itself is set after this returns)
+        Tasks.later(12, () -> {
+            if (hit.isEmpty() || p.isRemoved()) return;
+            d.cooldownEnd[1] = Math.max(now(), d.cooldownEnd[1] - 1500L * hit.size());
+            dev.abps.AbpsMod.service().sync(p, true);
         });
         Fx.screen(p, Fx.TINT, rgb(), 12, 0.12f);
         used(p, 1);
@@ -221,18 +267,26 @@ public final class Shark extends AttributeClass {
         }
         int ticks = (int) (scentTime(d.level) * 20);
         int wounded = 0;
+        long markUntil = now() + ticks * 50L;
+        if (MARKS.size() > 200) MARKS.values().removeIf(t -> t < now());
         for (LivingEntity e : prey) {
             e.addEffect(new MobEffectInstance(MobEffects.GLOWING, ticks, 0));
+            MARKS.put(e.getUUID(), markUntil);
+            Vec3 core = e.position().add(0, e.getBbHeight() / 2, 0);
+            // A lock-on ring that tightens around each target
+            Vfx.ring(level, core, new Vec3(0, 1, 0), 2.0, 0.5, 14, Vfx.tint(0xFF1744), 0.09f, 20, 0xFF1744);
             if (e.getHealth() < e.getMaxHealth() * 0.6f) {
                 wounded++;
-                Fx.line(level, Fx.dust(0xB71C1C, 1f), p.getEyePosition(), e.getEyePosition(), 0.9);
-                Fx.burst(level, Fx.dust(0xB71C1C, 1.3f), e.position().add(0, e.getBbHeight() / 2, 0), 12, 0.4, 0);
+                Vfx.beam(level, p.getEyePosition(), core, 0.06f, Vfx.tint(0xB71C1C), 24, 0xB71C1C);
+                Vfx.burst(level, core, Vfx.tint(0xB71C1C), 10, 0.1, 0.12f, 20, 0xB71C1C);
             }
         }
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks / 2, 0));
         Fx.sound(level, p, SoundEvents.WARDEN_HEARTBEAT, 1f, 0.8f);
         Fx.sound(level, p, SoundEvents.CONDUIT_ACTIVATE, 1f, 1.4f);
-        Tasks.repeat(8, 2, step -> Fx.ring(level, ParticleTypes.BUBBLE_POP, p.position().add(0, 0.8, 0), 2 + step * 3.5, 30 + step * 10));
+        // Sonar: rings roll out across the whole search area
+        Vec3 feet = p.position();
+        Tasks.repeat(3, 4, step -> Vfx.groundRing(level, feet, 1, SCENT_RADIUS, 48, Vfx.tint(step == 1 ? rgb() : rgb2()), 0.16f, 22, rgb2()));
         used(p, 2);
         dev.abps.AbpsMod.service().actionBar(p, gradient("<bold>≋ Blood Scent</bold>") + " <gray>found <white>" + prey.size()
                 + "</white> prey, <red>" + wounded + "</red> wounded.");
@@ -247,13 +301,17 @@ public final class Shark extends AttributeClass {
         double dmg = whirlDamage(d.level);
         Fx.sound(level, center, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, 1.5f, 0.6f);
         Fx.sound(level, center, SoundEvents.GENERIC_SPLASH, 1.5f, 0.5f);
+        // Shark fins and a swirl of water chunks circle the whole time
+        Vfx.fins(level, center, 6, 3, net.minecraft.world.level.block.Blocks.BLUE_CONCRETE.defaultBlockState(), 104, 0.55, 0x0288D1);
+        Vfx.vortex(level, center, 8, 24, Vfx.tint(rgb2()), 0.2f, 104, 1.1, rgb2());
+        Vfx.vortex(level, center, 6, 12, Vfx.WHITE, 0.14f, 104, -0.8, rgb());
+        Tasks.later(105, () -> implode(p, d, center));
         Tasks.repeat(20, 5, i -> {
             if (p.isRemoved()) return;
-            double turn = i * 0.9;
-            Fx.spiral(level, ParticleTypes.BUBBLE_POP, center, 8, 3.5, 60, turn);
-            Fx.spiral(level, ParticleTypes.SPLASH, center, 6, 3, 40, turn + Math.PI);
-            Fx.ring(level, ParticleTypes.NAUTILUS, center.add(0, 0.5, 0), 7.5, 24);
-            if (i % 4 == 0) Fx.sound(level, center, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT, 1f, 0.7f);
+            if (i % 4 == 0) {
+                Vfx.groundRing(level, center, 8.5, 1, 30, Vfx.tint(rgb()), 0.12f, 16, rgb());
+                Fx.sound(level, center, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT, 1f, 0.7f);
+            }
             for (LivingEntity e : Targets.enemiesNear(p, center, 8)) {
                 Vec3 to = center.subtract(e.position());
                 Vec3 flat = new Vec3(to.x, 0, to.z);
@@ -267,6 +325,24 @@ public final class Shark extends AttributeClass {
         });
         used(p, 3);
         return true;
+    }
+
+    /** The whirlpool collapses: a last, harder hit and a ring of teeth. */
+    private void implode(ServerPlayer p, PlayerData d, Vec3 center) {
+        if (p.isRemoved()) return;
+        ServerLevel level = level(p);
+        for (LivingEntity e : Targets.enemiesNear(p, center, 8)) {
+            Targets.damage(e, whirlDamage(d.level) * 2, p);
+            Targets.pushAway(center, e, 0.5, 0.6);
+            e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 40, 1));
+        }
+        Vfx.jaws(level, center, 3.5, 10, 2.4, Vfx.WHITE, rgb());
+        Vfx.groundRing(level, center, 1, 9, 36, Vfx.tint(rgb2()), 0.2f, 12, rgb2());
+        Vfx.pillar(level, center, 1.2, 7, Vfx.tint(rgb2()), 3, 5, 8, rgb2());
+        Vfx.burst(level, center.add(0, 0.5, 0), Vfx.tint(rgb()), 26, 0.22, 0.2f, 18, rgb());
+        Fx.sound(level, center, SoundEvents.GENERIC_SPLASH, 2f, 0.4f);
+        Fx.sound(level, center, SoundEvents.WARDEN_SONIC_BOOM, 0.8f, 1.2f);
+        Fx.shakeNear(level, center, 12, 8, 0.6f);
     }
 
     // ---- Ability 4: Feeding Frenzy ----
@@ -285,9 +361,13 @@ public final class Shark extends AttributeClass {
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.HASTE, ticks, 1));
         ServerLevel level = level(p);
-        Fx.burst(level, Fx.dust(0xB71C1C, 1.4f), p.position().add(0, 1, 0), 50, 0.7, 0);
-        Fx.burst(level, ParticleTypes.BUBBLE_POP, p.position().add(0, 1, 0), 40, 0.7, 0.2);
-        Fx.spiral(level, Fx.dust(rgb(), 1.2f), p.position(), 1.2, 2.5, 40, 0);
+        Vec3 at = p.position();
+        Vfx.burst(level, at.add(0, 1, 0), Vfx.tint(0xB71C1C), 28, 0.24, 0.18f, 20, 0xB71C1C);
+        Vfx.groundRing(level, at, 0.5, 4.5, 26, Vfx.tint(0xB71C1C), 0.14f, 12, 0xFF1744);
+        for (int i = 0; i < 4; i++) {
+            double a = Math.PI * 2 * i / 4;
+            Vfx.zigzag(level, at.add(Math.cos(a) * 2.5, 0, Math.sin(a) * 2.5), at.add(0, 1.4, 0), 4, 0.4, 0.07f, Vfx.tint(0xB71C1C), 12, 0xFF1744);
+        }
         Fx.sound(level, p, SoundEvents.WARDEN_ROAR, 0.5f, 1.6f);
         Fx.sound(level, p, SoundEvents.DOLPHIN_ATTACK, 1f, 0.5f);
         Fx.screen(p, Fx.TINT, 0xB71C1C, 20, 0.18f);
@@ -311,8 +391,9 @@ public final class Shark extends AttributeClass {
         Tasks.repeat(60, 1, i -> {
             if (landed[0] || p.isRemoved() || !p.isAlive()) return;
             Vec3 at = p.position();
-            Fx.burst(level, ParticleTypes.BUBBLE_POP, at.add(0, 1, 0), 6, 0.4, 0.05);
-            Fx.burst(level, Fx.dust(rgb(), 1.2f), at.add(0, 1, 0), 4, 0.4, 0);
+            Fx.burst(level, ParticleTypes.BUBBLE_POP, at.add(0, 1, 0), 4, 0.4, 0.05);
+            // A stack of rings follows you up and down
+            if (i % 2 == 0) Vfx.groundRing(level, at.add(0, 0.6, 0), 0.5, 2.6, 18, Vfx.tint(i % 4 == 0 ? rgb() : rgb2()), 0.1f, 8, rgb2());
             if (i == 10) {
                 Targets.velocity(p, new Vec3(drift.x * 0.4, -2.4, drift.z * 0.4));
                 Fx.sound(level, p, SoundEvents.TRIDENT_RIPTIDE_3, 1f, 0.6f);
@@ -335,9 +416,13 @@ public final class Shark extends AttributeClass {
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1));
             Fx.burst(level, ParticleTypes.SPLASH, e.position().add(0, 1, 0), 20, 0.4, 0.2);
         }
-        Tasks.repeat(6, 2, s -> Fx.ring(level, ParticleTypes.SPLASH, at, 2 + s * 1.6, 40 + s * 8));
-        Fx.burst(level, ParticleTypes.EXPLOSION, at, 3, 0.8, 0);
-        Fx.burst(level, ParticleTypes.NAUTILUS, at.add(0, 1, 0), 80, 2, 0.4);
+        // Giant jaws slam shut around the impact, then the water blows outward
+        Vfx.jaws(level, at, 6.5, 16, 3.6, Vfx.WHITE, rgb());
+        Vfx.jaws(level, at, 3.6, 10, 2.4, Vfx.WHITE, rgb2());
+        Tasks.repeat(4, 3, s -> Vfx.groundRing(level, at, 1 + s, 11 + s * 2, 44, Vfx.tint(s % 2 == 0 ? rgb() : rgb2()), 0.22f, 14, rgb2()));
+        Vfx.pillar(level, at, 1.6, 10, Vfx.tint(rgb2()), 3, 6, 10, rgb2());
+        Vfx.burst(level, at.add(0, 0.5, 0), Vfx.tint(rgb()), 40, 0.32, 0.24f, 22, rgb());
+        Fx.burst(level, ParticleTypes.EXPLOSION, at, 2, 0.8, 0);
         Fx.sound(level, at, SoundEvents.WARDEN_SONIC_BOOM, 1.5f, 0.7f);
         Fx.sound(level, at, SoundEvents.GENERIC_SPLASH, 2f, 0.4f);
         Fx.shakeNear(level, at, 14, 12, 0.9f);
@@ -348,5 +433,12 @@ public final class Shark extends AttributeClass {
     public void cleanup(ServerPlayer p, PlayerData d) {
         Mods.remove(p, Attributes.BLOCK_BREAK_SPEED, "shark_float");
         Mods.remove(p, Attributes.MOVEMENT_SPEED, "shark_dry");
+    }
+
+    @Override
+    protected void flavor(net.minecraft.server.level.ServerPlayer p, int idx, net.minecraft.server.level.ServerLevel level,
+                          net.minecraft.world.phys.Vec3 at, boolean ult) {
+        dev.abps.util.Vfx.groundRing(level, at, 0.5, ult ? 9 : 3.6, ult ? 34 : 20, dev.abps.util.Vfx.tint(0x4DD0E1), 0.12f, 12, 0x4DD0E1);
+        dev.abps.util.Vfx.fins(level, at.add(0, 0.1, 0), ult ? 4.5 : 2.4, ult ? 5 : 3, net.minecraft.world.level.block.Blocks.BLUE_CONCRETE.defaultBlockState(), ult ? 70 : 32, 0.5, 0x0288D1);
     }
 }
