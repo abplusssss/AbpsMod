@@ -1,0 +1,40 @@
+{
+  "maxLevel": 25,
+  "abilityUnlockLevels": [
+    1,
+    5,
+    12,
+    20
+  ],
+  "cooldownReductionAtMax": 0.3,
+  "rollOnFirstJoin": true,
+  "rerollXpLevels": 30,
+  "rerollItems": {
+    "minecraft:diamond": 32
+  },
+  "rerollNoRepeat": true,
+  "upgradeXpBase": 3,
+  "upgradeXpPerLevel": 1,
+  "upgradeXpMax": 25,
+  "upgradeMilestoneItems": {
+    "minecraft:diamond": 5
+  },
+  "ultimateDamageToCharge": 60.0,
+  "ultimateMobDamageFactor": 0.2,
+  "ultimateLockoutSeconds": 120,
+  "vanillaSwapHandKeys": true,
+  "doubleTapMs": 250,
+  "tabTags": true,
+  "chatTags": true,
+  "maxLevelAura": true,
+  "broadcastRolls": true,
+  "broadcastMaxLevel": true,
+  "milestoneFireworks": true,
+  "joinMessage": true,
+  "maxHomes": 3,
+  "teleportWarmupSeconds": 3,
+  "teleportCooldownSeconds": 10,
+  "tpaExpireSeconds": 60,
+  "combatTagSeconds": 15,
+  "combatLogBanMinutes": 10
+}

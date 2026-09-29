@@ -1,0 +1,19 @@
+{
+  "bans": {},
+  "leaderboard": {
+    "41c82c87-7afb-4024-ba57-13d2c99cae77": {
+      "id": "41c82c87-7afb-4024-ba57-13d2c99cae77",
+      "name": "[Minecraft]",
+      "classId": "necromancer",
+      "level": 25,
+      "reached": 1790718860638
+    },
+    "cc1a6e9d-af5a-3d1f-be9e-2a951630cf86": {
+      "id": "cc1a6e9d-af5a-3d1f-be9e-2a951630cf86",
+      "name": "AbpsTester",
+      "classId": "assassin",
+      "level": 1,
+      "reached": 1790719887873
+    }
+  }
+}

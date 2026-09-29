@@ -1,0 +1,633 @@
+package dev.abps.command;
+
+import com.mojang.brigadier.arguments.StringArgumentType;
+import dev.abps.AbpsMod;
+import dev.abps.Classes;
+import dev.abps.Combat;
+import dev.abps.Cost;
+import dev.abps.Service;
+import dev.abps.Teleports;
+import dev.abps.classes.AttributeClass;
+import dev.abps.data.PlayerData;
+import dev.abps.data.ServerState;
+import dev.abps.net.Net;
+import dev.abps.util.Text;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.permissions.PermissionLevel;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
+/** The ! chat commands and /abps. Every command works both ways. */
+public final class Commands {
+
+    /** Same permission name the old plugin used, so LuckPerms setups keep working. */
+    public static final Identifier ADMIN = Identifier.fromNamespaceAndPath("randomattributes", "admin");
+
+    private record Entry(String name, String args, String desc, String group, String... aliases) {
+        boolean admin() {
+            return group.equals("admin");
+        }
+    }
+
+    private static final List<Entry> entries = new ArrayList<>();
+    private static final Map<String, Entry> lookup = new HashMap<>();
+
+    private Commands() {
+    }
+
+    private static void add(Entry e) {
+        entries.add(e);
+        lookup.put(e.name.toLowerCase(Locale.ROOT), e);
+        for (String a : e.aliases) lookup.put(a, e);
+    }
+
+    static {
+        // Attribute commands
+        add(new Entry("Help", "", "Shows this list.", "attr", "commands", "?"));
+        add(new Entry("Menu", "", "Opens the attribute menu.", "attr", "gui", "m"));
+        add(new Entry("Attribute", "", "Shows your attribute, level and stats.", "attr", "info", "myattribute", "me"));
+        add(new Entry("Attributes", "", "Lists all attributes.", "attr", "list", "classes"));
+        add(new Entry("Upgrade", "", "Level up your attribute.", "attr", "levelup", "up"));
+        add(new Entry("Road", "", "Shows what you get at every level.", "attr", "levelroad", "levels"));
+        add(new Entry("Top", "[attribute]", "Shows the highest level players.", "attr", "leaderboard", "lb"));
+        add(new Entry("RollAttribute", "", "Reroll your attribute for a price.", "attr", "reroll", "roll"));
+        add(new Entry("Cooldowns", "", "Shows your ability cooldowns.", "attr", "cd"));
+        add(new Entry("Cast", "<1-5>", "Uses an ability from chat. 5 is your ultimate.", "attr", "ability"));
+        add(new Entry("Ult", "", "Uses your ultimate when it is charged.", "attr", "ultimate"));
+        add(new Entry("Hud", "", "Turns the cooldown display on or off.", "attr"));
+        // Teleports
+        add(new Entry("SetHome", "[name]", "Saves a home where you stand.", "tp", "sh", "createhome"));
+        add(new Entry("Home", "[name]", "Teleports you to a home.", "tp", "h", "homes_go"));
+        add(new Entry("Homes", "", "Lists your homes.", "tp", "listhomes", "hl"));
+        add(new Entry("DelHome", "[name]", "Deletes a home.", "tp", "dh", "rmhome", "deletehome", "removehome"));
+        add(new Entry("TpRequest", "<player>", "Asks to teleport to a player.", "tp", "tpr", "tprequest", "tpask", "tpto"));
+        add(new Entry("TpaHere", "<player>", "Asks a player to teleport to you.", "tp", "tphere", "tprh", "tpahere"));
+        add(new Entry("TpAccept", "[player]", "Accepts a teleport request.", "tp", "tpa", "tpaccept", "tpyes", "tpy"));
+        add(new Entry("TpDeny", "[player]", "Denies a teleport request.", "tp", "tpd", "tpdeny", "tpno", "tpn"));
+        add(new Entry("TpCancel", "", "Cancels requests you sent.", "tp", "tpc", "tpcancel"));
+        add(new Entry("Spawn", "", "Teleports you to spawn.", "tp", "hub", "lobby"));
+        add(new Entry("Back", "", "Goes back to where you last teleported or died.", "tp", "return"));
+        // Admin and testing
+        add(new Entry("GiveAttribute", "@player <attribute>", "Sets a player's attribute.", "admin", "setattribute"));
+        add(new Entry("GiveUpgrade", "@player <1-25>", "Sets a player's level.", "admin", "setlevel"));
+        add(new Entry("GiveUlt", "[@player]", "Fully charges an ultimate.", "admin", "chargeult"));
+        add(new Entry("ForceRoll", "@player", "Gives a free random roll.", "admin"));
+        add(new Entry("ResetPlayer", "@player", "Wipes their data and rolls a new attribute.", "admin"));
+        add(new Entry("CheckAttribute", "@player", "Shows a player's attribute.", "admin", "check"));
+        add(new Entry("Stats", "[@player]", "Shows live stat values.", "admin"));
+        add(new Entry("ResetCooldown", "[@player]", "Clears ability cooldowns.", "admin", "resetcd"));
+        add(new Entry("NoCooldown", "", "Turns cooldowns off or on for you.", "admin", "nocd"));
+        add(new Entry("GiveRollCost", "[@player]", "Gives the XP and items for one reroll.", "admin"));
+        add(new Entry("ClearCombat", "@player", "Ends combat and removes a combat log lockout.", "admin", "unban"));
+        add(new Entry("SetSpawn", "", "Sets spawn to where you stand.", "admin"));
+        add(new Entry("Debug", "", "Shows damage math and ability info in chat.", "admin"));
+        add(new Entry("SaveAll", "", "Saves everyone's data right now.", "admin", "save"));
+        add(new Entry("Reload", "", "Reloads the config.", "admin"));
+    }
+
+    public static void register() {
+        CommandRegistrationCallback.EVENT.register((dispatcher, registry, env) -> {
+            dispatcher.register(net.minecraft.commands.Commands.literal("abps")
+                    .executes(ctx -> {
+                        handle(ctx.getSource(), "help");
+                        return 1;
+                    })
+                    .then(net.minecraft.commands.Commands.argument("command", StringArgumentType.greedyString())
+                            .suggests((ctx, builder) -> {
+                                String typed = builder.getRemaining().toLowerCase(Locale.ROOT);
+                                boolean admin = isAdmin(ctx.getSource());
+                                for (Entry e : entries) {
+                                    if ((!e.admin() || admin) && e.name.toLowerCase(Locale.ROOT).startsWith(typed)) builder.suggest(e.name);
+                                }
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> {
+                                handle(ctx.getSource(), StringArgumentType.getString(ctx, "command"));
+                                return 1;
+                            })));
+        });
+    }
+
+    public static boolean isCommand(String label) {
+        return lookup.containsKey(label.toLowerCase(Locale.ROOT));
+    }
+
+    public static boolean isAdmin(CommandSourceStack s) {
+        if (s.getPlayer() == null) return true; // console
+        return s.checkPermission(ADMIN, PermissionLevel.GAMEMASTERS);
+    }
+
+    private static Service service() {
+        return AbpsMod.service();
+    }
+
+    // ================= Entry point =================
+    public static void handle(CommandSourceStack s, String input) {
+        if (!AbpsMod.running()) return;
+        String trimmed = input.trim();
+        if (trimmed.startsWith("confirm ")) {
+            // Clicked a chat button
+            if (!service().runToken(trimmed.substring(8).trim())) Service.send(s, "<red>That button has expired.");
+            return;
+        }
+        String[] parts = trimmed.split("\\s+");
+        Entry e = lookup.get(parts[0].toLowerCase(Locale.ROOT));
+        if (e == null) {
+            Service.send(s, "<red>Unknown command. Type <yellow>!Help</yellow> for a list.");
+            return;
+        }
+        if (e.admin() && !isAdmin(s)) {
+            Service.send(s, "<red>You don't have permission for that.");
+            return;
+        }
+        String[] args = Arrays.copyOfRange(parts, 1, parts.length);
+        try {
+            run(s, e.name, args);
+        } catch (Exception ex) {
+            Service.send(s, "<red>That command failed. Check the server log.");
+            AbpsMod.LOGGER.warn("Command {} failed", e.name, ex);
+        }
+    }
+
+    private static ServerPlayer needPlayer(CommandSourceStack s) {
+        ServerPlayer p = s.getPlayer();
+        if (p == null) Service.send(s, "<red>Only players can use this.");
+        return p;
+    }
+
+    private static void run(CommandSourceStack s, String name, String[] args) {
+        Service sv = service();
+        ServerPlayer self = s.getPlayer();
+        switch (name) {
+            case "Help" -> help(s);
+            case "Menu" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                if (Service.hasMod(p)) ServerPlayNetworking.send(p, new Net.OpenMenuPayload("overview"));
+                else {
+                    sv.showInfo(s, p);
+                    Service.raw(s, "<gray>Install <gold>AbpsMod</gold> on your game to get the full menu.");
+                }
+            }
+            case "Attribute" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) sv.showInfo(s, p);
+            }
+            case "Attributes" -> listAll(s);
+            case "Upgrade" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) sv.promptUpgrade(p);
+            }
+            case "Road" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                if (Service.hasMod(p)) ServerPlayNetworking.send(p, new Net.OpenMenuPayload("road"));
+                else road(s, p);
+            }
+            case "Top" -> top(s, args);
+            case "RollAttribute" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) sv.promptReroll(p);
+            }
+            case "Cooldowns" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) cooldowns(p);
+            }
+            case "Cast" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                if (args.length < 1 || !args[0].matches("[1-5]")) {
+                    Service.send(s, "<red>Use: !Cast 1, 2, 3, 4 or 5 (5 is your ultimate)");
+                    return;
+                }
+                sv.cast(p, Integer.parseInt(args[0]));
+            }
+            case "Ult" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) sv.cast(p, AttributeClass.ULTIMATE);
+            }
+            case "Hud" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                PlayerData d = sv.data(p);
+                d.hud = !d.hud;
+                AbpsMod.data().save(p, d);
+                sv.sync(p, true);
+                Service.send(s, "Cooldown display is now " + (d.hud ? "<green>on" : "<red>off") + "<gray>.");
+            }
+            // ---- Teleports ----
+            case "SetHome" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.setHome(p, args.length > 0 ? args[0] : "home");
+            }
+            case "Home" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.home(p, args.length > 0 ? args[0] : null);
+            }
+            case "Homes" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.listHomes(p);
+            }
+            case "DelHome" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.delHome(p, args.length > 0 ? args[0] : null);
+            }
+            case "TpRequest", "TpaHere" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                if (args.length < 1) {
+                    Service.send(s, "<red>Use: !" + name + " <player>");
+                    return;
+                }
+                ServerPlayer t = onePlayer(s, args[0]);
+                if (t != null) Teleports.request(p, t, name.equals("TpaHere"));
+            }
+            case "TpAccept" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.accept(p, args.length > 0 ? strip(args[0]) : null);
+            }
+            case "TpDeny" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.deny(p, args.length > 0 ? strip(args[0]) : null);
+            }
+            case "TpCancel" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.cancel(p);
+            }
+            case "Spawn" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.spawn(p);
+            }
+            case "Back" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.back(p);
+            }
+            // ---- Admin ----
+            case "GiveAttribute" -> giveAttribute(s, args);
+            case "GiveUpgrade" -> giveUpgrade(s, args);
+            case "GiveUlt" -> {
+                for (ServerPlayer t : targets(s, args, true)) {
+                    PlayerData d = sv.data(t);
+                    d.ultLockUntil = 0;
+                    sv.addUltCharge(t, d, 100000, true);
+                    Service.send(s, "<green>Charged " + t.getName().getString() + "'s ultimate.");
+                }
+            }
+            case "ForceRoll" -> {
+                for (ServerPlayer t : targets(s, args, false)) {
+                    sv.roll(t, true);
+                    Service.send(s, "<green>Rolled a new attribute for " + t.getName().getString() + ".");
+                }
+            }
+            case "ResetPlayer" -> {
+                for (ServerPlayer t : targets(s, args, false)) {
+                    PlayerData d = sv.data(t);
+                    d.rerolls = 0;
+                    d.abilitiesUsed = 0;
+                    sv.setAttribute(t, null, 1);
+                    sv.roll(t, true);
+                    Service.send(s, "<green>Reset " + t.getName().getString() + ".");
+                }
+            }
+            case "CheckAttribute" -> {
+                for (ServerPlayer t : targets(s, args, false)) {
+                    sv.showInfo(s, t);
+                    PlayerData d = sv.data(t);
+                    Service.raw(s, " <gray>Rerolls used: <white>" + d.rerolls + " <gray>Abilities used: <white>" + d.abilitiesUsed
+                            + " <gray>Homes: <white>" + d.homes.size());
+                }
+            }
+            case "Stats" -> {
+                for (ServerPlayer t : targets(s, args, true)) stats(s, t);
+            }
+            case "ResetCooldown" -> {
+                for (ServerPlayer t : targets(s, args, true)) {
+                    PlayerData d = sv.data(t);
+                    Arrays.fill(d.cooldownEnd, 0);
+                    sv.sync(t, true);
+                    Service.send(s, "<green>Cleared cooldowns for " + t.getName().getString() + ".");
+                }
+            }
+            case "NoCooldown" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                PlayerData d = sv.data(p);
+                d.noCooldown = !d.noCooldown;
+                sv.sync(p, true);
+                Service.send(s, "No cooldown mode is now " + (d.noCooldown ? "<green>on" : "<red>off") + "<gray>.");
+            }
+            case "GiveRollCost" -> {
+                Cost cost = AbpsMod.config().rerollCost();
+                for (ServerPlayer t : targets(s, args, true)) {
+                    cost.give(t);
+                    Service.send(s, "<green>Gave " + t.getName().getString() + " " + cost.describe(null) + "<green>.");
+                }
+            }
+            case "ClearCombat" -> {
+                if (args.length < 1) {
+                    Service.send(s, "<red>Use: !ClearCombat <player>");
+                    return;
+                }
+                String who = strip(args[0]);
+                ServerPlayer t = AbpsMod.server().getPlayerList().getPlayerByName(who);
+                if (t != null) sv.data(t).combatUntil = 0;
+                var profile = t != null ? t.getUUID() : offlineId(who);
+                boolean unbanned = profile != null && AbpsMod.state().unban(profile);
+                Service.send(s, "<green>Cleared combat for " + who + (unbanned ? " and removed their lockout." : "."));
+            }
+            case "SetSpawn" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) Teleports.setSpawn(p);
+            }
+            case "Debug" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                PlayerData d = sv.data(p);
+                d.debug = !d.debug;
+                Service.send(s, "Debug is now " + (d.debug ? "<green>on" : "<red>off") + "<gray>.");
+            }
+            case "SaveAll" -> {
+                int n = 0;
+                for (ServerPlayer p : AbpsMod.server().getPlayerList().getPlayers()) {
+                    AbpsMod.data().save(p, sv.data(p));
+                    n++;
+                }
+                AbpsMod.state().saveNow();
+                Service.send(s, "<green>Saved data for " + n + " players.");
+            }
+            case "Reload" -> {
+                AbpsMod.reloadConfig();
+                for (ServerPlayer p : AbpsMod.server().getPlayerList().getPlayers()) {
+                    sv.reapply(p);
+                    sv.sendCatalog(p);
+                }
+                Service.send(s, "<green>Config reloaded.");
+            }
+            default -> Service.send(s, "<red>Unknown command.");
+        }
+    }
+
+    /** Finds a lockout by name for players who are offline, using the leaderboard. */
+    private static java.util.UUID offlineId(String name) {
+        for (ServerState.Entry e : AbpsMod.state().top(null, Integer.MAX_VALUE)) {
+            if (e.name().equalsIgnoreCase(name)) return e.id();
+        }
+        return null;
+    }
+
+    private static String strip(String raw) {
+        return raw.startsWith("@") ? raw.substring(1) : raw;
+    }
+
+    private static ServerPlayer onePlayer(CommandSourceStack s, String raw) {
+        ServerPlayer p = AbpsMod.server().getPlayerList().getPlayerByName(strip(raw));
+        if (p == null) Service.send(s, "<red>Player not found: " + raw);
+        return p;
+    }
+
+    /**
+     * Reads a player argument. Supports @Name, Name, @s (you), @a (everyone) and @r (random).
+     * When optional is true and no argument is given, it uses the sender.
+     */
+    private static List<ServerPlayer> targets(CommandSourceStack s, String[] args, boolean optional) {
+        List<ServerPlayer> out = new ArrayList<>();
+        if (args.length == 0) {
+            if (optional && s.getPlayer() != null) out.add(s.getPlayer());
+            else Service.send(s, "<red>You need to name a player. Example: @Steve");
+            return out;
+        }
+        String name = strip(args[0]);
+        List<ServerPlayer> online = AbpsMod.server().getPlayerList().getPlayers();
+        switch (name.toLowerCase(Locale.ROOT)) {
+            case "s", "me" -> {
+                if (s.getPlayer() != null) out.add(s.getPlayer());
+            }
+            case "a", "all" -> out.addAll(online);
+            case "r", "random" -> {
+                if (!online.isEmpty()) out.add(online.get(ThreadLocalRandom.current().nextInt(online.size())));
+            }
+            default -> {
+                ServerPlayer p = AbpsMod.server().getPlayerList().getPlayerByName(name);
+                if (p != null) out.add(p);
+            }
+        }
+        if (out.isEmpty()) Service.send(s, "<red>Player not found: " + args[0]);
+        return out;
+    }
+
+    // ================= Output =================
+    private static void help(CommandSourceStack s) {
+        boolean admin = isAdmin(s);
+        Service.raw(s, Service.LINE);
+        Service.raw(s, " <gradient:#FFD54F:#FF8F00><bold>AbpsMod Commands</bold></gradient> <dark_gray>(click one to fill it in)");
+        String[][] groups = {{"attr", "<gold><bold>Attributes"}, {"tp", "<aqua><bold>Teleports"}, {"admin", "<red><bold>Admin / Testing"}};
+        for (String[] g : groups) {
+            if (g[0].equals("admin") && !admin) continue;
+            Service.raw(s, " " + g[1]);
+            for (Entry e : entries) if (e.group.equals(g[0])) s.sendSystemMessage(helpLine(e));
+        }
+        ServerPlayer p = s.getPlayer();
+        if (p != null) {
+            Service.raw(s, " <light_purple><bold>Ability keys");
+            for (int i = 1; i <= 5; i++) {
+                Service.raw(s, "  <yellow>" + service().keyName(p, i) + " <dark_gray>- <gray>" + (i == 5 ? "Ultimate (charge it by hurting players)"
+                        : "Ability " + i + ", unlocks at level " + AbpsMod.config().unlockLevel(i)));
+            }
+        }
+        Service.raw(s, Service.LINE);
+    }
+
+    private static MutableComponent helpLine(Entry e) {
+        String usage = "!" + e.name + (e.args.isEmpty() ? "" : " " + e.args);
+        String aliases = e.aliases.length == 0 ? "" : "\n<dark_gray>Also: !" + String.join(", !", e.aliases);
+        return Text.mm("  <yellow>" + usage + " <dark_gray>- <gray>" + e.desc).withStyle(st -> st
+                .withHoverEvent(new HoverEvent.ShowText(Text.mm("<gray>Click to type <yellow>" + usage + aliases)))
+                .withClickEvent(new ClickEvent.SuggestCommand("!" + e.name + (e.args.isEmpty() ? "" : " "))));
+    }
+
+    private static void listAll(CommandSourceStack s) {
+        Service.raw(s, Service.LINE);
+        Service.raw(s, " <gradient:#FFD54F:#FF8F00><bold>All Attributes</bold></gradient> <dark_gray>(hover for info)");
+        for (AttributeClass c : Classes.all()) {
+            MutableComponent line = Text.mm("  " + c.colored(c.symbol()) + " " + c.display() + " <dark_gray>- <gray>" + c.tagline());
+            line.withStyle(st -> st.withHoverEvent(new HoverEvent.ShowText(Text.mm(service().classHover(c, 1)))));
+            s.sendSystemMessage(line);
+        }
+        Service.raw(s, Service.LINE);
+    }
+
+    private static void road(CommandSourceStack s, ServerPlayer p) {
+        PlayerData d = service().data(p);
+        AttributeClass c = service().cls(d);
+        if (c == null) {
+            Service.send(s, "<red>You don't have an attribute.");
+            return;
+        }
+        Service.raw(s, Service.LINE);
+        Service.raw(s, " " + c.gradient("<bold>Level Road</bold>") + " <gray>- " + c.name());
+        for (int i = 2; i <= 4; i++) {
+            int lvl = AbpsMod.config().unlockLevel(i);
+            Service.raw(s, "  " + (d.level >= lvl ? "<green>✔" : "<red>✖") + " <gray>Level " + lvl + ": <yellow>" + c.abilityName(i));
+        }
+        int max = AbpsMod.config().maxLevel;
+        Service.raw(s, "  " + (d.level >= max ? "<green>✔" : "<red>✖") + " <gray>Level " + max + ": <gold>Mastery <gray>- " + c.mastery());
+        Service.raw(s, "  <gray>Every level makes your passives stronger and cooldowns shorter.");
+        Service.raw(s, Service.LINE);
+    }
+
+    private static void top(CommandSourceStack s, String[] args) {
+        AttributeClass filter = null;
+        if (args.length > 0) {
+            filter = Classes.find(String.join("", args));
+            if (filter == null) {
+                Service.send(s, "<red>Unknown attribute.");
+                return;
+            }
+        }
+        ServerPlayer p = s.getPlayer();
+        if (p != null && Service.hasMod(p)) {
+            service().sendBoard(p, filter == null ? "" : filter.id());
+            ServerPlayNetworking.send(p, new Net.OpenMenuPayload("top"));
+            return;
+        }
+        var list = AbpsMod.state().top(filter == null ? null : filter.id(), 10);
+        Service.raw(s, Service.LINE);
+        Service.raw(s, " <gradient:#FFD54F:#FF8F00><bold>Top Players</bold></gradient>" + (filter == null ? "" : " <gray>- " + filter.display()));
+        if (list.isEmpty()) Service.raw(s, "  <gray>Nobody yet.");
+        String[] medals = {"<#FFD700>①", "<#C0C0C0>②", "<#CD7F32>③"};
+        int rank = 0;
+        for (var e : list) {
+            AttributeClass c = Classes.get(e.classId());
+            if (c == null) continue;
+            String place = rank < 3 ? medals[rank] : "<gray>" + (rank + 1) + ".";
+            boolean max = e.level() >= AbpsMod.config().maxLevel;
+            Service.raw(s, "  " + place + " <white>" + e.name() + " <dark_gray>- " + c.colored(c.symbol() + " " + c.name())
+                    + " <gray>Lv <white>" + e.level() + (max ? " <gold>★" : ""));
+            rank++;
+        }
+        Service.raw(s, Service.LINE);
+    }
+
+    private static void cooldowns(ServerPlayer p) {
+        PlayerData d = service().data(p);
+        AttributeClass c = service().cls(d);
+        if (c == null) {
+            service().send(p, "<red>You don't have an attribute.");
+            return;
+        }
+        service().send(p, "<gold>Cooldowns" + (d.noCooldown ? " <red>(no cooldown mode is on)" : ""));
+        for (int i = 1; i <= AttributeClass.ABILITIES; i++) {
+            String state;
+            if (!service().unlocked(d, i)) state = "<dark_gray>Locked (level " + AbpsMod.config().unlockLevel(i) + ")";
+            else {
+                long left = d.cooldownLeft(i);
+                state = left > 0 ? "<red>" + Text.time(left) : "<green>Ready";
+            }
+            service().raw(p, "  <yellow>[" + service().keyName(p, i) + "] " + c.colored(c.abilityName(i)) + " <dark_gray>- " + state);
+        }
+        service().raw(p, "  <light_purple>[" + service().keyName(p, 5) + "] " + c.colored(c.abilityName(5)) + " <dark_gray>- "
+                + (d.ultCharge >= 1 ? "<gold>READY" : "<gray>" + Math.round(d.ultCharge * 100) + "% charged"));
+    }
+
+    private static void giveAttribute(CommandSourceStack s, String[] args) {
+        if (args.length < 2) {
+            Service.send(s, "<red>Use: !GiveAttribute @player <attribute>");
+            return;
+        }
+        AttributeClass c = Classes.find(String.join("", Arrays.copyOfRange(args, 1, args.length)));
+        if (c == null) {
+            List<String> names = new ArrayList<>();
+            for (AttributeClass x : Classes.all()) names.add(x.name());
+            Service.send(s, "<red>Unknown attribute. Options: <gray>" + String.join(", ", names));
+            return;
+        }
+        for (ServerPlayer t : targets(s, args, false)) {
+            service().setAttribute(t, c, 1);
+            service().send(t, "You were given " + c.display() + "<gray>.");
+            if (t != s.getPlayer()) Service.send(s, "<green>Gave " + t.getName().getString() + " " + c.name() + ".");
+        }
+    }
+
+    private static void giveUpgrade(CommandSourceStack s, String[] args) {
+        int max = AbpsMod.config().maxLevel;
+        if (args.length < 2) {
+            Service.send(s, "<red>Use: !GiveUpgrade @player <1-" + max + ">");
+            return;
+        }
+        int level;
+        try {
+            level = Integer.parseInt(args[1]);
+        } catch (NumberFormatException ex) {
+            Service.send(s, "<red>That is not a number.");
+            return;
+        }
+        if (level < 1 || level > max) {
+            Service.send(s, "<red>Level must be from 1 to " + max + ".");
+            return;
+        }
+        for (ServerPlayer t : targets(s, args, false)) {
+            if (service().cls(t) == null) {
+                Service.send(s, "<red>" + t.getName().getString() + " has no attribute.");
+                continue;
+            }
+            service().setLevel(t, level);
+            service().send(t, "Your attribute is now level <green>" + level + "<gray>.");
+            if (t != s.getPlayer()) Service.send(s, "<green>Set " + t.getName().getString() + " to level " + level + ".");
+        }
+    }
+
+    private static void stats(CommandSourceStack s, ServerPlayer t) {
+        PlayerData d = service().data(t);
+        AttributeClass c = service().cls(d);
+        Service.raw(s, Service.LINE);
+        Service.raw(s, " <gold><bold>Stats for " + t.getName().getString() + "</bold> <gray>" + (c == null ? "(none)" : c.name() + " Lv " + d.level));
+        stat(s, t, "Max Health", Attributes.MAX_HEALTH);
+        stat(s, t, "Walk Speed", Attributes.MOVEMENT_SPEED);
+        stat(s, t, "Attack Damage", Attributes.ATTACK_DAMAGE);
+        stat(s, t, "Attack Speed", Attributes.ATTACK_SPEED);
+        stat(s, t, "Armor", Attributes.ARMOR);
+        stat(s, t, "Knockback Resist", Attributes.KNOCKBACK_RESISTANCE);
+        stat(s, t, "Fall Damage Mult", Attributes.FALL_DAMAGE_MULTIPLIER);
+        stat(s, t, "Safe Fall", Attributes.SAFE_FALL_DISTANCE);
+        stat(s, t, "Jump Power", Attributes.JUMP_STRENGTH);
+        stat(s, t, "Block Reach", Attributes.BLOCK_INTERACTION_RANGE);
+        stat(s, t, "Break Speed", Attributes.BLOCK_BREAK_SPEED);
+        stat(s, t, "Underwater Mining", Attributes.SUBMERGED_MINING_SPEED);
+        stat(s, t, "Water Movement", Attributes.WATER_MOVEMENT_EFFICIENCY);
+        stat(s, t, "Burn Time", Attributes.BURNING_TIME);
+        stat(s, t, "Size", Attributes.SCALE);
+        List<String> buffs = new ArrayList<>();
+        for (String key : d.buffs.keySet()) if (d.buff(key)) buffs.add(key + " " + Text.time(d.buffLeft(key)));
+        Service.raw(s, " <gray>Buffs: <white>" + (buffs.isEmpty() ? "none" : String.join(", ", buffs)));
+        Service.raw(s, " <gray>Ultimate: <white>" + Math.round(d.ultCharge * 100) + "% <gray>In combat: <white>" + d.inCombat()
+                + " <gray>No CD: <white>" + d.noCooldown + " <gray>Minions: <white>" + d.minions.size()
+                + " <gray>Has mod: <white>" + Service.hasMod(t));
+        Service.raw(s, Service.LINE);
+    }
+
+    private static void stat(CommandSourceStack s, ServerPlayer t, String label, Holder<Attribute> attribute) {
+        AttributeInstance inst = t.getAttribute(attribute);
+        if (inst == null) return;
+        long ours = inst.getModifiers().stream().filter(m -> m.id().getNamespace().equals(AbpsMod.MOD_ID)).count();
+        Service.raw(s, "  <gray>" + label + ": <white>" + String.format(Locale.ROOT, "%.3f", inst.getValue())
+                + " <dark_gray>(base " + String.format(Locale.ROOT, "%.3f", inst.getBaseValue())
+                + (ours > 0 ? ", " + ours + " from attribute" : "") + ")");
+    }
+}
