@@ -36,7 +36,7 @@ import net.minecraft.world.entity.monster.skeleton.AbstractSkeleton;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 
@@ -205,9 +205,13 @@ public final class Necromancer extends AttributeClass {
         Fx.sound(level, at, SoundEvents.GENERIC_EXPLODE, 0.5f, 1.6f);
     }
 
-    private ItemStack dyedHelmet() {
+    /**
+     * A helmet nobody can see. It has no armor model, so the minion looks bare, but the slot is still filled
+     * which is what keeps undead from burning in the sun.
+     */
+    private ItemStack hiddenHelmet() {
         ItemStack helmet = new ItemStack(Items.LEATHER_HELMET);
-        helmet.set(DataComponents.DYED_COLOR, new DyedItemColor(rgb()));
+        helmet.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.HEAD).build());
         return helmet;
     }
 
@@ -245,8 +249,8 @@ public final class Necromancer extends AttributeClass {
         if (mob == null) return;
         mob.snapTo(at.x, at.y, at.z, p.getYRot(), 0);
         boolean skeleton = mob instanceof AbstractSkeleton;
-        // The helmet also stops them burning in the sun
-        equip(mob, dyedHelmet(), skeleton ? new ItemStack(Items.BOW) : null);
+        // The hidden helmet also stops them burning in the sun
+        equip(mob, hiddenHelmet(), skeleton ? new ItemStack(Items.BOW) : null);
         if (!finish(p, d, mob, p.getName().getString() + "'s Minion", minionHealth(d.level), minionDamage(d.level), lifeMs)) return;
         Fx.burst(level, ParticleTypes.SOUL, at.add(0, 0.5, 0), 15, 0.3, 0.5, 0.3, 0.03);
         Fx.burst(level, ParticleTypes.SCULK_SOUL, at.add(0, 0.2, 0), 6, 0.3, 0.1, 0.3, 0.02);
@@ -338,9 +342,7 @@ public final class Necromancer extends AttributeClass {
         Mob knight = EntityTypes.WITHER_SKELETON.create(level, EntitySpawnReason.MOB_SUMMONED);
         if (knight == null) return false;
         knight.snapTo(at.x, at.y, at.z, p.getYRot(), 0);
-        equip(knight, new ItemStack(Items.NETHERITE_HELMET), new ItemStack(Items.NETHERITE_SWORD));
-        knight.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.NETHERITE_CHESTPLATE));
-        knight.setDropChance(EquipmentSlot.CHEST, 0f);
+        equip(knight, hiddenHelmet(), new ItemStack(Items.NETHERITE_SWORD));
         Mods.setBase(knight, Attributes.SCALE, 1.4);
         Mods.setBase(knight, Attributes.KNOCKBACK_RESISTANCE, 0.8);
         if (!finish(p, d, knight, p.getName().getString() + "'s Death Knight", knightHealth(d.level), knightDamage(d.level), 45_000)) {

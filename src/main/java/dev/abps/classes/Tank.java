@@ -38,14 +38,14 @@ public final class Tank extends AttributeClass {
     @Override public String tagline() { return "Hard to move. Harder to kill."; }
     @Override public String mastery() { return "Take 40% less damage while under 30% health."; }
 
-    private double bonusHp(int lvl) { return Math.round(lerp(lvl, 6, 12)); }
-    private double kb(int lvl) { return lerp(lvl, 0.40, 0.80); }
-    private double reduction(int lvl) { return lerp(lvl, 0.10, 0.18); }
-    private double thorns(int lvl) { return lerp(lvl, 0.20, 0.40); }
-    private double fortifyTime(int lvl) { return lerp(lvl, 7, 10); }
-    private double bashDamage(int lvl) { return lerp(lvl, 6, 10); }
-    private double unbreakableTime(int lvl) { return lerp(lvl, 6, 9); }
-    private double stompDamage(int lvl) { return lerp(lvl, 4, 6); }
+    private double bonusHp(int lvl) { return Math.round(lerp(lvl, 10, 20)); }
+    private double kb(int lvl) { return lerp(lvl, 0.60, 1.00); }
+    private double reduction(int lvl) { return lerp(lvl, 0.15, 0.25); }
+    private double thorns(int lvl) { return lerp(lvl, 0.30, 0.60); }
+    private double fortifyTime(int lvl) { return lerp(lvl, 10, 14); }
+    private double bashDamage(int lvl) { return lerp(lvl, 10, 16); }
+    private double unbreakableTime(int lvl) { return lerp(lvl, 8, 12); }
+    private double stompDamage(int lvl) { return lerp(lvl, 7, 11); }
 
     @Override
     public List<String> passives(int lvl) {
@@ -62,8 +62,8 @@ public final class Tank extends AttributeClass {
     @Override
     public List<String> negatives() {
         return List.of(
-                "Walk speed x0.9",
-                "Attack speed x0.9",
+                "Walk speed x0.95",
+                "Attack speed x0.95",
                 "Too heavy to fly with an Elytra");
     }
 
@@ -81,9 +81,9 @@ public final class Tank extends AttributeClass {
     @Override
     public String abilityDesc(int idx, int lvl) {
         return switch (idx) {
-            case 1 -> "Get Resistance II and " + (lvl >= 15 ? "4" : "2") + " hearts of Absorption for " + num(fortifyTime(lvl)) + "s.";
+            case 1 -> "Get Resistance II and " + (lvl >= 15 ? "8" : "4") + " hearts of Absorption for " + num(fortifyTime(lvl)) + "s.";
             case 2 -> "Pull enemies within 8 blocks to you and make mobs attack you. Gain up to 8 hearts of Absorption.";
-            case 3 -> "Charge forward. The first enemy you hit takes " + num(bashDamage(lvl)) + " damage, gets knocked back and can't move for 1.5s.";
+            case 3 -> "Charge forward. The first enemy you hit takes " + num(bashDamage(lvl)) + " damage, gets knocked back and can't move for 2s.";
             case 4 -> "For " + num(unbreakableTime(lvl)) + "s take 70% less damage, can't be knocked back and reflect 50% of melee damage.";
             default -> "Grow into a giant for 10s. You can't be knocked back, and every second you stomp the ground for "
                     + num(stompDamage(lvl)) + " damage, knocking enemies away.";
@@ -93,10 +93,10 @@ public final class Tank extends AttributeClass {
     @Override
     public double baseCooldown(int idx) {
         return switch (idx) {
-            case 1 -> 40;
-            case 2 -> 30;
-            case 3 -> 16;
-            default -> 180;
+            case 1 -> 28;
+            case 2 -> 22;
+            case 3 -> 11;
+            default -> 70;
         };
     }
 
@@ -104,8 +104,8 @@ public final class Tank extends AttributeClass {
     public void applyStatic(ServerPlayer p, PlayerData d) {
         Mods.set(p, Attributes.MAX_HEALTH, "tank_hp", bonusHp(d.level), Mods.ADD);
         Mods.set(p, Attributes.KNOCKBACK_RESISTANCE, "tank_kb", kb(d.level), Mods.ADD);
-        Mods.set(p, Attributes.MOVEMENT_SPEED, "tank_speed", -0.1, Mods.MULT);
-        Mods.set(p, Attributes.ATTACK_SPEED, "tank_atkspeed", -0.1, Mods.MULT);
+        Mods.set(p, Attributes.MOVEMENT_SPEED, "tank_speed", -0.05, Mods.MULT);
+        Mods.set(p, Attributes.ATTACK_SPEED, "tank_atkspeed", -0.05, Mods.MULT);
         Mods.set(p, Attributes.EXPLOSION_KNOCKBACK_RESISTANCE, "tank_blast", 1.0, Mods.ADD);
     }
 
@@ -156,7 +156,7 @@ public final class Tank extends AttributeClass {
     protected boolean ability1(ServerPlayer p, PlayerData d) {
         int ticks = (int) (fortifyTime(d.level) * 20);
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
-        p.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, ticks, d.level >= 15 ? 1 : 0));
+        p.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, ticks, d.level >= 15 ? 3 : 1));
         ServerLevel level = level(p);
         Fx.sound(level, p, SoundEvents.ARMOR_EQUIP_NETHERITE, 1f, 0.7f);
         Fx.sound(level, p, SoundEvents.ANVIL_PLACE, 0.5f, 1.4f);
@@ -211,7 +211,7 @@ public final class Tank extends AttributeClass {
             for (LivingEntity e : Targets.enemiesNear(p, p.position(), 1.8)) {
                 hit[0] = true;
                 Targets.damage(e, dmg, p);
-                Targets.root(e, 30);
+                Targets.root(e, 40);
                 Targets.velocity(e, fdir.scale(1.2).add(0, 0.35, 0));
                 Fx.burst(level, ParticleTypes.EXPLOSION, e.position().add(0, 1, 0), 1, 0, 0);
                 Fx.sound(level, e, SoundEvents.SHIELD_BLOCK.value(), 1f, 0.6f);
@@ -250,7 +250,7 @@ public final class Tank extends AttributeClass {
         Tasks.schedule(20, 20, 10, step -> {
             if (p.isRemoved() || !p.isAlive()) return;
             Vec3 c = p.position();
-            for (LivingEntity e : Targets.enemiesNear(p, c, 5)) {
+            for (LivingEntity e : Targets.enemiesNear(p, c, 6)) {
                 Targets.damage(e, dmg, p);
                 Targets.pushAway(c, e, 1.0, 0.45);
             }

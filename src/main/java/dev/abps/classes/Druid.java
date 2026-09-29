@@ -48,7 +48,7 @@ public final class Druid extends AttributeClass {
             Blocks.ROOTED_DIRT, Blocks.MOSS_CARPET, Blocks.SHORT_GRASS, Blocks.TALL_GRASS, Blocks.FERN, Blocks.FARMLAND);
     private static final List<Holder<MobEffect>> BAD = List.of(MobEffects.POISON, MobEffects.WITHER, MobEffects.SLOWNESS,
             MobEffects.WEAKNESS, MobEffects.BLINDNESS, MobEffects.DARKNESS, MobEffects.HUNGER, MobEffects.NAUSEA, MobEffects.MINING_FATIGUE);
-    private static final double ZONE_RADIUS = 5;
+    private static final double ZONE_RADIUS = 6;
 
     @Override public String id() { return "druid"; }
     @Override public String name() { return "Druid"; }
@@ -59,35 +59,37 @@ public final class Druid extends AttributeClass {
     @Override public String tagline() { return "Nature heals you and your friends."; }
     @Override public String mastery() { return "Rejuvenate also clears bad effects and gives 4 hearts of Absorption."; }
 
-    private double regen(int lvl) { return lerp(lvl, 0.40, 1.00); }
+    private double regen(int lvl) { return lerp(lvl, 0.60, 1.20); }
+    private double bonusHp(int lvl) { return Math.round(lerp(lvl, 4, 8)); }
+    private double poisonBonus(int lvl) { return lerp(lvl, 0.15, 0.30); }
     private double cropChance(int lvl) { return lerp(lvl, 0.30, 0.65); }
-    private double grassEvery(int lvl) { return lerp(lvl, 4, 2); }
-    private double healAmount(int lvl) { return lerp(lvl, 8, 14); }
-    private double zoneTime(int lvl) { return lerp(lvl, 6, 9); }
-    private double zoneDamage(int lvl) { return lerp(lvl, 1.5, 3.0); }
-    private int wolfCount(int lvl) { return lvl >= 18 ? 4 : 3; }
-    private double wolfTime(int lvl) { return lerp(lvl, 30, 45); }
-    private double wolfDamage(int lvl) { return lerp(lvl, 4, 7); }
-    private double wrathDamage(int lvl) { return lerp(lvl, 7, 11); }
-    private double treeDamage(int lvl) { return lerp(lvl, 2, 3); }
+    private double grassEvery(int lvl) { return lerp(lvl, 2.5, 1); }
+    private double healAmount(int lvl) { return lerp(lvl, 12, 20); }
+    private double zoneTime(int lvl) { return lerp(lvl, 8, 12); }
+    private double zoneDamage(int lvl) { return lerp(lvl, 3, 5); }
+    private int wolfCount(int lvl) { return lvl >= 18 ? 5 : 4; }
+    private double wolfTime(int lvl) { return lerp(lvl, 40, 60); }
+    private double wolfDamage(int lvl) { return lerp(lvl, 6, 10); }
+    private double wrathDamage(int lvl) { return lerp(lvl, 12, 18); }
+    private double treeDamage(int lvl) { return lerp(lvl, 4, 6); }
 
     @Override
     public List<String> passives(int lvl) {
         return List.of(
                 "Heal " + pct(regen(lvl)) + " faster from food",
-                "Standing on grass or moss heals 1/2 heart every " + num(grassEvery(lvl)) + "s",
-                "Players near you heal 1/2 heart every 5s",
+                "Standing on grass or moss heals 1 heart every " + num(grassEvery(lvl)) + "s",
+                "Players near you heal 1 heart every 3s",
+                "+" + num(bonusHp(lvl) / 2) + " hearts max health",
+                "Deal +" + pct(poisonBonus(lvl)) + " damage to poisoned enemies",
                 "Crops near you grow on their own",
-                "Enemies that hit you in melee get poisoned for 2s",
+                "Enemies that hit you in melee get poisoned for 4s",
                 pct(cropChance(lvl)) + " chance for double crop drops",
                 "Immune to Poison and Hunger");
     }
 
     @Override
     public List<String> negatives() {
-        return List.of(
-                "Deal 15% less melee damage",
-                "Take 20% more damage in the Nether");
+        return List.of("Take 20% more damage in the Nether");
     }
 
     @Override
@@ -104,13 +106,13 @@ public final class Druid extends AttributeClass {
     @Override
     public String abilityDesc(int idx, int lvl) {
         return switch (idx) {
-            case 1 -> "Heal you and players within 10 blocks for " + num(healAmount(lvl) / 2) + " hearts.";
+            case 1 -> "Heal you and players within 10 blocks for " + num(healAmount(lvl) / 2) + " hearts, then Regeneration II for 5s.";
             case 2 -> "Grow thorns around you for " + num(zoneTime(lvl)) + "s. Enemies inside are slowed and take "
                     + num(zoneDamage(lvl)) + " damage a second. You regenerate inside.";
             case 3 -> "Call " + wolfCount(lvl) + " wolves that fight for you for " + num(wolfTime(lvl)) + "s. They deal " + num(wolfDamage(lvl)) + " damage.";
             case 4 -> "Roots burst from the ground. Enemies within 8 blocks take " + num(wrathDamage(lvl))
-                    + " damage, get poisoned and can't move for 3s. Players nearby heal 6 hearts.";
-            default -> "Grow a giant tree for 10s. Players within 8 blocks heal 1 heart a second. Enemies are slowed, poisoned and take "
+                    + " damage, get Poison II and can't move for 3s. Players nearby heal 8 hearts and get Regeneration II.";
+            default -> "Grow a giant tree for 10s. Players within 8 blocks heal 1 heart a second and get Regeneration II and Resistance I. Enemies are slowed, poisoned and take "
                     + num(treeDamage(lvl)) + " damage a second.";
         };
     }
@@ -118,10 +120,10 @@ public final class Druid extends AttributeClass {
     @Override
     public double baseCooldown(int idx) {
         return switch (idx) {
-            case 1 -> 35;
-            case 2 -> 40;
-            case 3 -> 60;
-            default -> 180;
+            case 1 -> 25;
+            case 2 -> 30;
+            case 3 -> 45;
+            default -> 75;
         };
     }
 
@@ -136,8 +138,13 @@ public final class Druid extends AttributeClass {
     }
 
     @Override
+    public void applyStatic(ServerPlayer p, PlayerData d) {
+        Mods.set(p, Attributes.MAX_HEALTH, "druid_hp", bonusHp(d.level), Mods.ADD);
+    }
+
+    @Override
     public double outgoing(ServerPlayer p, PlayerData d, LivingEntity victim, Hit hit) {
-        return hit.melee() ? 0.85 : 1;
+        return victim.hasEffect(MobEffects.POISON) ? 1 + poisonBonus(d.level) : 1;
     }
 
     @Override
@@ -149,7 +156,7 @@ public final class Druid extends AttributeClass {
     public void afterDamaged(ServerPlayer p, PlayerData d, DamageSource source, float taken) {
         if (Targets.abilityDamage || source.is(DamageTypeTags.IS_PROJECTILE)) return;
         if (source.getDirectEntity() instanceof LivingEntity att && att != p) {
-            att.addEffect(new MobEffectInstance(MobEffects.POISON, 40, 0));
+            att.addEffect(new MobEffectInstance(MobEffects.POISON, 80, 0));
         }
     }
 
@@ -165,12 +172,12 @@ public final class Druid extends AttributeClass {
         ServerLevel level = level(p);
         int every = (int) Math.round(grassEvery(d.level) * 4); // tick runs 4 times a second
         if (d.tickCount % every == 0 && onNature(p) && p.getHealth() < maxHp(p)) {
-            heal(p, 1);
+            heal(p, 2);
             Fx.burst(level, ParticleTypes.HAPPY_VILLAGER, p.position().add(0, 0.3, 0), 4, 0.3, 0.1, 0.3, 0);
         }
-        if (d.tickCount % 20 == 0) {
+        if (d.tickCount % 12 == 0) {
             for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, p.getBoundingBox().inflate(6))) {
-                if (other != p && other.isAlive() && other.gameMode() != GameType.SPECTATOR && other.getHealth() < maxHp(other)) heal(other, 1);
+                if (other != p && other.isAlive() && other.gameMode() != GameType.SPECTATOR && other.getHealth() < maxHp(other)) heal(other, 2);
             }
         }
         if (d.tickCount % 20 == 10) growCrops(p);
@@ -233,7 +240,7 @@ public final class Druid extends AttributeClass {
         for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, p.getBoundingBox().inflate(10))) {
             if (other.gameMode() == GameType.SPECTATOR || !other.isAlive()) continue;
             heal(other, amount);
-            other.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 0));
+            other.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1));
             if (mastered(d)) {
                 for (Holder<MobEffect> bad : BAD) other.removeEffect(bad);
                 other.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 600, 1));
@@ -284,10 +291,10 @@ public final class Druid extends AttributeClass {
             wolf.tame(p);
             wolf.setCustomName(dev.abps.util.Text.mm(gradient(p.getName().getString() + "'s Wolf")));
             wolf.setCustomNameVisible(false);
-            Mods.setBase(wolf, Attributes.MAX_HEALTH, 30);
+            Mods.setBase(wolf, Attributes.MAX_HEALTH, 40);
             Mods.setBase(wolf, Attributes.ATTACK_DAMAGE, wolfDamage(d.level));
             Mods.scaleBase(wolf, Attributes.MOVEMENT_SPEED, 1.2);
-            wolf.setHealth(30);
+            wolf.setHealth(40);
             Targets.markMinion(wolf, p.getUUID());
             level.addFreshEntity(wolf);
             d.minions.put(wolf.getUUID(), until);
@@ -314,7 +321,8 @@ public final class Druid extends AttributeClass {
         }
         for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, p.getBoundingBox().inflate(8))) {
             if (other.gameMode() == GameType.SPECTATOR || !other.isAlive()) continue;
-            heal(other, 12);
+            heal(other, 16);
+            other.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1));
             Fx.burst(level, ParticleTypes.HEART, other.position().add(0, 2, 0), 4, 0.4, 0.3, 0.4, 0);
         }
         Tasks.repeat(6, 1, step -> Fx.ring(level, ParticleTypes.HAPPY_VILLAGER, c, 1.5 + step * 1.3, 12 + step * 8));
@@ -351,6 +359,8 @@ public final class Druid extends AttributeClass {
             for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, new net.minecraft.world.phys.AABB(base, base).inflate(8))) {
                 if (other.gameMode() == GameType.SPECTATOR || !other.isAlive()) continue;
                 heal(other, 2);
+                other.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 60, 1));
+                other.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 60, 0));
                 Fx.burst(level, ParticleTypes.HEART, other.position().add(0, 2, 0), 1, 0.3, 0);
             }
             for (LivingEntity e : Targets.enemiesNear(p, base, 8)) {

@@ -45,14 +45,15 @@ public final class Pyromancer extends AttributeClass {
 
     private double fireResist(int lvl) { return lerp(lvl, 0.70, 1.00); }
     private double lavaResist(int lvl) { return lerp(lvl, 0.40, 0.70); }
-    private double igniteChance(int lvl) { return lerp(lvl, 0.30, 0.55); }
-    private double burnBonus(int lvl) { return lerp(lvl, 0.15, 0.35); }
+    private double igniteChance(int lvl) { return lerp(lvl, 0.50, 0.80); }
+    private double burnBonus(int lvl) { return lerp(lvl, 0.25, 0.50); }
     private double netherBonus(int lvl) { return lerp(lvl, 0.15, 0.25); }
-    private double fireballDamage(int lvl) { return lerp(lvl, 7, 11); }
-    private double novaDamage(int lvl) { return lerp(lvl, 6, 10); }
-    private double popDamage(int lvl) { return lerp(lvl, 3, 6); }
-    private double meteorDamage(int lvl) { return lerp(lvl, 12, 18); }
-    private double infernoDamage(int lvl) { return lerp(lvl, 3, 4.5); }
+    private double fireballDamage(int lvl) { return lerp(lvl, 10, 15); }
+    private double novaDamage(int lvl) { return lerp(lvl, 10, 15); }
+    private double popDamage(int lvl) { return lerp(lvl, 5, 9); }
+    private double dashDamage(int lvl) { return lerp(lvl, 6, 9); }
+    private double meteorDamage(int lvl) { return lerp(lvl, 20, 28); }
+    private double infernoDamage(int lvl) { return lerp(lvl, 5, 8); }
 
     @Override
     public List<String> passives(int lvl) {
@@ -60,7 +61,7 @@ public final class Pyromancer extends AttributeClass {
                 "Take " + pct(fireResist(lvl)) + " less fire damage and " + pct(lavaResist(lvl)) + " less lava damage",
                 pct(igniteChance(lvl)) + " chance to set targets on fire when you hit them",
                 "Deal +" + pct(burnBonus(lvl)) + " damage to burning targets",
-                "Heat aura: enemies within 3 blocks of you catch fire",
+                "Heat aura: enemies within 4 blocks of you catch fire",
                 "Burning enemies explode when they die for " + num(popDamage(lvl)) + " damage",
                 "Your arrows are on fire and you burn for half as long",
                 "Deal +" + pct(netherBonus(lvl)) + " damage in the Nether");
@@ -68,9 +69,7 @@ public final class Pyromancer extends AttributeClass {
 
     @Override
     public List<String> negatives() {
-        return List.of(
-                "Water and rain hurt you (they can't kill you)",
-                "-1 heart max health");
+        return List.of("Water and rain hurt you (they can't kill you)");
     }
 
     @Override
@@ -88,10 +87,10 @@ public final class Pyromancer extends AttributeClass {
     public String abilityDesc(int idx, int lvl) {
         return switch (idx) {
             case 1 -> "Shoot a fireball for " + num(fireballDamage(lvl)) + " damage. It bursts and burns enemies near where it lands. It never sets blocks on fire.";
-            case 2 -> "Burn all enemies within 6 blocks for " + num(novaDamage(lvl)) + " damage and set them on fire.";
-            case 3 -> "Dash forward in a trail of fire. Enemies you pass take 4 damage and burn.";
-            case 4 -> "Call a meteor where you look. After 1.5s it hits everything within 5 blocks for " + num(meteorDamage(lvl)) + " damage. It does not break blocks.";
-            default -> "Become a living firestorm for 6s. Everything within 7 blocks burns and takes "
+            case 2 -> "Burn all enemies within 7 blocks for " + num(novaDamage(lvl)) + " damage and set them on fire.";
+            case 3 -> "Dash forward in a trail of fire. Enemies you pass take " + num(dashDamage(lvl)) + " damage and burn.";
+            case 4 -> "Call a meteor where you look. After 1.5s it hits everything within 6 blocks for " + num(meteorDamage(lvl)) + " damage. It does not break blocks.";
+            default -> "Become a living firestorm for 6s. Everything within 8 blocks burns and takes "
                     + num(infernoDamage(lvl)) + " damage every second. You can't be hurt by fire.";
         };
     }
@@ -99,16 +98,15 @@ public final class Pyromancer extends AttributeClass {
     @Override
     public double baseCooldown(int idx) {
         return switch (idx) {
-            case 1 -> 5;
-            case 2 -> 30;
-            case 3 -> 14;
-            default -> 180;
+            case 1 -> 4;
+            case 2 -> 22;
+            case 3 -> 10;
+            default -> 60;
         };
     }
 
     @Override
     public void applyStatic(ServerPlayer p, PlayerData d) {
-        Mods.set(p, Attributes.MAX_HEALTH, "pyro_hp", -2, Mods.ADD);
         Mods.set(p, Attributes.BURNING_TIME, "pyro_burn", -0.5, Mods.MULT);
     }
 
@@ -116,7 +114,7 @@ public final class Pyromancer extends AttributeClass {
     public void tick(ServerPlayer p, PlayerData d) {
         if (d.tickCount % 8 != 0) return; // every 2 seconds
         ServerLevel level = level(p);
-        for (LivingEntity e : Targets.enemiesNear(p, p.position(), 3)) {
+        for (LivingEntity e : Targets.enemiesNear(p, p.position(), 4)) {
             if (e.getRemainingFireTicks() < 40) e.igniteForSeconds(3);
         }
         GameType gm = p.gameMode();
@@ -231,13 +229,13 @@ public final class Pyromancer extends AttributeClass {
         Vec3 c = p.position();
         ServerLevel level = level(p);
         double dmg = novaDamage(d.level);
-        for (LivingEntity e : Targets.enemiesNear(p, c, 6)) {
+        for (LivingEntity e : Targets.enemiesNear(p, c, 7)) {
             Targets.damage(e, dmg, p);
             e.igniteForSeconds(6);
             Targets.pushAway(c, e, 0.5, 0.3);
         }
         Tasks.repeat(6, 1, step -> {
-            Fx.ring(level, ParticleTypes.FLAME, c, 1 + step, 10 + step * 10);
+            Fx.ring(level, ParticleTypes.FLAME, c, 1 + step * 1.2, 10 + step * 10);
             if (step % 2 == 0) Fx.ring(level, Fx.dust(0xFF3D00, 1.3f), c.add(0, 0.3, 0), 1 + step, 8 + step * 6);
         });
         Fx.burst(level, ParticleTypes.LAVA, c, 12, 2, 0.3, 2, 0);
@@ -261,7 +259,7 @@ public final class Pyromancer extends AttributeClass {
             Fx.burst(level, Fx.dust(0xFFD600, 1f), at.add(0, 0.8, 0), 3, 0.2, 0);
             for (LivingEntity e : Targets.enemiesNear(p, at, 1.8)) {
                 if (!burned.add(e.getUUID())) continue;
-                Targets.damage(e, 4, p);
+                Targets.damage(e, dashDamage(d.level), p);
                 e.igniteForSeconds(5);
             }
         });
@@ -284,11 +282,11 @@ public final class Pyromancer extends AttributeClass {
                 Fx.burst(level, ParticleTypes.FLAME, at, 14, 0.4, 0.02);
                 Fx.burst(level, ParticleTypes.LARGE_SMOKE, at, 4, 0.3, 0.01);
                 Fx.burst(level, Fx.dust(0xFF3D00, 2f), at, 6, 0.5, 0);
-                if (step % 5 == 0) Fx.ring(level, ParticleTypes.FLAME, target, 5, 30);
+                if (step % 5 == 0) Fx.ring(level, ParticleTypes.FLAME, target, 6, 34);
                 return;
             }
             if (p.isRemoved()) return;
-            for (LivingEntity e : Targets.enemiesNear(p, target, 5)) {
+            for (LivingEntity e : Targets.enemiesNear(p, target, 6)) {
                 Targets.damage(e, dmg, p);
                 e.igniteForSeconds(7);
                 Targets.pushAway(target, e, 1.1, 0.6);
@@ -318,9 +316,9 @@ public final class Pyromancer extends AttributeClass {
             // Two flame spirals spinning around the player
             Fx.spiral(level, ParticleTypes.FLAME, c, 2.5, 3.5, 30, step * 0.6);
             Fx.spiral(level, Fx.dust(0xFF3D00, 1.4f), c, 4, 2, 24, -step * 0.6);
-            Fx.ring(level, ParticleTypes.FLAME, c, 7, 36);
+            Fx.ring(level, ParticleTypes.FLAME, c, 8, 40);
             if (step % 4 != 0) return;
-            for (LivingEntity e : Targets.enemiesNear(p, c, 7)) {
+            for (LivingEntity e : Targets.enemiesNear(p, c, 8)) {
                 Targets.damage(e, dmg, p);
                 e.igniteForSeconds(4);
             }
