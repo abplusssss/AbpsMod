@@ -19,6 +19,9 @@ public final class ClientPrefs {
     public boolean screenTint = true;
     public boolean showBanners = true;
     public float hudScale = 1.0f;
+    /** Where the HUD panel sits, or -1 for the default corner. Set by dragging it in the HUD editor. */
+    public int hudX = -1;
+    public int hudY = -1;
 
     public static ClientPrefs get() {
         if (instance == null) load();

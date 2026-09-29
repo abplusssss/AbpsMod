@@ -24,6 +24,7 @@ public final class MenuScreen extends Screen {
         ROAD("Level Road", "minecraft:experience_bottle"),
         CLASSES("Attributes", "minecraft:book"),
         TOP("Top Players", "minecraft:totem_of_undying"),
+        KEYBINDS("Keybinds", "minecraft:tripwire_hook"),
         SETTINGS("Settings", "minecraft:comparator"),
         ADMIN("Admin", "minecraft:command_block"); // only shown to operators
 
@@ -56,8 +57,11 @@ public final class MenuScreen extends Screen {
     private String pendingKey = "";
     private long pendingAt;
 
-    // Layout, worked out in init()
+    // Layout, worked out in init() and layout()
     private int px, py, pw, ph, cx, cy, cw, ch;
+    private int baseX, baseY;
+    private double offX, offY;
+    private boolean draggingWindow;
 
     public MenuScreen(String tab) {
         super(Component.literal("AbpsMod"));
@@ -67,6 +71,7 @@ public final class MenuScreen extends Screen {
             case "classes", "attributes" -> this.tab = Tab.CLASSES;
             case "top" -> this.tab = Tab.TOP;
             case "settings" -> this.tab = Tab.SETTINGS;
+            case "keybinds", "keys" -> this.tab = Tab.KEYBINDS;
             case "admin" -> this.tab = Tab.ADMIN;
             case "confirm_upgrade" -> confirm = "upgrade";
             case "confirm_reroll" -> confirm = "reroll";
@@ -81,8 +86,15 @@ public final class MenuScreen extends Screen {
     protected void init() {
         pw = Math.min(width - 16, 420);
         ph = Math.min(height - 16, 260);
-        px = (width - pw) / 2;
-        py = (height - ph) / 2;
+        baseX = (width - pw) / 2;
+        baseY = (height - ph) / 2;
+        layout();
+    }
+
+    /** Works out where everything goes. The window can be dragged by its title bar, which moves the offset. */
+    private void layout() {
+        px = Math.max(0, Math.min(width - pw, baseX + (int) Math.round(offX)));
+        py = Math.max(0, Math.min(height - ph, baseY + (int) Math.round(offY)));
         cx = px + 96;
         cy = py + 30;
         cw = pw - 96 - 8;
@@ -112,6 +124,7 @@ public final class MenuScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
         super.extractRenderState(g, mx, my, pt);
+        layout();
         buttons.clear();
         Net.SyncPayload s = ClientState.sync;
         Net.ClassInfo c = ClientState.myClass();
@@ -160,7 +173,7 @@ public final class MenuScreen extends Screen {
         // Content
         if (s == null || !AbpsClient.connected()) {
             Draw.centered(g, "<gray>This server doesn't run AbpsMod, or it's still loading.", cx + cw / 2, cy + ch / 2 - 4);
-        } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN) {
+        } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN && tab != Tab.KEYBINDS) {
             Draw.centered(g, "<gray>Loading your attribute...", cx + cw / 2, cy + ch / 2 - 4);
         } else {
             g.enableScissor(cx, cy, cx + cw, cy + ch);
@@ -174,6 +187,7 @@ public final class MenuScreen extends Screen {
                 case CLASSES -> classes(g, mmx, mmy, top);
                 case TOP -> top(g, mmx, mmy, top);
                 case SETTINGS -> settings(g, mmx, mmy, s, top);
+                case KEYBINDS -> keybinds(g, c, top);
                 case ADMIN -> admin(g, mmx, mmy, s, top);
             };
             g.disableScissor();
@@ -467,7 +481,11 @@ public final class MenuScreen extends Screen {
         int x = cx + 6, y = y0 + 4;
         y = section(g, "Display", 0x00E5FF, x, y);
         y = toggle(g, mx, my, x, y, "Show the ability HUD", s.hud(), () -> AbpsClient.send("toggle_hud", ""));
-        y = toggle(g, mx, my, x, y, "HUD on the right side", prefs.hudOnRight, () -> prefs.hudOnRight = !prefs.hudOnRight);
+        y = toggle(g, mx, my, x, y, "HUD on the right side", prefs.hudOnRight, () -> {
+            prefs.hudOnRight = !prefs.hudOnRight;
+            prefs.hudX = -1;
+            prefs.hudY = -1;
+        });
         y = toggle(g, mx, my, x, y, "Big banners for rolls and ultimates", prefs.showBanners, () -> prefs.showBanners = !prefs.showBanners);
         Draw.text(g, "<white>HUD size", x, y + 5);
         float[] sizes = {0.75f, 1f, 1.25f};
@@ -481,6 +499,9 @@ public final class MenuScreen extends Screen {
                     });
             bx += 34;
         }
+        y += 22;
+        button(g, mx, my, x, y, cw - 16, 18, "✥ Move the HUD panel", 0x00E5FF, true,
+                () -> Minecraft.getInstance().gui.setScreen(new HudEditScreen()));
         y += 22;
         y = section(g, "Effects", 0xFF4081, x, y + 4);
         y = toggle(g, mx, my, x, y, "Screen shake", prefs.screenShake, () -> prefs.screenShake = !prefs.screenShake);
@@ -506,6 +527,48 @@ public final class MenuScreen extends Screen {
             ClientPrefs.get().save();
         }));
         return y + 20;
+    }
+
+    // ================= Keybinds tab =================
+
+    private static String fullKey(int idx) {
+        var key = AbpsClient.ABILITY_KEYS[idx - 1];
+        return key == null ? Hud.keyLabel(idx) : key.getTranslatedKeyMessage().getString();
+    }
+
+    private void keycap(GuiGraphicsExtractor g, int x, int y, String label, int color) {
+        int w = Math.max(22, Draw.font().width(label) + 12);
+        Draw.framed(g, x, y, w, 18, 0xFF15151C, Draw.opaque(color));
+        g.fill(x + 2, y + 15, x + w - 2, y + 16, Draw.argb(color, 0x60));
+        Draw.plain(g, label, x + (w - Draw.font().width(label)) / 2, y + 5, 0xFFFFFFFF);
+    }
+
+    private int keyRow(GuiGraphicsExtractor g, int x, int y, int w, String key, String title, String note, int color) {
+        Draw.panel(g, x, y, w, 24, 0x60000000);
+        keycap(g, x + 4, y + 3, key, color);
+        Draw.text(g, "<white>" + title, x + 70, y + 4);
+        Draw.text(g, "<gray>" + note, x + 70, y + 14);
+        return y + 26;
+    }
+
+    private int keybinds(GuiGraphicsExtractor g, Net.ClassInfo c, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        int c1 = c == null ? 0x00E5FF : c.color();
+        y = section(g, "Ability keys", c1, x, y);
+        for (int i = 1; i <= 5; i++) {
+            String name = c == null ? "Ability " + i : c.abilityNames().get(i - 1);
+            String note = i == 5 ? "Ultimate. Charges by hitting players" : ClientState.unlocked(i) ? "Ability " + i : "Ability " + i + " (locked)";
+            y = keyRow(g, x, y, w, fullKey(i), name, note, i == 5 ? 0xFFD54F : c1);
+        }
+        y = section(g, "Menu and movement", 0x69F0AE, x + 0, y + 4);
+        y = keyRow(g, x, y, w, AbpsClient.menuKey.getTranslatedKeyMessage().getString(), "Open this menu", "Press it again or Esc to close", 0x69F0AE);
+        y = keyRow(g, x, y, w, Minecraft.getInstance().options.keyJump.getTranslatedKeyMessage().getString(), "Double jump",
+                "Press again in the air (Windwalker only)", 0x69F0AE);
+        y = section(g, "Chat commands", 0xFF9800, x, y + 4);
+        y += Draw.wrapped(g, "<gray>Everything also works from chat. Type <white>!Help</white> for the list or <white>/abps</white> and press Tab. "
+                + "Commands like <white>/home</white>, <white>/tpa</white> and <white>/spawn</white> are real commands too.", x, y, w, Draw.MUTED) + 6;
+        Draw.wrapped(g, "<dark_gray>Change any key in Options > Controls > Key Binds > AbpsMod.", x, y, w, Draw.DIM);
+        return y - y0 + 26;
     }
 
     // ================= Admin tab =================
@@ -743,8 +806,30 @@ public final class MenuScreen extends Screen {
                 confirm = "";
                 return true;
             }
+            // Grab the title bar to move the window
+            if (Draw.inside(e.x(), e.y(), px, py, pw, 24)) {
+                draggingWindow = true;
+                return true;
+            }
         }
         return super.mouseClicked(e, doubleClick);
+    }
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent e, double dx, double dy) {
+        if (!draggingWindow) return super.mouseDragged(e, dx, dy);
+        offX += dx;
+        offY += dy;
+        return true;
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent e) {
+        if (draggingWindow) {
+            draggingWindow = false;
+            return true;
+        }
+        return super.mouseReleased(e);
     }
 
     @Override

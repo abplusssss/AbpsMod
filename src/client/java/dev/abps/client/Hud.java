@@ -24,12 +24,21 @@ public final class Hud implements HudElement {
             ClientPrefs prefs = ClientPrefs.get();
             float scale = Math.max(0.5f, Math.min(1.5f, prefs.hudScale));
             g.pose().pushMatrix();
-            int x = prefs.hudOnRight ? (int) (g.guiWidth() / scale) - WIDTH - 4 : 4;
+            int[] pos = position(prefs, scale, g.guiWidth(), g.guiHeight());
             g.pose().scale(scale, scale);
-            panel(g, s, c, x, 4);
+            panel(g, s, c, pos[0], pos[1]);
             g.pose().popMatrix();
         }
         banners(g);
+    }
+
+    /** Where the panel is drawn, in the scaled coordinates the panel uses. Custom spot if it was dragged, otherwise a corner. */
+    public static int[] position(ClientPrefs prefs, float scale, int guiWidth, int guiHeight) {
+        int maxX = Math.max(0, (int) (guiWidth / scale) - WIDTH);
+        int maxY = Math.max(0, (int) (guiHeight / scale) - 96);
+        int x = prefs.hudX >= 0 ? prefs.hudX : prefs.hudOnRight ? maxX - 4 : 4;
+        int y = prefs.hudY >= 0 ? prefs.hudY : 4;
+        return new int[]{Math.max(0, Math.min(maxX, x)), Math.max(0, Math.min(maxY, y))};
     }
 
     public static String keyLabel(int idx) {
