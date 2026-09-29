@@ -41,10 +41,8 @@ public final class Windwalker extends AttributeClass {
     @Override public String mastery() { return "Double jump twice before landing."; }
 
     private double jumpCooldown(int lvl) { return lerp(lvl, 4, 1.5); }
-    private double fallReduce(int lvl) { return lerp(lvl, 0.30, 0.60); }
     private double jump(int lvl) { return lerp(lvl, 0.08, 0.15); }
     private double dodge(int lvl) { return lerp(lvl, 0.12, 0.25); }
-    private double floatTime(int lvl) { return lerp(lvl, 5, 8); }
     private double updraftDamage(int lvl) { return lerp(lvl, 3, 5); }
     private double gustDamage(int lvl) { return lerp(lvl, 5, 8); }
     private double tailwindTime(int lvl) { return lerp(lvl, 8, 12); }
@@ -55,8 +53,7 @@ public final class Windwalker extends AttributeClass {
     public List<String> passives(int lvl) {
         return List.of(
                 "Double jump (press jump in the air) every " + num(jumpCooldown(lvl)) + "s",
-                "No fall damage after a double jump",
-                "Take " + pct(fallReduce(lvl)) + " less fall damage",
+                "You never take fall damage",
                 pct(dodge(lvl)) + " chance to dodge melee hits and arrows",
                 "Your arrows fly straight with no drop for 2s",
                 "Your melee hits knock enemies back further",
@@ -84,12 +81,12 @@ public final class Windwalker extends AttributeClass {
     @Override
     public String abilityDesc(int idx, int lvl) {
         return switch (idx) {
-            case 1 -> "Launch into the air and fall slowly for " + num(floatTime(lvl)) + "s. Enemies near you get thrown up and take " + num(updraftDamage(lvl)) + " damage.";
+            case 1 -> "Launch high into the air. Enemies near you get thrown up and take " + num(updraftDamage(lvl)) + " damage.";
             case 2 -> "Blast enemies in front of you away and deal " + num(gustDamage(lvl)) + " damage.";
             case 3 -> "Get Speed II and Jump Boost II for " + num(tailwindTime(lvl)) + "s.";
             case 4 -> "Make a tornado where you look for 5s. It pulls enemies in, lifts them and deals " + num(tornadoDamage(lvl)) + " damage every half second.";
             default -> "Rise into the sky. For 6s lightning strikes an enemy within 14 blocks every second for "
-                    + num(boltDamage(lvl)) + " damage. You float down gently.";
+                    + num(boltDamage(lvl)) + " damage. You take no fall damage.";
         };
     }
 
@@ -106,7 +103,6 @@ public final class Windwalker extends AttributeClass {
     @Override
     public void applyStatic(ServerPlayer p, PlayerData d) {
         Mods.set(p, Attributes.MAX_HEALTH, "wind_hp", -2, Mods.ADD);
-        Mods.set(p, Attributes.FALL_DAMAGE_MULTIPLIER, "wind_fall", -fallReduce(d.level), Mods.ADD);
         Mods.set(p, Attributes.JUMP_STRENGTH, "wind_jump", jump(d.level), Mods.MULT);
     }
 
@@ -162,6 +158,7 @@ public final class Windwalker extends AttributeClass {
 
     @Override
     public boolean allowDamage(ServerPlayer p, PlayerData d, DamageSource source) {
+        if (source.is(DamageTypeTags.IS_FALL)) return false;
         boolean dodgeable = source.is(DamageTypeTags.IS_PROJECTILE) || source.getDirectEntity() instanceof LivingEntity;
         if (!dodgeable || source.is(DamageTypeTags.IS_EXPLOSION) || rand() >= dodge(d.level)) return true;
         ServerLevel level = level(p);
@@ -200,8 +197,6 @@ public final class Windwalker extends AttributeClass {
             Targets.velocity(e, new Vec3(e.getDeltaMovement().x, 1.0, e.getDeltaMovement().z));
         }
         Targets.velocity(p, new Vec3(p.getDeltaMovement().x, 1.4, p.getDeltaMovement().z));
-        p.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, (int) (floatTime(d.level) * 20), 0));
-        d.noFallUntil = now() + (long) (floatTime(d.level) * 1000) + 2000;
         Fx.burst(level, ParticleTypes.GUST, c, 1, 0, 0);
         Fx.spiral(level, ParticleTypes.CLOUD, c, 2, 4, 40, 0);
         Fx.sound(level, c, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), 1f, 1f);
@@ -270,8 +265,6 @@ public final class Windwalker extends AttributeClass {
     protected boolean ultimate(ServerPlayer p, PlayerData d) {
         ServerLevel level = level(p);
         Targets.velocity(p, new Vec3(0, 1.3, 0));
-        p.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 180, 0));
-        d.noFallUntil = now() + 12_000;
         Fx.sound(level, p, SoundEvents.LIGHTNING_BOLT_THUNDER, 1f, 1.4f);
         double dmg = boltDamage(d.level);
         Tasks.repeat(24, 5, step -> {
