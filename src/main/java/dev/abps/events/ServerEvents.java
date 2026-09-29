@@ -253,6 +253,9 @@ public final class ServerEvents {
     }
 
     // ================= Menu buttons and client actions =================
+    private static final java.util.Set<String> VANILLA_ADMIN = java.util.Set.of(
+            "gamemode", "time", "weather", "kick", "ban", "op", "deop", "tp", "kill");
+
     private static void action(ServerPlayer p, String action, String arg) {
         Service s = AbpsMod.service();
         PlayerData d = data(p);
@@ -274,6 +277,28 @@ public final class ServerEvents {
             case "airjump" -> {
                 AttributeClass c = s.cls(d);
                 if (c != null && !p.onGround() && !p.getAbilities().flying && !p.isInWater()) c.onAirJump(p, d);
+            }
+            case "admin" -> {
+                // Menu Admin tab: runs one of the mod's operator commands as this player
+                var src = p.createCommandSourceStack();
+                if (!Commands.isAdmin(src)) {
+                    s.actionBar(p, "<red>Only operators can do that.");
+                    return;
+                }
+                String label = arg.trim().split("\\s+")[0];
+                if (Commands.isAdminCommand(label)) Commands.handle(src, arg);
+            }
+            case "vanilla" -> {
+                // Menu Admin tab: a short list of vanilla operator commands. Vanilla still checks the player's own permissions.
+                var src = p.createCommandSourceStack();
+                if (!Commands.isAdmin(src)) {
+                    s.actionBar(p, "<red>Only operators can do that.");
+                    return;
+                }
+                String root = arg.trim().split("\\s+")[0].toLowerCase(java.util.Locale.ROOT);
+                if (VANILLA_ADMIN.contains(root) && arg.matches("[A-Za-z0-9_@ .:\\-]{1,100}")) {
+                    AbpsMod.server().getCommands().performPrefixedCommand(src, arg);
+                }
             }
             case "home" -> Teleports.home(p, arg.isEmpty() ? null : arg);
             case "spawn" -> Teleports.spawn(p);

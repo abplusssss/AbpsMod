@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /** The !Menu screen. Everything here is drawn by hand so it matches the HUD. */
@@ -23,7 +24,8 @@ public final class MenuScreen extends Screen {
         ROAD("Level Road", "minecraft:experience_bottle"),
         CLASSES("Attributes", "minecraft:book"),
         TOP("Top Players", "minecraft:totem_of_undying"),
-        SETTINGS("Settings", "minecraft:comparator");
+        SETTINGS("Settings", "minecraft:comparator"),
+        ADMIN("Admin", "minecraft:command_block"); // only shown to operators
 
         final String label, icon;
 
@@ -46,6 +48,14 @@ public final class MenuScreen extends Screen {
     private String boardFilter = "";
     private long openedAt = System.currentTimeMillis();
 
+    // Admin tab state
+    private String adminTarget = "@s";
+    private String adminClass = "";
+    private int adminLevel = 10;
+    private String adminSent = "";
+    private String pendingKey = "";
+    private long pendingAt;
+
     // Layout, worked out in init()
     private int px, py, pw, ph, cx, cy, cw, ch;
 
@@ -57,6 +67,7 @@ public final class MenuScreen extends Screen {
             case "classes", "attributes" -> this.tab = Tab.CLASSES;
             case "top" -> this.tab = Tab.TOP;
             case "settings" -> this.tab = Tab.SETTINGS;
+            case "admin" -> this.tab = Tab.ADMIN;
             case "confirm_upgrade" -> confirm = "upgrade";
             case "confirm_reroll" -> confirm = "reroll";
             default -> {
@@ -125,7 +136,10 @@ public final class MenuScreen extends Screen {
 
         // Tabs down the left side
         int ty = py + 30;
+        boolean isAdmin = s != null && s.admin();
+        if (tab == Tab.ADMIN && !isAdmin) tab = Tab.OVERVIEW; // lost operator status while the menu was open
         for (Tab t : Tab.values()) {
+            if (t == Tab.ADMIN && !isAdmin) continue;
             boolean active = t == tab;
             boolean hover = Draw.inside(mx, my, px + 6, ty, 84, 22);
             if (active) {
@@ -146,7 +160,7 @@ public final class MenuScreen extends Screen {
         // Content
         if (s == null || !AbpsClient.connected()) {
             Draw.centered(g, "<gray>This server doesn't run AbpsMod, or it's still loading.", cx + cw / 2, cy + ch / 2 - 4);
-        } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS) {
+        } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN) {
             Draw.centered(g, "<gray>Loading your attribute...", cx + cw / 2, cy + ch / 2 - 4);
         } else {
             g.enableScissor(cx, cy, cx + cw, cy + ch);
@@ -160,6 +174,7 @@ public final class MenuScreen extends Screen {
                 case CLASSES -> classes(g, mmx, mmy, top);
                 case TOP -> top(g, mmx, mmy, top);
                 case SETTINGS -> settings(g, mmx, mmy, s, top);
+                case ADMIN -> admin(g, mmx, mmy, s, top);
             };
             g.disableScissor();
             // Scroll bar
@@ -491,6 +506,180 @@ public final class MenuScreen extends Screen {
             ClientPrefs.get().save();
         }));
         return y + 20;
+    }
+
+    // ================= Admin tab =================
+
+    private record Act(String label, int color, boolean enabled, boolean danger, Runnable run) {
+    }
+
+    private int chipWidth(String label) {
+        return Draw.font().width(Text.mm(label)) + 10;
+    }
+
+    private void chip(GuiGraphicsExtractor g, int mx, int my, int x, int y, String label, boolean on, int color, Runnable action) {
+        int w = chipWidth(label);
+        boolean hover = Draw.inside(mx, my, x, y, w, 16);
+        Draw.framed(g, x, y, w, 16, on ? Draw.argb(color, 0x70) : hover ? 0x40FFFFFF : 0xC0101016, on ? Draw.opaque(color) : 0xFF33333D);
+        Draw.text(g, (on ? "<white>" : "<gray>") + label, x + 5, y + 4);
+        buttons.add(new Btn(x, y, w, 16, action));
+    }
+
+    /** Draws chips left to right and wraps to a new line. Returns the y below the last row. */
+    private int chips(GuiGraphicsExtractor g, int mx, int my, int x, int y, int width, List<String> labels, List<Boolean> on,
+                      int color, List<Runnable> actions) {
+        int fx = x;
+        for (int i = 0; i < labels.size(); i++) {
+            int w = chipWidth(labels.get(i));
+            if (fx + w > x + width) {
+                fx = x;
+                y += 18;
+            }
+            chip(g, mx, my, fx, y, labels.get(i), on.get(i), color, actions.get(i));
+            fx += w + 3;
+        }
+        return y + 20;
+    }
+
+    private void sendAdmin(String command) {
+        AbpsClient.send("admin", command);
+        adminSent = "!" + command;
+    }
+
+    private void sendVanilla(String command) {
+        AbpsClient.send("vanilla", command);
+        adminSent = "/" + command;
+    }
+
+    /** A grid of action buttons. Dangerous ones need a second click within 3 seconds. */
+    private int grid(GuiGraphicsExtractor g, int mx, int my, int x, int y, int width, int cols, List<Act> acts) {
+        int gap = 4;
+        int bw = (width - gap * (cols - 1)) / cols;
+        for (int i = 0; i < acts.size(); i++) {
+            Act a = acts.get(i);
+            int bx = x + (i % cols) * (bw + gap);
+            int by = y + (i / cols) * 22;
+            String key = a.label + "|" + adminTarget;
+            boolean armed = a.danger && key.equals(pendingKey) && System.currentTimeMillis() - pendingAt < 3000;
+            Runnable action = !a.danger ? a.run : () -> {
+                if (armed) {
+                    pendingKey = "";
+                    a.run.run();
+                } else {
+                    pendingKey = key;
+                    pendingAt = System.currentTimeMillis();
+                }
+            };
+            button(g, mx, my, bx, by, bw, 18, armed ? "<white><bold>Sure?" : a.label, a.color, a.enabled, action);
+        }
+        return y + ((acts.size() + cols - 1) / cols) * 22 + 2;
+    }
+
+    private int admin(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        if (adminClass.isEmpty() && !s.classId().isEmpty()) adminClass = s.classId();
+        adminLevel = Math.max(1, Math.min(s.maxLevel(), adminLevel));
+
+        // Who the commands are aimed at
+        y = section(g, "Target player", 0xFF5252, x, y);
+        List<String> names = new ArrayList<>();
+        var conn = Minecraft.getInstance().getConnection();
+        if (conn != null) for (var info : conn.getOnlinePlayers()) names.add(info.getProfile().name());
+        Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+        List<String> ids = new ArrayList<>(List.of("@s", "@a", "@r"));
+        List<String> labels = new ArrayList<>(List.of("Me", "Everyone", "Random"));
+        for (String n : names) {
+            ids.add(n);
+            labels.add(n);
+        }
+        List<Boolean> on = new ArrayList<>();
+        List<Runnable> acts = new ArrayList<>();
+        for (String id : ids) {
+            on.add(id.equals(adminTarget));
+            acts.add(() -> adminTarget = id);
+        }
+        y = chips(g, mx, my, x, y, w, labels, on, 0xFF5252, acts);
+
+        // Attribute and level pickers
+        y = section(g, "Attribute and level", 0xFFD54F, x, y + 2);
+        int fx = x;
+        for (Net.ClassInfo info : ClientState.catalog.values()) {
+            boolean picked = info.id().equals(adminClass);
+            boolean hover = Draw.inside(mx, my, fx, y, 18, 18);
+            Draw.framed(g, fx, y, 18, 18, picked ? Draw.argb(info.color(), 0x70) : hover ? 0x40FFFFFF : 0xC0101016,
+                    picked ? Draw.opaque(info.color()) : 0xFF33333D);
+            Draw.item(g, info.icon(), fx + 1, y + 1, 1f);
+            final String id = info.id();
+            buttons.add(new Btn(fx, y, 18, 18, () -> adminClass = id));
+            if (hover) g.setTooltipForNextFrame(Text.mm(Draw.gradient(info.color(), info.color2(), info.name())), mx, my);
+            fx += 20;
+            if (fx + 18 > x + w) {
+                fx = x;
+                y += 20;
+            }
+        }
+        y += 22;
+        Draw.text(g, "<gray>Level</gray> <white><bold>" + adminLevel + "</bold></white><gray> / " + s.maxLevel(), x, y + 4);
+        button(g, mx, my, x + 80, y, 18, 16, "-", 0x777781, true, () -> adminLevel = Math.max(1, adminLevel - 1));
+        button(g, mx, my, x + 100, y, 18, 16, "+", 0x777781, true, () -> adminLevel = Math.min(s.maxLevel(), adminLevel + 1));
+        button(g, mx, my, x + 122, y, 30, 16, "-5", 0x777781, true, () -> adminLevel = Math.max(1, adminLevel - 5));
+        button(g, mx, my, x + 154, y, 30, 16, "+5", 0x777781, true, () -> adminLevel = Math.min(s.maxLevel(), adminLevel + 5));
+        y += 22;
+
+        // Mod commands aimed at the target
+        String t = adminTarget;
+        String named = t.startsWith("@") ? (t.equals("@s") && Minecraft.getInstance().player != null
+                ? Minecraft.getInstance().player.getGameProfile().name() : null) : t;
+        boolean haveClass = !adminClass.isEmpty();
+        y = section(g, "Player actions", 0x00E5FF, x, y);
+        List<Act> player = List.of(
+                new Act("Give Attribute", 0x69F0AE, haveClass, false, () -> sendAdmin("GiveAttribute " + t + " " + adminClass)),
+                new Act("Set Level", 0x69F0AE, true, false, () -> sendAdmin("GiveUpgrade " + t + " " + adminLevel)),
+                new Act("Charge Ultimate", 0xFFD54F, true, false, () -> sendAdmin("GiveUlt " + t)),
+                new Act("Free Roll", 0x7C4DFF, true, false, () -> sendAdmin("ForceRoll " + t)),
+                new Act("Reset Player", 0xFF5252, true, true, () -> sendAdmin("ResetPlayer " + t)),
+                new Act("Inspect", 0x00E5FF, true, false, () -> sendAdmin("CheckAttribute " + t)),
+                new Act("Live Stats", 0x00E5FF, true, false, () -> sendAdmin("Stats " + t)),
+                new Act("Clear Cooldowns", 0x69F0AE, true, false, () -> sendAdmin("ResetCooldown " + t)),
+                new Act("Give Reroll Cost", 0xFFD54F, true, false, () -> sendAdmin("GiveRollCost " + t)),
+                new Act("Clear Combat", 0x69F0AE, named != null, false, () -> sendAdmin("ClearCombat " + named)));
+        y = grid(g, mx, my, x, y, w, 3, player);
+
+        // Commands that don't need a target
+        y = section(g, "Server and testing", 0xFF9800, x, y + 2);
+        List<Act> server = List.of(
+                new Act(s.noCooldown() ? "No Cooldown: ON" : "No Cooldown: off", s.noCooldown() ? 0x69F0AE : 0x777781, true, false, () -> sendAdmin("NoCooldown")),
+                new Act("Debug Mode", 0x777781, true, false, () -> sendAdmin("Debug")),
+                new Act("Set Spawn Here", 0x00E5FF, true, false, () -> sendAdmin("SetSpawn")),
+                new Act("Save All", 0x69F0AE, true, false, () -> sendAdmin("SaveAll")),
+                new Act("Reload Config", 0xFFD54F, true, false, () -> sendAdmin("Reload")));
+        y = grid(g, mx, my, x, y, w, 3, server);
+
+        // A few vanilla operator commands
+        y = section(g, "Vanilla operator tools", 0xB388FF, x, y + 2);
+        List<Act> vanilla = List.of(
+                new Act("Survival", 0x69F0AE, true, false, () -> sendVanilla("gamemode survival " + t)),
+                new Act("Creative", 0x69F0AE, true, false, () -> sendVanilla("gamemode creative " + t)),
+                new Act("Adventure", 0x69F0AE, true, false, () -> sendVanilla("gamemode adventure " + t)),
+                new Act("Spectator", 0x69F0AE, true, false, () -> sendVanilla("gamemode spectator " + t)),
+                new Act("Day", 0xFFD54F, true, false, () -> sendVanilla("time set day")),
+                new Act("Night", 0x5C6BC0, true, false, () -> sendVanilla("time set night")),
+                new Act("Clear Weather", 0x00E5FF, true, false, () -> sendVanilla("weather clear")),
+                new Act("Rain", 0x00E5FF, true, false, () -> sendVanilla("weather rain")),
+                new Act("Thunder", 0x00E5FF, true, false, () -> sendVanilla("weather thunder")),
+                new Act("Bring To Me", 0x7C4DFF, true, false, () -> sendVanilla("tp " + t + " @s")),
+                new Act("Kill", 0xFF5252, true, true, () -> sendVanilla("kill " + t)),
+                new Act("Kick", 0xFF5252, named != null, true, () -> sendVanilla("kick " + named)),
+                new Act("Ban", 0xFF5252, named != null, true, () -> sendVanilla("ban " + named)),
+                new Act("Op", 0xFF9800, named != null, true, () -> sendVanilla("op " + named)),
+                new Act("De-op", 0xFF9800, named != null, true, () -> sendVanilla("deop " + named)));
+        y = grid(g, mx, my, x, y, w, 3, vanilla);
+
+        y += 2;
+        Draw.wrapped(g, adminSent.isEmpty()
+                ? "<dark_gray>Red buttons need a second click. Results show up in chat."
+                : "<gray>Sent <white>" + adminSent + "</white><dark_gray> - results show up in chat.", x, y, w, Draw.DIM);
+        return y - y0 + 24;
     }
 
     private void popup(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c) {

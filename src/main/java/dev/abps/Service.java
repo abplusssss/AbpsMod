@@ -561,11 +561,12 @@ public final class Service {
         Net.SyncPayload payload = new Net.SyncPayload(c == null ? "" : c.id(), d.level, cfg().maxLevel, unlock, left, total,
                 (float) d.ultCharge, Math.max(0, d.ultLockUntil - now), Math.max(0, d.combatUntil - now), d.noCooldown,
                 d.abilitiesUsed, d.rerolls, max ? "" : up.describe(p), !max && up.canAfford(p), re.describe(p),
-                re.canAfford(p), d.hud, d.sidebar, cfg().cooldownReductionAtMax);
+                re.canAfford(p), d.hud, d.sidebar, cfg().cooldownReductionAtMax,
+                dev.abps.command.Commands.isAdmin(p.createCommandSourceStack()));
         // Only send when something the player can see changed (cooldowns tick down on the client)
         int hash = Objects.hash(payload.classId(), payload.level(), Arrays.hashCode(roundUp(left)), Math.round(d.ultCharge * 200),
                 payload.ultLockLeft() / 1000, payload.combatLeft() / 1000, payload.noCooldown(), payload.upgradeCost(),
-                payload.canUpgrade(), payload.rerollCost(), payload.canReroll(), payload.hud(), payload.panel(), d.abilitiesUsed);
+                payload.canUpgrade(), payload.rerollCost(), payload.canReroll(), payload.hud(), payload.panel(), d.abilitiesUsed, payload.admin());
         if (!force && hash == d.lastSyncHash) return;
         d.lastSyncHash = hash;
         ServerPlayNetworking.send(p, payload);

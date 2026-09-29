@@ -129,6 +129,12 @@ public final class Commands {
         return lookup.containsKey(label.toLowerCase(Locale.ROOT));
     }
 
+    /** True for the operator-only commands, used by the menu's Admin tab. */
+    public static boolean isAdminCommand(String label) {
+        Entry e = lookup.get(label.toLowerCase(Locale.ROOT));
+        return e != null && e.admin();
+    }
+
     public static boolean isAdmin(CommandSourceStack s) {
         if (s.getPlayer() == null) return true; // console
         return s.checkPermission(ADMIN, PermissionLevel.GAMEMASTERS);
