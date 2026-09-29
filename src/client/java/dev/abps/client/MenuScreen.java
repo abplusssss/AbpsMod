@@ -541,7 +541,7 @@ public final class MenuScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         dev.abps.AbpsMod.LOGGER.info("[Abps menu] click at {},{} button {} with {} buttons registered, popup='{}'",
                 (int) e.x(), (int) e.y(), e.button(), buttons.size(), confirm);
-        if (e.button() == 0) {
+        if (e.button() == 0 || e.button() == 1) { // left or right click, so swapped mouse buttons still work
             for (Btn b : List.copyOf(buttons)) {
                 if (Draw.inside(e.x(), e.y(), b.x, b.y, b.w, b.h)) {
                     click();
