@@ -272,7 +272,7 @@ public final class Berserker extends AttributeClass {
     protected boolean ultimate(ServerPlayer p, PlayerData d) {
         LivingEntity t = Targets.lookTarget(p, 20);
         if (t == null) {
-            fail(p, "Look at an enemy within 20 blocks.");
+            noTarget(p, 20);
             return false;
         }
         ServerLevel level = level(p);

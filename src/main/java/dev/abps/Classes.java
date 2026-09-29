@@ -8,6 +8,7 @@ import dev.abps.classes.Druid;
 import dev.abps.classes.Miner;
 import dev.abps.classes.Necromancer;
 import dev.abps.classes.Pyromancer;
+import dev.abps.classes.Shark;
 import dev.abps.classes.Tank;
 import dev.abps.classes.Vampire;
 import dev.abps.classes.Windwalker;
@@ -37,6 +38,7 @@ public final class Classes {
         add(new Druid());
         add(new Windwalker());
         add(new Necromancer());
+        add(new Shark());
     }
 
     private static void add(AttributeClass c) {

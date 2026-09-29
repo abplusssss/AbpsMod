@@ -250,8 +250,38 @@ public abstract class AttributeClass {
     // ---- Feedback ----
     protected void fail(ServerPlayer p, String text) {
         lastFail = text;
-        AbpsMod.service().actionBar(p, "<red>" + text);
-        Fx.sound(level(p), p, SoundEvents.NOTE_BLOCK_BASS, 0.7f, 0.8f);
+        AbpsMod.service().actionBar(p, "<gradient:#FF5252:#FF8A65><bold>✖</bold></gradient> <gradient:#FF8A80:#FFCCBC>" + text + "</gradient>");
+        fizzle(p);
+    }
+
+    /** No enemy under the crosshair within range. */
+    protected void noTarget(ServerPlayer p, int range) {
+        lastFail = "Look at a mob or player within " + range + " blocks.";
+        AbpsMod.service().actionBar(p, targetBar("NO TARGET", "Look at a <white>mob</white> or <white>player</white> within " + rangeTag(range) + " blocks"));
+        fizzle(p);
+    }
+
+    /** For abilities that use the last enemy you hit. */
+    protected void noRecentTarget(ServerPlayer p, int range) {
+        lastFail = "Hit someone first. They must be within " + range + " blocks.";
+        AbpsMod.service().actionBar(p, targetBar("NO PREY", "Hit a <white>mob</white> or <white>player</white> first, then stay within " + rangeTag(range) + " blocks"));
+        fizzle(p);
+    }
+
+    private static String rangeTag(int range) {
+        return "<gradient:#FFD54F:#FFAB40><bold>" + range + "</bold></gradient><gray>";
+    }
+
+    private static String targetBar(String title, String hint) {
+        return "<dark_gray>【</dark_gray><gradient:#FF5252:#FF8A65><bold>◎ " + title + "</bold></gradient><dark_gray>】</dark_gray> <gray>" + hint;
+    }
+
+    /** Sound and a little puff of smoke so a failed ability feels like it fizzled. */
+    private void fizzle(ServerPlayer p) {
+        ServerLevel level = level(p);
+        Fx.sound(level, p, SoundEvents.NOTE_BLOCK_BASS, 0.7f, 0.8f);
+        Fx.sound(level, p, SoundEvents.NOTE_BLOCK_CHIME, 0.4f, 0.5f);
+        Fx.burst(level, net.minecraft.core.particles.ParticleTypes.SMOKE, p.getEyePosition().add(p.getLookAngle().scale(0.8)), 6, 0.12, 0.01);
     }
 
     protected void used(ServerPlayer p, int idx) {

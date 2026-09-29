@@ -280,7 +280,7 @@ public final class Necromancer extends AttributeClass {
     protected boolean ability2(ServerPlayer p, PlayerData d) {
         LivingEntity t = Targets.lookTarget(p, 24);
         if (t == null) {
-            fail(p, "Look at a mob or player within 24 blocks.");
+            noTarget(p, 24);
             return false;
         }
         float before = t.getHealth();
@@ -310,7 +310,7 @@ public final class Necromancer extends AttributeClass {
         }
         LivingEntity t = Targets.lookTarget(p, 32);
         if (t == null) {
-            fail(p, "Look at a mob or player within 32 blocks.");
+            noTarget(p, 32);
             return false;
         }
         d.lastHit = t.getUUID();

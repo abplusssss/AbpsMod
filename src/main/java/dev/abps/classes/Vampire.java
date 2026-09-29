@@ -201,7 +201,7 @@ public final class Vampire extends AttributeClass {
     protected boolean ability1(ServerPlayer p, PlayerData d) {
         LivingEntity t = target(p, d.lastMelee, d.lastMeleeTime, 30_000);
         if (t == null) {
-            fail(p, "Hit someone first. They must be within 32 blocks.");
+            noRecentTarget(p, 32);
             return false;
         }
         t.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 20 * 20, 0));

@@ -263,7 +263,7 @@ public final class Assassin extends AttributeClass {
     protected boolean ability4(ServerPlayer p, PlayerData d) {
         LivingEntity t = Targets.lookTarget(p, 24);
         if (t == null) {
-            fail(p, "Look at a mob or player within 24 blocks.");
+            noTarget(p, 24);
             return false;
         }
         blinkBehind(p, t);
