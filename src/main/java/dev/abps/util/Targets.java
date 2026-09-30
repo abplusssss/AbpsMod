@@ -98,6 +98,29 @@ public final class Targets {
     }
 
     /** Where the player is aiming: the block they look at, or a point in the air. */
+    /**
+     * Where an area ability should land: the aimed spot, dropped onto the ground (or the water surface) below it.
+     * Aiming at the sky puts it on the ground ahead of you instead of floating in the air, and aiming at a wall
+     * puts it at the foot of the wall instead of inside it.
+     */
+    public static Vec3 groundPoint(ServerPlayer p, double range) {
+        Vec3 eye = p.getEyePosition();
+        Vec3 end = eye.add(p.getLookAngle().scale(range));
+        net.minecraft.world.phys.BlockHitResult hit = p.level().clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, p));
+        Vec3 at = end;
+        if (hit.getType() == HitResult.Type.BLOCK) {
+            at = hit.getLocation();
+            var face = hit.getDirection();
+            // Step off a wall or ceiling so the drop below starts in open air
+            if (face != net.minecraft.core.Direction.UP) at = at.add(face.getStepX() * 0.5, face.getStepY() * 0.5, face.getStepZ() * 0.5);
+        }
+        net.minecraft.world.phys.BlockHitResult down = p.level().clip(new ClipContext(at.add(0, 0.2, 0), at.add(0, -48, 0),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, p));
+        if (down.getType() == HitResult.Type.BLOCK) return down.getLocation().add(0, 0.05, 0);
+        return new Vec3(at.x, p.getY(), at.z);
+    }
+
+    /** Where a straight line ability ends: the first block it hits, or its full range. */
     public static Vec3 aimPoint(ServerPlayer p, double range) {
         Vec3 eye = p.getEyePosition();
         Vec3 end = eye.add(p.getLookAngle().scale(range));

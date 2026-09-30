@@ -266,7 +266,7 @@ public final class Archer extends AttributeClass {
 
     @Override
     protected boolean ability4(ServerPlayer p, PlayerData d) {
-        Vec3 center = Targets.aimPoint(p, 40);
+        Vec3 center = Targets.groundPoint(p, 40);
         ServerLevel level = level(p);
         Fx.sound(level, center, SoundEvents.CROSSBOW_SHOOT, 1.5f, 0.6f);
         dev.abps.util.Fancy.sigil(level, center, 4.5, 8, 0x9CCC65, 0x00BFA5, 30);
@@ -344,6 +344,11 @@ public final class Archer extends AttributeClass {
         net.minecraft.world.phys.Vec3 look = p.getLookAngle();
         dev.abps.util.Vfx.beam(level, eye.add(look.scale(0.8)).add(0, -0.25, 0), eye.add(look.scale(ult ? 30 : 14)), ult ? 0.16f : 0.07f, dev.abps.util.Vfx.tint(rgb()), 10, rgb());
         dev.abps.util.Vfx.burst(level, eye.add(look.scale(1.2)), dev.abps.util.Vfx.tint(rgb2()), 8, 0.14, 0.1f, 12, rgb2());
+    }
+
+    @Override
+    protected double groundAimRange(int idx) {
+        return idx == 4 ? 40 : 0;
     }
 
     @Override

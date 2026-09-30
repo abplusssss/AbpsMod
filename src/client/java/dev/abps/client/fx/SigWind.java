@@ -49,25 +49,52 @@ final class SigWind {
     private static void gust(Ctx c) {
         Vec3 h = c.eye().add(c.look.scale(0.5));
         Vec3[] uv = axes(c.look);
-        bloom(h, 1.2f, 8, c.c2);
-        // A cone of wind: rings flung forward one after another, growing as they go, with lines racing along the surface of the cone
-        for (int k = 0; k < 5; k++) {
-            int delay = k * 2;
-            at(delay, () -> {
-                Vec3 at = c.eye().add(c.look.scale(1.0));
-                sp("swirl", at).size(0.5f, 6.5f).life(11).colors(WHITE, c.c2).facing(c.look.x, c.look.y, c.look.z).spin(0.3f).vel(c.look.scale(1.05)).drag(1f).envelope(0.1f, 0.4f, 0.8f);
-                ringFlat(at, c.look, 0.4, 5.5, 10, c.c2, "ring");
+        Vec3 look = c.look.normalize();
+        Vec3 eye = c.eye();
+        // "Up" for the blast: the world up, flattened against the aim, so the blades stay level wherever you look
+        Vec3 up = new Vec3(0, 1, 0).subtract(look.scale(look.y));
+        up = up.lengthSqr() < 0.01 ? uv[1] : up.normalize();
+        Vec3 side = look.cross(up).normalize();
+        final Vec3 fUp = up, fSide = side;
+        bloom(h, 0.8f, 6, c.c2);
+
+        // Three arcs of wind, one after another, facing you like a wave front and flying 10 blocks as they widen.
+        // Their ends trail behind the middle, so each reads as a curved gust pushing forward.
+        for (int k = 0; k < 3; k++) {
+            final double roll = (k - 1) * 0.55; // each one turned a little around the aim
+            final boolean middle = k == 1;
+            Signatures.at(k * 2, () -> {
+                Ribbon.Curve radial = (s, time) -> {
+                    double a = Math.PI / 2 + roll + (s - 0.5) * 3.0;
+                    return fSide.scale(Math.cos(a)).add(fUp.scale(Math.sin(a)));
+                };
+                Ribbon.Curve pos = (s, time) -> {
+                    double eased = 1 - Math.pow(1 - time, 2);
+                    double r = 0.9 + 2.4 * eased;
+                    double bow = Math.pow(Math.abs(s - 0.5) * 2, 2) * r * 0.45;
+                    return eye.add(look.scale(1.2 + 9.5 * eased - bow)).add(radial.at(s, time).scale(r));
+                };
+                Ribbon.along(Ribbon.curve(pos, radial)).energy(middle ? WHITE : c.c2).width(0.55f).time(13, 2).hold(0.35f).tailChase(0f)
+                        .brightness(middle ? 1.2f : 1.5f).sparks(0).segments(26).play();
             });
         }
-        during(0, 10, t -> {
-            Vec3 e = c.eye();
-            for (int k = 0; k < n(10); k++) {
-                double a = rnd() * Math.PI * 2, spread = 0.25 + rnd() * 0.25;
-                Vec3 d = c.look.add(uv[0].scale(Math.cos(a) * spread)).add(uv[1].scale(Math.sin(a) * spread)).normalize();
-                sp("streak", e.add(d.scale(1.2))).size(2.8f, 0.5f).life(9).colors(WHITE, c.c2).vel(d.scale(1.0 + rnd() * 0.4)).axial().drag(0.97f).envelope(0.05f, 0.4f, 0.85f);
-            }
-            for (int k = 0; k < n(3); k++) c.skin.body(e.add(c.look.scale(2 + rnd() * 5)).add(gauss() * 0.8, gauss() * 0.8, gauss() * 0.8), c.look.scale(0.4), 1.2f, 14, c.c2, 0.6f);
-        });
+        // Corkscrew streams of air spiralling along the blast
+        for (int k = 0; k < 4; k++) {
+            final double start = Math.PI / 2 * k;
+            Ribbon.Curve pos = (s, time) -> {
+                double a = start + s * Math.PI * 2 * 1.2 + time * 3.0;
+                double r = 0.25 + 1.1 * s;
+                return eye.add(look.scale(0.8 + 9 * s)).add(fSide.scale(Math.cos(a) * r)).add(fUp.scale(Math.sin(a) * r));
+            };
+            Ribbon.Curve edge = (s, time) -> {
+                double a = start + s * Math.PI * 2 * 1.2 + time * 3.0;
+                return fSide.scale(Math.cos(a)).add(fUp.scale(Math.sin(a)));
+            };
+            Ribbon.along(Ribbon.curve(pos, edge)).energy(k % 2 == 0 ? c.c2 : lighten(c.c2, 0.5f)).width(0.22f).time(14, 5).hold(0.2f)
+                    .tailChase(0.7f).brightness(1.2f).sparks(0).segments(36).play();
+        }
+        // A couple of puffs of cloud pushed along, not a wall of them
+        for (int k = 0; k < 2; k++) c.skin.body(eye.add(look.scale(3 + k * 3)), look.scale(0.35), 1.0f, 12, c.c2, 0.45f);
     }
 
     private static void tailwind(Ctx c) {

@@ -25,14 +25,14 @@ final class FxView {
         float v = smooth((float) ((dist - near) / (far - near)));
         if (v <= 0.001f) return 0f;
 
-        // Dim sprites between you and your target: a cone around the crosshair, only for the first few blocks
-        if (dist < 9 && dist > 0.001) {
+        // Soften sprites right on the crosshair in the first few blocks, but only a little: your own forward casts must still show
+        if (dist < 6 && dist > 0.001) {
             Vector3fc f = camera.forwardVector();
             double cos = (dx * f.x() + dy * f.y() + dz * f.z()) / dist;
             if (cos > 0.93) { // about 21 degrees
                 float centered = (float) ((cos - 0.93) / 0.07); // 0 at the cone edge, 1 on the crosshair
-                float closeness = 1f - (float) (dist / 9);
-                v *= 1f - 0.65f * smooth(centered) * closeness;
+                float closeness = 1f - (float) (dist / 6);
+                v *= 1f - 0.4f * smooth(centered) * closeness;
             }
         }
         return v;

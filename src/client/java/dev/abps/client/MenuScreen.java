@@ -862,7 +862,8 @@ public final class MenuScreen extends Screen {
             return 40;
         }
         // Your own shop, or a way to open one
-        Draw.framed(g, x, y, w, 44, 0xE0101018, 0xFF2E7D5B);
+        int boxH = list.hasShop() ? 44 : 56;
+        Draw.framed(g, x, y, w, boxH, 0xE0101018, 0xFF2E7D5B);
         java.util.UUID me = Minecraft.getInstance().player == null ? null : Minecraft.getInstance().player.getUUID();
         if (list.hasShop()) {
             Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Your shop is open</gradient></bold>", x + 8, y + 7);
@@ -872,14 +873,15 @@ public final class MenuScreen extends Screen {
                 AbpsClient.send("shop", "open|" + me);
             });
         } else {
-            Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Open your own shop</gradient></bold> <dark_gray>costs</dark_gray> " + list.createCost(), x + 8, y + 6);
-            shopName.draw(g, x + 8, y + 19, w - 112, 18, 0x69F0AE, "Shop name (optional)");
-            button(g, mx, my, x + w - 98, y + 19, 90, 18, "<white><bold>Open shop", 0x69F0AE, list.canCreate(), () -> {
+            Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Open your own shop", x + 8, y + 6);
+            Draw.textFit(g, "<gray>Costs " + list.createCost(), x + 8, y + 18, w - 16);
+            shopName.draw(g, x + 8, y + 31, w - 112, 18, 0x69F0AE, "Shop name (optional)");
+            button(g, mx, my, x + w - 98, y + 31, 90, 18, "<white><bold>Open shop", 0x69F0AE, list.canCreate(), () -> {
                 AbpsClient.send("shop", "create|" + shopName.text().trim());
                 waitingShop = me;
             });
         }
-        y += 52;
+        y += boxH + 8;
 
         y = section(g, "Player shops (" + list.shops().size() + ")", 0x69F0AE, x, y);
         if (list.shops().isEmpty()) {
@@ -890,9 +892,10 @@ public final class MenuScreen extends Screen {
             boolean hover = Draw.inside(mx, my, x, y, w, 32);
             Draw.framed(g, x, y, w, 32, hover ? 0xF0181824 : 0xE0101016, hover ? 0xFF69F0AE : 0xFF2A2A34);
             g.item(card.icon(), x + 6, y + 8);
-            Draw.text(g, "<white><bold>" + card.name(), x + 28, y + 6);
+            int textW = w - 36 - card.preview().size() * 18 - 8;
+            Draw.text(g, "<white><bold>" + Draw.fit(card.name(), textW - 6), x + 28, y + 6);
             String dot = card.online() ? "<#69F0AE>●</#69F0AE>" : "<dark_gray>●</dark_gray>";
-            Draw.text(g, dot + " <gray>" + card.ownerName() + "  <dark_gray>" + card.listings() + " listings · " + card.sales() + " sales", x + 28, y + 18);
+            Draw.textFit(g, dot + " <gray>" + card.ownerName() + "  <dark_gray>" + card.listings() + " listings · " + card.sales() + " sales", x + 28, y + 18, textW);
             int ix = x + w - 8 - card.preview().size() * 18;
             for (net.minecraft.world.item.ItemStack st : card.preview()) {
                 g.item(st, ix, y + 8);
@@ -935,7 +938,7 @@ public final class MenuScreen extends Screen {
         for (Net.HomeInfo h : t.homes()) {
             Draw.framed(g, x, y, w, 22, 0xE0101016, 0xFF2A2A34);
             Draw.item(g, "minecraft:red_bed", x + 4, y + 3, 1f);
-            Draw.text(g, "<white><bold>" + h.name() + "</bold> <dark_gray>" + h.dimension() + " " + h.x() + ", " + h.y() + ", " + h.z(), x + 24, y + 7);
+            Draw.textFit(g, "<white><bold>" + Draw.fit(h.name(), 80) + "</bold> <dark_gray>" + h.dimension() + " " + h.x() + ", " + h.y() + ", " + h.z(), x + 24, y + 7, w - 24 - 84);
             final String name = h.name();
             button(g, mx, my, x + w - 78, y + 3, 44, 16, "<white>Go", 0x00E5FF, true, () -> AbpsClient.send("travel", "home|" + name));
             button(g, mx, my, x + w - 30, y + 3, 26, 16, "<#FF5252>✕", 0xFF5252, true, () -> AbpsClient.send("travel", "delhome|" + name));
@@ -959,7 +962,7 @@ public final class MenuScreen extends Screen {
             for (String r : t.requests()) {
                 String name = r.contains(" (") ? r.substring(0, r.indexOf(" (")) : r;
                 Draw.framed(g, x, y, w, 22, 0xE0181410, 0xFF5A4A20);
-                Draw.text(g, "<white>" + r + " <gray>wants to teleport", x + 6, y + 7);
+                Draw.textFit(g, "<white>" + r + " <gray>wants to teleport", x + 6, y + 7, w - 6 - 122);
                 button(g, mx, my, x + w - 116, y + 3, 56, 16, "<#69F0AE>Accept", 0x69F0AE, true, () -> AbpsClient.send("travel", "accept|" + name));
                 button(g, mx, my, x + w - 56, y + 3, 52, 16, "<#FF5252>Deny", 0xFF5252, true, () -> AbpsClient.send("travel", "deny|" + name));
                 y += 25;
@@ -974,7 +977,7 @@ public final class MenuScreen extends Screen {
         }
         for (String name : t.online()) {
             Draw.framed(g, x, y, w, 20, 0xE0101016, 0xFF2A2A34);
-            Draw.text(g, "<white>" + name, x + 6, y + 6);
+            Draw.text(g, "<white>" + Draw.fit(name, w - 6 - 130), x + 6, y + 6);
             button(g, mx, my, x + w - 124, y + 2, 60, 16, "<white>Go to", 0x7C4DFF, true, () -> AbpsClient.send("travel", "tpr|" + name));
             button(g, mx, my, x + w - 62, y + 2, 58, 16, "<white>Bring", 0x7C4DFF, true, () -> AbpsClient.send("travel", "tphere|" + name));
             y += 22;

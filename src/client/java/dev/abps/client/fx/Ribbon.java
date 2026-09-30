@@ -97,6 +97,22 @@ public final class Ribbon implements FxSystem.Emitter {
         };
     }
 
+    /** A point along a curve, at s (0 to 1 along it) and time (0 to 1 over the ribbon's life). */
+    public interface Curve {
+        Vec3 at(double s, double time);
+    }
+
+    /** Any curve. The stroke direction is worked out from the curve itself; side says which way its bright edge faces. */
+    public static Path curve(Curve pos, Curve side) {
+        return (s, time, out) -> {
+            Vec3 p = pos.at(s, time);
+            Vec3 t = pos.at(Math.min(1, s + 0.01), time).subtract(pos.at(Math.max(0, s - 0.01), time));
+            out[0] = p;
+            out[1] = t.lengthSqr() < 1.0e-8 ? new Vec3(0, 1, 0) : t.normalize();
+            out[2] = side.at(s, time);
+        };
+    }
+
     /** A straight stroke from a to b, its bright edge facing side. Good for dashes and thrusts. */
     public static Path line(Vec3 a, Vec3 b, Vec3 side) {
         Vec3 dir = b.subtract(a);

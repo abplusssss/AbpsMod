@@ -329,13 +329,21 @@ public abstract class AttributeClass {
      * The signature effect every cast gets: rings, shards and orbiters made from custom glowing displays
      * (not vanilla particles), scaled up for ultimates. Each class adds its own flavor on top.
      */
+    /** For abilities that land on the ground where you aim: how far they reach. 0 for everything else. */
+    protected double groundAimRange(int idx) {
+        return 0;
+    }
+
     protected void castFx(ServerPlayer p, int idx) {
         ServerLevel level = level(p);
         Vec3 at = p.position();
         // Players with the client mod get this ability's own hand-made effect; the plain one below is for everyone else
         Vec3 look = p.getLookAngle();
-        LivingEntity aimed = dev.abps.util.Targets.lookTarget(p, 32);
-        Vec3 aim = aimed != null ? aimed.position().add(0, aimed.getBbHeight() * 0.5, 0) : dev.abps.util.Targets.aimPoint(p, 32);
+        double ground = groundAimRange(idx);
+        LivingEntity aimed = ground > 0 ? null : dev.abps.util.Targets.lookTarget(p, 32);
+        // Area abilities land on the ground, so their effect is drawn there too, not up in the sky where you looked
+        Vec3 aim = ground > 0 ? dev.abps.util.Targets.groundPoint(p, ground)
+                : aimed != null ? aimed.position().add(0, aimed.getBbHeight() * 0.5, 0) : dev.abps.util.Targets.aimPoint(p, 32);
         double[] sd = {at.x, at.y, at.z, look.x, look.y, look.z, aim.x, aim.y, aim.z};
         int[] si = {dev.abps.util.FxKind.theme(id()), idx, p.getId(), aimed == null ? -1 : aimed.getId(), rgb(), rgb2()};
         if (Vfx.signature(level, at, sd, si)) return;

@@ -280,7 +280,7 @@ public final class Pyromancer extends AttributeClass {
 
     @Override
     protected boolean ability4(ServerPlayer p, PlayerData d) {
-        Vec3 target = Targets.aimPoint(p, 40);
+        Vec3 target = Targets.groundPoint(p, 40);
         double dmg = meteorDamage(d.level);
         ServerLevel level = level(p);
         Fx.sound(level, target, SoundEvents.GHAST_WARN, 1.5f, 0.6f);
@@ -357,6 +357,11 @@ public final class Pyromancer extends AttributeClass {
         dev.abps.util.Vfx.pillar(level, at, ult ? 1.4 : 0.5, ult ? 9 : 4, net.minecraft.world.level.block.Blocks.CONCRETE.orange().defaultBlockState(), 4, 8, 8, 0xFF6D00);
         dev.abps.util.Vfx.burst(level, at.add(0, 0.5, 0), net.minecraft.world.level.block.Blocks.MAGMA_BLOCK.defaultBlockState(), ult ? 36 : 14, 0.22, 0.2f, 20, 0xFF3D00);
         dev.abps.util.Vfx.vortex(level, at, ult ? 5 : 2.5, ult ? 18 : 8, net.minecraft.world.level.block.Blocks.SHROOMLIGHT.defaultBlockState(), 0.16f, ult ? 60 : 24, 2.0, 0xFFD600);
+    }
+
+    @Override
+    protected double groundAimRange(int idx) {
+        return idx == 4 ? 40 : 0;
     }
 
     @Override

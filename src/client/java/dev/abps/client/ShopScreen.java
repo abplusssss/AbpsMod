@@ -175,7 +175,7 @@ public final class ShopScreen extends Screen {
             return;
         }
         g.item(shop.icon(), px + 68, py + 8);
-        Draw.text(g, "<white><bold>" + shop.name(), px + 88, py + 7);
+        Draw.textFit(g, "<white><bold>" + shop.name(), px + 88, py + 7, pw - 96 - 8);
         Draw.scaled(g, "<gray>by " + shop.ownerName() + " · " + shop.sales() + " sales · " + shop.listings().size() + "/" + shop.maxListings() + " listings",
                 px + 88, py + 18, 0.75f, false);
 
@@ -353,9 +353,9 @@ public final class ShopScreen extends Screen {
         g.pose().scale(2f, 2f);
         g.item(l.item(), 0, 0);
         g.pose().popMatrix();
-        Draw.text(g, "<white><bold>" + (l.selling() ? "Buy " : "Sell ") + l.item().getHoverName().getString(), x + 40, y + 3);
-        Draw.text(g, "<gray>" + l.price() + " " + l.priceItem().getHoverName().getString() + (l.bundle() > 1 ? " for every " + l.bundle() : " each")
-                + (l.selling() ? "  ·  " + l.stock() + " in stock" : "  ·  wants " + (l.funds() / l.price() * l.bundle())), x + 40, y + 16);
+        Draw.textFit(g, "<white><bold>" + (l.selling() ? "Buy " : "Sell ") + l.item().getHoverName().getString(), x + 40, y + 3, w - 40);
+        Draw.textFit(g, "<gray>" + l.price() + " " + l.priceItem().getHoverName().getString() + (l.bundle() > 1 ? " for every " + l.bundle() : " each")
+                + (l.selling() ? "  ·  " + l.stock() + " in stock" : "  ·  wants " + (l.funds() / l.price() * l.bundle())), x + 40, y + 16, w - 40);
         y += 40;
 
         int max = maxTrade(l);
@@ -368,11 +368,11 @@ public final class ShopScreen extends Screen {
         String money = l.priceItem().getHoverName().getString();
         if (l.selling()) {
             int have = countCurrency(l.priceItem());
-            Draw.text(g, "<gray>You pay <white><bold>" + cost + " " + money + "</bold></white>  <dark_gray>(you have " + (have >= cost ? "<#69F0AE>" : "<#FF5252>") + have + "<dark_gray>)", x, y + 2);
+            Draw.textFit(g, "<gray>You pay <white><bold>" + cost + " " + money + "</bold></white>  <dark_gray>(you have " + (have >= cost ? "<#69F0AE>" : "<#FF5252>") + have + "<dark_gray>)", x, y + 2, w);
         } else {
             int have = countSame(l.item());
-            Draw.text(g, "<gray>You get <white><bold>" + cost + " " + money + "</bold></white>  <dark_gray>(you have " + (have >= amount ? "<#69F0AE>" : "<#FF5252>") + have
-                    + " <dark_gray>to sell)", x, y + 2);
+            Draw.textFit(g, "<gray>You get <white><bold>" + cost + " " + money + "</bold></white>  <dark_gray>(you have " + (have >= amount ? "<#69F0AE>" : "<#FF5252>") + have
+                    + " <dark_gray>to sell)", x, y + 2, w);
         }
         if (amount % Math.max(1, l.bundle()) != 0 || (qty.number(0) != amount && !qty.focused())) qty.setNumber(amount);
         if (l.bundle() > 1) Draw.scaled(g, "<dark_gray>Sold in bundles of " + l.bundle() + ", so amounts round down to a whole bundle.", x, y + 13, 0.75f, false);
@@ -397,12 +397,12 @@ public final class ShopScreen extends Screen {
         int[] b = box(g, 360, 206, color);
         int x = b[0] + 10, y = b[1] + 8, w = b[2] - 20;
         g.item(l.item(), x, y);
-        Draw.text(g, "<white><bold>" + l.item().getHoverName().getString() + "</bold> <gray>" + (l.selling() ? "for sale" : "wanted"), x + 20, y + 4);
+        Draw.textFit(g, "<white><bold>" + l.item().getHoverName().getString() + "</bold> <gray>" + (l.selling() ? "for sale" : "wanted"), x + 20, y + 4, w - 20);
         y += 20;
         int half = (w - 6) / 2;
         if (l.selling()) {
             int have = countSame(l.item());
-            Draw.text(g, "<gray>In stock <white>" + l.stock() + "</white>   In your inventory <white>" + have, x, y);
+            Draw.textFit(g, "<gray>In stock <white>" + l.stock() + "</white>   In your inventory <white>" + have, x, y, w);
             y += 11;
             y = stepper(g, mx, my, x, y, w, qty, 1, Math.max(have, l.stock()), GREEN);
             int n = qty.number(0);
@@ -414,7 +414,7 @@ public final class ShopScreen extends Screen {
             int canBuy = l.funds() / l.price();
             int afford = countCurrency(l.priceItem()) / l.price();
             String money = l.priceItem().getHoverName().getString();
-            Draw.text(g, "<gray>Paid up for <white>" + canBuy + "</white> more trades <dark_gray>(" + l.funds() + " " + money + ")", x, y);
+            Draw.textFit(g, "<gray>Paid up for <white>" + canBuy + "</white> more trades <dark_gray>(" + l.funds() + " " + money + ")", x, y, w);
             y += 11;
             y = stepper(g, mx, my, x, y, w, qty, 1, afford, GOLD);
             int n = qty.number(0);

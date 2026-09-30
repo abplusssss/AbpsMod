@@ -31,6 +31,7 @@ public final class FxPreview {
         return switch (name) {
             case "tree" -> new int[]{6, 20, 60, 150};
             case "pillar", "vortex" -> new int[]{4, 12, 30};
+            case "gust" -> new int[]{2, 4, 6, 9};
             default -> new int[]{2, 5, 9, 14};
         };
     }
@@ -45,6 +46,11 @@ public final class FxPreview {
             case "pillar" -> FxEffects.pillar(new double[]{ahead.x, ahead.y, ahead.z, 0.8, 7}, new int[]{8, 20, 8, 0x64FFDA}, Skin.of(Skin.NECRO));
             case "vortex" -> FxEffects.vortex(new double[]{ahead.x, ahead.y, ahead.z, 3, 0.2, 1.5}, new int[]{12, 40, 0x29B6F6}, Skin.of(Skin.WIND));
             case "beam" -> FxEffects.beam(new double[]{feet.x, feet.y + 1.3, feet.z, ahead.x + flat.z * 3, ahead.y + 1.5, ahead.z - flat.x * 3, 0.12}, new int[]{8, 0x9CCC65}, Skin.of(Skin.ARCHER));
+            case "gust" -> {
+                var pl = net.minecraft.client.Minecraft.getInstance().player;
+                Vec3 lk = pl.getLookAngle();
+                Signatures.play(new double[]{feet.x, feet.y, feet.z, lk.x, lk.y, lk.z, ahead.x, ahead.y, ahead.z}, new int[]{Skin.WIND, 2, pl.getId(), -1, 0xE0F7FA, 0x29B6F6});
+            }
             case "line" -> Ribbon.along(Ribbon.line(feet.add(0, 1.3, 0), ahead.add(flat.z * 3, 1.5, -flat.x * 3), up)).energy(0x9CCC65).width(0.3f).time(40, 4).play();
             case "sphere" -> FxEffects.sphere(new double[]{ahead.x, ahead.y + 1.5, ahead.z, 0.4, 2.8, 0.15}, new int[]{40, 14, 0xE53935}, Skin.of(Skin.VAMPIRE));
             default -> FxEffects.slash(new double[]{feet.x, feet.y, feet.z, flat.x, 0, flat.z, 2.2, 3.6, 0.12}, new int[]{0xFF3050}, Skin.of(Skin.NONE), Skin.NONE);

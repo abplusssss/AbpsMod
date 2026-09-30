@@ -356,7 +356,7 @@ public final class Shark extends AttributeClass {
     @Override
     protected boolean ability3(ServerPlayer p, PlayerData d) {
         ServerLevel level = level(p);
-        Vec3 center = Targets.aimPoint(p, 14);
+        Vec3 center = Targets.groundPoint(p, 14);
         double dmg = whirlDamage(d.level);
         Fx.sound(level, center, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, 1.5f, 0.6f);
         Fx.sound(level, center, SoundEvents.GENERIC_SPLASH, 1.5f, 0.5f);
@@ -635,6 +635,11 @@ public final class Shark extends AttributeClass {
                           net.minecraft.world.phys.Vec3 at, boolean ult) {
         dev.abps.util.Vfx.groundRing(level, at, 0.5, ult ? 9 : 3.6, ult ? 34 : 20, dev.abps.util.Vfx.tint(0x4DD0E1), 0.12f, 12, 0x4DD0E1);
         dev.abps.util.Vfx.fins(level, at.add(0, 0.1, 0), ult ? 4.5 : 2.4, ult ? 5 : 3, net.minecraft.world.level.block.Blocks.CONCRETE.blue().defaultBlockState(), ult ? 70 : 32, 0.5, 0x0288D1);
+    }
+
+    @Override
+    protected double groundAimRange(int idx) {
+        return idx == 3 ? 14 : 0;
     }
 
     @Override

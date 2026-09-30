@@ -221,10 +221,8 @@ public final class Windwalker extends AttributeClass {
             Vec3 flat = new Vec3(look.x, 0, look.z).normalize();
             Targets.velocity(e, flat.scale(1.8).add(0, 0.55, 0));
         }
-        for (int i = 1; i <= 7; i++) Fx.burst(level, ParticleTypes.GUST, eye.add(look.scale(i * 1.3)), 1, 0, 0);
-        dev.abps.util.Vfx.slash(level, eye.add(look.scale(1.5)), look, 3.5, 2.4, 0.16f, dev.abps.util.Vfx.tint(0xE0F7FA), 0x29B6F6);
-        dev.abps.util.Vfx.slash(level, eye.add(look.scale(3)), look, 5.5, 1.8, 0.14f, dev.abps.util.Vfx.WHITE, 0x29B6F6);
-        dev.abps.util.Fancy.laser(level, eye.add(look), eye.add(look.scale(10)), 0.3f, 0xE0F7FA, 0xFFFFFF, 6);
+        // The blades and wind streams are drawn by the client mod; a few puffs here so players without it see the blast too
+        for (int i = 1; i <= 3; i++) Fx.burst(level, ParticleTypes.GUST, eye.add(look.scale(i * 2.5)), 1, 0, 0);
         Fx.sound(level, p, SoundEvents.BREEZE_SHOOT, 1f, 0.8f);
         used(p, 2);
         return true;
@@ -248,7 +246,7 @@ public final class Windwalker extends AttributeClass {
 
     @Override
     protected boolean ability4(ServerPlayer p, PlayerData d) {
-        Vec3 center = Targets.aimPoint(p, 30);
+        Vec3 center = Targets.groundPoint(p, 30);
         double dmg = tornadoDamage(d.level);
         ServerLevel level = level(p);
         dev.abps.util.Fancy.tornado(level, center, 3, 8, 104, dev.abps.util.Vfx.tint(0xE0F7FA), 0x29B6F6);
@@ -324,6 +322,11 @@ public final class Windwalker extends AttributeClass {
             });
         }
         dev.abps.util.Vfx.vortex(level, at, ult ? 4 : 2, ult ? 16 : 8, net.minecraft.world.level.block.Blocks.CONCRETE.white().defaultBlockState(), 0.12f, ult ? 60 : 24, 1.8, 0xE0F7FA);
+    }
+
+    @Override
+    protected double groundAimRange(int idx) {
+        return idx == 4 ? 30 : 0;
     }
 
     @Override

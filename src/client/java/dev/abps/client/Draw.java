@@ -138,6 +138,29 @@ public final class Draw {
         g.pose().popMatrix();
     }
 
+    /** Plain text cut down to fit a width, ending in "…" when it had to be shortened. */
+    public static String fit(String plain, int width) {
+        if (width <= 0) return "";
+        if (font().width(plain) <= width) return plain;
+        return font().plainSubstrByWidth(plain, Math.max(0, width - font().width("…"))) + "…";
+    }
+
+    /** Text with markup scaled down just enough to fit a width (never below 60%), so long lines stay readable instead of running off. */
+    public static void textFit(GuiGraphicsExtractor g, String markup, int x, int y, int width) {
+        int w = font().width(Text.mm(markup));
+        float scale = w <= width ? 1f : Math.max(0.6f, width / (float) w);
+        if (scale >= 1f) {
+            text(g, markup, x, y);
+            return;
+        }
+        if (w * scale > width) {
+            // Even at the smallest size it doesn't fit: drop the markup and shorten it
+            plain(g, fit(Text.strip(markup), width), x, y, TEXT);
+            return;
+        }
+        scaled(g, markup, x, y + (1 - scale) * 4, scale, false);
+    }
+
     public static boolean inside(double mx, double my, int x, int y, int w, int h) {
         return mx >= x && my >= y && mx < x + w && my < y + h;
     }
