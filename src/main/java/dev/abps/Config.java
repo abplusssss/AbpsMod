@@ -45,6 +45,12 @@ public final class Config {
     /** Lets the mod replace old default prices once when the prices are reworked. */
     public int priceVersion = 0;
 
+    // ---- Visual effects ----
+    /** Turns all the custom glowing block effects off. */
+    public boolean visualEffects = true;
+    /** 1.0 = everything, 0.5 = about half of each effect. Lower this on busy servers. */
+    public double effectDensity = 1.0;
+
     // ---- Ultimates ----
     /** Damage you must deal to players to fully charge your ultimate. */
     public double ultimateDamageToCharge = 60;
@@ -122,6 +128,8 @@ public final class Config {
         if (upgradeMilestoneItems == null) upgradeMilestoneItems = new LinkedHashMap<>();
         if (upgradeMaxLevelItems == null) upgradeMaxLevelItems = new LinkedHashMap<>(Map.of("minecraft:netherite_ingot", 2, "minecraft:nether_star", 1));
         upgradeItemScale = Math.max(0.1, upgradeItemScale);
+        effectDensity = Math.max(0.1, Math.min(1.0, effectDensity));
+        dev.abps.util.Vfx.configure(visualEffects, effectDensity);
         ultimateDamageToCharge = Math.max(1, ultimateDamageToCharge);
         doubleTapMs = Math.max(100, doubleTapMs);
     }

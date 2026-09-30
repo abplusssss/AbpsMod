@@ -41,7 +41,31 @@ public final class Vfx {
             Blocks.CONCRETE.brown().defaultBlockState(), Blocks.CONCRETE.green().defaultBlockState(), Blocks.CONCRETE.red().defaultBlockState(),
             Blocks.CONCRETE.black().defaultBlockState()};
 
+    /** The same 16 colors as translucent stained glass. Glowing energy (rings, beams, flashes) looks better see-through. */
+    private static final BlockState[] GLASS = {
+            Blocks.STAINED_GLASS.white().defaultBlockState(), Blocks.STAINED_GLASS.orange().defaultBlockState(), Blocks.STAINED_GLASS.magenta().defaultBlockState(),
+            Blocks.STAINED_GLASS.lightBlue().defaultBlockState(), Blocks.STAINED_GLASS.yellow().defaultBlockState(), Blocks.STAINED_GLASS.lime().defaultBlockState(),
+            Blocks.STAINED_GLASS.pink().defaultBlockState(), Blocks.STAINED_GLASS.gray().defaultBlockState(), Blocks.STAINED_GLASS.lightGray().defaultBlockState(),
+            Blocks.STAINED_GLASS.cyan().defaultBlockState(), Blocks.STAINED_GLASS.purple().defaultBlockState(), Blocks.STAINED_GLASS.blue().defaultBlockState(),
+            Blocks.STAINED_GLASS.brown().defaultBlockState(), Blocks.STAINED_GLASS.green().defaultBlockState(), Blocks.STAINED_GLASS.red().defaultBlockState(),
+            Blocks.STAINED_GLASS.black().defaultBlockState()};
+
     public static final BlockState WHITE = BLOCKS[0];
+
+    /** Server settings: effects can be turned off, or thinned out on busy servers. Set from the config. */
+    private static volatile boolean enabled = true;
+    private static volatile double density = 1.0;
+
+    public static void configure(boolean on, double amount) {
+        enabled = on;
+        density = Math.max(0.1, Math.min(1.0, amount));
+    }
+
+    /** Swaps a solid concrete color for the same color of stained glass. Anything else is left alone. */
+    private static BlockState soft(BlockState s) {
+        for (int i = 0; i < BLOCKS.length; i++) if (BLOCKS[i] == s) return GLASS[i];
+        return s;
+    }
 
     /**
      * Every effect entity that is alive right now. ENTITY_LOAD also fires for brand new spawns, so the "delete stray
@@ -101,13 +125,21 @@ public final class Vfx {
         return new Transformation(t, new Quaternionf(rot), new Vector3f(scale), new Quaternionf());
     }
 
+    /** A decorative piece. At lower density some of them are skipped. */
     private static Display.BlockDisplay make(ServerLevel level, Vec3 at, BlockState state, Transformation start, int glowRgb) {
-        if (LIVE.size() >= CAP) return null;
+        if (density < 1.0 && ThreadLocalRandom.current().nextDouble() > density) return null;
+        return makeAlways(level, at, state, start, glowRgb);
+    }
+
+    /** A piece the effect needs in order to make sense (like the columns of a wave). Only the on/off switch and the cap apply. */
+    private static Display.BlockDisplay makeAlways(ServerLevel level, Vec3 at, BlockState state, Transformation start, int glowRgb) {
+        if (!enabled || LIVE.size() >= CAP) return null;
         Display.BlockDisplay d = new Display.BlockDisplay(EntityTypes.BLOCK_DISPLAY, level);
         d.setPos(at.x, at.y, at.z);
         d.setBlockState(state);
         d.addTag("abps_fx");
         d.setBrightnessOverride(Brightness.FULL_BRIGHT);
+        d.setViewRange(1.6f);
         d.setSilent(true);
         if (glowRgb >= 0) {
             d.setGlowingTag(true);
@@ -150,7 +182,7 @@ public final class Vfx {
     public static void shard(ServerLevel level, Vec3 at, BlockState state, float size, Vec3 vel, double gravity, int life, int glowRgb) {
         Quaternionf q0 = randomRotation();
         Quaternionf q1 = new Quaternionf(q0).rotateAxis(3.0f + ThreadLocalRandom.current().nextFloat() * 3f, 0.3f, 1f, 0.2f);
-        Display.BlockDisplay d = make(level, at, state, centered(new Vector3f(), q0, new Vector3f(size)), glowRgb);
+        Display.BlockDisplay d = make(level, at, state, centered(new Vector3f(), q0, new Vector3f(size)), -1);
         Vector3f off = new Vector3f((float) (vel.x * life), (float) (vel.y * life - gravity * life * life / 2.0), (float) (vel.z * life));
         animate(d, 0, life, centered(off, q1, new Vector3f(size * 0.08f)));
         remove(d, life);
@@ -172,6 +204,7 @@ public final class Vfx {
      */
     public static void ring(ServerLevel level, Vec3 center, Vec3 normal, double r0, double r1, int segments, BlockState state,
                             float thick, int life, int glowRgb) {
+        state = soft(state);
         Vector3f n = v(normal.normalize());
         Vector3f helper = Math.abs(n.y) < 0.9f ? new Vector3f(0, 1, 0) : new Vector3f(1, 0, 0);
         Vector3f u = new Vector3f(n).cross(helper).normalize();
@@ -197,6 +230,7 @@ public final class Vfx {
 
     /** A glowing line between two points that flashes thick and thins to nothing. */
     public static void beam(ServerLevel level, Vec3 a, Vec3 b, float thick, BlockState state, int life, int glowRgb) {
+        state = soft(state);
         Vec3 dir = b.subtract(a);
         double len = dir.length();
         if (len < 0.05) return;
@@ -223,7 +257,7 @@ public final class Vfx {
     public static void pillar(ServerLevel level, Vec3 base, double radius, double height, BlockState state, int grow, int hold, int shrink, int glowRgb) {
         float d2 = (float) (radius * 2);
         Quaternionf id = new Quaternionf();
-        Display.BlockDisplay d = make(level, base, state, based(new Vector3f(), id, new Vector3f(d2, 0.05f, d2)), glowRgb);
+        Display.BlockDisplay d = make(level, base, soft(state), based(new Vector3f(), id, new Vector3f(d2, 0.05f, d2)), -1);
         animate(d, 0, grow, based(new Vector3f(), id, new Vector3f(d2, (float) height, d2)));
         animate(d, grow + hold, shrink, based(new Vector3f(), id, new Vector3f(0.02f, (float) height, 0.02f)));
         remove(d, grow + hold + shrink);
@@ -241,7 +275,7 @@ public final class Vfx {
             Quaternionf shut = new Quaternionf().rotateAxis(0.75f, axis);
             float w = 0.55f;
             float h = (float) (height * (0.75 + ThreadLocalRandom.current().nextDouble() * 0.5));
-            Display.BlockDisplay d = make(level, at, state, based(new Vector3f(), open, new Vector3f(w, 0.05f, w)), glowRgb);
+            Display.BlockDisplay d = make(level, at, state, based(new Vector3f(), open, new Vector3f(w, 0.05f, w)), -1);
             animate(d, 0, 4, based(new Vector3f(), open, new Vector3f(w, h, w)));
             animate(d, 8, 4, based(new Vector3f(), shut, new Vector3f(w * 0.8f, h, w * 0.8f)));
             animate(d, 24, 10, based(new Vector3f(), shut, new Vector3f(0.02f, h, 0.02f)));
@@ -281,7 +315,7 @@ public final class Vfx {
         Vec3 c = anchor.position();
         for (int i = 0; i < count; i++) {
             Quaternionf rot = randomRotation();
-            Display.BlockDisplay d = make(level, c, state, centered(new Vector3f(), rot, new Vector3f(size)), glowRgb);
+            Display.BlockDisplay d = make(level, c, state, centered(new Vector3f(), rot, new Vector3f(size)), -1);
             if (d == null) continue;
             d.setPosRotInterpolationDuration(2);
             parts.add(d);
@@ -305,7 +339,7 @@ public final class Vfx {
                               double turnsPerSecond, int glowRgb) {
         List<Display.BlockDisplay> parts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), randomRotation(), new Vector3f(size)), glowRgb);
+            Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), randomRotation(), new Vector3f(size)), -1);
             if (d == null) continue;
             d.setPosRotInterpolationDuration(2);
             parts.add(d);
@@ -327,7 +361,7 @@ public final class Vfx {
     public static void fins(ServerLevel level, Vec3 center, double radius, int count, BlockState state, int ticks, double turnsPerSecond, int glowRgb) {
         List<Display.BlockDisplay> parts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), new Quaternionf(), new Vector3f(0.08f, 0.02f, 0.02f)), glowRgb);
+            Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), new Quaternionf(), new Vector3f(0.08f, 0.02f, 0.02f)), -1);
             if (d == null) continue;
             d.setPosRotInterpolationDuration(2);
             parts.add(d);
@@ -364,10 +398,11 @@ public final class Vfx {
 
     /** A quick bright flash: a few crossed slabs that swell and vanish. */
     public static void flash(ServerLevel level, Vec3 at, float size, BlockState state, int life, int glowRgb) {
+        state = soft(state);
         int grow = Math.max(2, life / 3);
         for (int i = 0; i < 3; i++) {
             Quaternionf rot = new Quaternionf().rotateXYZ(i * 1.05f, i * 0.6f, i * 0.9f);
-            Display.BlockDisplay d = make(level, at, state, centered(new Vector3f(), rot, new Vector3f(size * 0.15f)), glowRgb);
+            Display.BlockDisplay d = make(level, at, state, centered(new Vector3f(), rot, new Vector3f(size * 0.15f)), -1);
             animate(d, 0, grow, centered(new Vector3f(), rot, new Vector3f(size, size * 0.12f, size)));
             animate(d, grow, life, centered(new Vector3f(), new Quaternionf(rot).rotateY(1.2f), new Vector3f(0.01f)));
             remove(d, grow + life);
@@ -376,6 +411,7 @@ public final class Vfx {
 
     /** Shards spread evenly over a sphere that swells from r0 to r1 while they shrink. */
     public static void sphere(ServerLevel level, Vec3 center, double r0, double r1, int count, BlockState state, float size, int life, int glowRgb) {
+        state = soft(state);
         double golden = Math.PI * (3 - Math.sqrt(5));
         for (int i = 0; i < count; i++) {
             double y = 1 - (i + 0.5) * 2.0 / count;
@@ -384,7 +420,7 @@ public final class Vfx {
             Vector3f dir = new Vector3f((float) (Math.cos(a) * rr), (float) y, (float) (Math.sin(a) * rr));
             Quaternionf rot = randomRotation();
             Vec3 p0 = center.add(dir.x * r0, dir.y * r0, dir.z * r0);
-            Display.BlockDisplay d = make(level, p0, state, centered(new Vector3f(), rot, new Vector3f(size)), glowRgb);
+            Display.BlockDisplay d = make(level, p0, state, centered(new Vector3f(), rot, new Vector3f(size)), -1);
             animate(d, 0, life, centered(new Vector3f(dir).mul((float) (r1 - r0)), rot, new Vector3f(size * 0.1f)));
             remove(d, life);
         }
@@ -512,8 +548,8 @@ public final class Vfx {
             this.height = height;
             this.yaw = new Quaternionf().rotationTo(new Vector3f(0, 0, 1), v(this.dir));
             for (int i = 0; i < columns; i++) {
-                Display.BlockDisplay b = make(level, origin, bodyState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 2.4f)), glowRgb);
-                Display.BlockDisplay c = make(level, origin, crestState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 1.4f)), -1);
+                Display.BlockDisplay b = makeAlways(level, origin, bodyState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 2.4f)), -1);
+                Display.BlockDisplay c = makeAlways(level, origin, crestState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 1.4f)), -1);
                 if (b == null || c == null) {
                     discard(b);
                     discard(c);
