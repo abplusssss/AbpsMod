@@ -1,0 +1,13 @@
+# Gradle and build output
+.gradle/
+build/
+out/
+*.class
+
+# Dev server and client run folder (worlds, logs, screenshots, test configs)
+run/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
