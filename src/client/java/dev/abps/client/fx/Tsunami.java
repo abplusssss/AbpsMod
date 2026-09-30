@@ -66,8 +66,8 @@ final class Tsunami {
         double thetaStart = Math.toRadians(165);
         // Back slope: a smooth S-curve from far behind up to where the outer arc begins
         double sx = fc + ro * Math.cos(thetaStart), sy = yc + ro * Math.sin(thetaStart);
-        double[] px = {-2.4, -1.3, -0.8, sx};
-        double[] py = {0.0, 0.03, 0.30, sy};
+        double[] px = {-1.9, -1.0, -0.7, sx};
+        double[] py = {0.0, 0.05, 0.38, sy};
         for (int k = 0; k <= 6; k++) {
             double t = k / 6.0, u = 1 - t;
             p.add(u * u * u * px[0] + 3 * u * u * t * px[1] + 3 * u * t * t * px[2] + t * t * t * px[3],
