@@ -206,19 +206,8 @@ public final class Necromancer extends AttributeClass {
         Fx.sound(level, at, SoundEvents.GENERIC_EXPLODE, 0.5f, 1.6f);
     }
 
-    /**
-     * A helmet nobody can see. It has no armor model, so the minion looks bare, but the slot is still filled
-     * which is what keeps undead from burning in the sun.
-     */
-    private ItemStack hiddenHelmet() {
-        ItemStack helmet = new ItemStack(Items.LEATHER_HELMET);
-        helmet.set(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.HEAD).build());
-        return helmet;
-    }
-
-    private void equip(Mob mob, ItemStack helmet, ItemStack hand) {
-        mob.setItemSlot(EquipmentSlot.HEAD, helmet);
-        mob.setDropChance(EquipmentSlot.HEAD, 0f);
+    /** Gives a minion something to hold. Nothing goes on their heads, so they look like plain undead. */
+    private void equip(Mob mob, ItemStack hand) {
         if (hand != null) {
             mob.setItemSlot(EquipmentSlot.MAINHAND, hand);
             mob.setDropChance(EquipmentSlot.MAINHAND, 0f);
@@ -250,8 +239,8 @@ public final class Necromancer extends AttributeClass {
         if (mob == null) return;
         mob.snapTo(at.x, at.y, at.z, p.getYRot(), 0);
         boolean skeleton = mob instanceof AbstractSkeleton;
-        // The hidden helmet also stops them burning in the sun
-        equip(mob, hiddenHelmet(), skeleton ? new ItemStack(Items.BOW) : null);
+        // Sun burning is turned off for minions in MobMixin
+        equip(mob, skeleton ? new ItemStack(Items.BOW) : null);
         if (!finish(p, d, mob, p.getName().getString() + "'s Minion", minionHealth(d.level), minionDamage(d.level), lifeMs)) return;
         Fx.burst(level, ParticleTypes.SOUL, at.add(0, 0.5, 0), 15, 0.3, 0.5, 0.3, 0.03);
         Fx.burst(level, ParticleTypes.SCULK_SOUL, at.add(0, 0.2, 0), 6, 0.3, 0.1, 0.3, 0.02);
@@ -349,7 +338,7 @@ public final class Necromancer extends AttributeClass {
         Mob knight = EntityTypes.WITHER_SKELETON.create(level, EntitySpawnReason.MOB_SUMMONED);
         if (knight == null) return false;
         knight.snapTo(at.x, at.y, at.z, p.getYRot(), 0);
-        equip(knight, hiddenHelmet(), new ItemStack(Items.NETHERITE_SWORD));
+        equip(knight, new ItemStack(Items.NETHERITE_SWORD));
         Mods.setBase(knight, Attributes.SCALE, 1.4);
         Mods.setBase(knight, Attributes.KNOCKBACK_RESISTANCE, 0.8);
         if (!finish(p, d, knight, p.getName().getString() + "'s Death Knight", knightHealth(d.level), knightDamage(d.level), 45_000)) {
