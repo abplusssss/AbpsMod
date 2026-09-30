@@ -509,6 +509,20 @@ public final class MenuScreen extends Screen {
                 () -> Minecraft.getInstance().gui.setScreen(new HudEditScreen()));
         y += 22;
         y = section(g, "Effects", 0xFF4081, x, y + 4);
+        Draw.text(g, "<white>Effect detail", x, y + 5);
+        String[] qualityNames = {"Low", "Normal", "High"};
+        int qx = x + cw - 16 - 3 * 46;
+        for (int q = 0; q < 3; q++) {
+            final int level = q;
+            boolean on = prefs.fxQuality == q;
+            button(g, mx, my, qx, y, 44, 16, (on ? "<white><bold>" : "<gray>") + qualityNames[q], on ? 0xFF4081 : 0x55555F, true,
+                    () -> {
+                        prefs.fxQuality = level;
+                        prefs.save();
+                    });
+            qx += 46;
+        }
+        y += 22;
         y = toggle(g, mx, my, x, y, "Screen shake", prefs.screenShake, () -> prefs.screenShake = !prefs.screenShake);
         y = toggle(g, mx, my, x, y, "Screen tints and flashes", prefs.screenTint, () -> prefs.screenTint = !prefs.screenTint);
         y = section(g, "Chat panel", 0x69F0AE, x, y + 4);

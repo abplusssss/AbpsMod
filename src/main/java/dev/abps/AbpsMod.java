@@ -25,6 +25,7 @@ public class AbpsMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		config = Config.load();
+		dev.abps.util.FxTypes.register();
 		Net.register();
 		Classes.init();
 		ServerEvents.register();

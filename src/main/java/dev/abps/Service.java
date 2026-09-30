@@ -408,6 +408,19 @@ public final class Service {
         Fx.sound((ServerLevel) p.level(), p, SoundEvents.NOTE_BLOCK_BASS, 0.5f, 0.7f);
     }
 
+    // ---- Client effects engine ----
+    private final java.util.Set<UUID> vfxReady = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** A player's client says it can draw the custom effects itself. */
+    public void setVfxReady(ServerPlayer p, boolean ready) {
+        if (ready) vfxReady.add(p.getUUID());
+        else vfxReady.remove(p.getUUID());
+    }
+
+    public boolean vfxReady(ServerPlayer p) {
+        return vfxReady.contains(p.getUUID());
+    }
+
     public String keyName(ServerPlayer p, int idx) {
         if (hasMod(p)) {
             return switch (idx) {

@@ -74,6 +74,7 @@ public final class ServerEvents {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             if (!AbpsMod.running()) return;
             ServerPlayer p = handler.player;
+            AbpsMod.service().setVfxReady(p, false);
             if (AbpsMod.data().peek(p.getUUID()) == null) return; // was kicked for a lockout before loading
             Combat.onQuit(p);
             Teleports.forget(p.getUUID());
@@ -274,6 +275,7 @@ public final class ServerEvents {
             }
             case "board" -> s.sendBoard(p, arg);
             case "catalog" -> s.sendCatalog(p);
+            case "vfx_ready" -> s.setVfxReady(p, "1".equals(arg));
             case "airjump" -> {
                 AttributeClass c = s.cls(d);
                 if (c != null && !p.onGround() && !p.getAbilities().flying && !p.isInWater()) c.onAirJump(p, d);

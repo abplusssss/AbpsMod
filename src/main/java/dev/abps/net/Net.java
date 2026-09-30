@@ -297,7 +297,37 @@ public final class Net {
         }
     }
 
+    /**
+     * One custom visual effect for the client mod to draw with its own particle engine. The kind says which
+     * effect it is (see Vfx), d holds the numbers (positions, sizes) and i holds the whole numbers (counts, colors).
+     */
+    public record VfxPayload(int kind, double[] d, int[] i) implements CustomPacketPayload {
+        public static final Type<VfxPayload> TYPE = newType("vfx");
+        public static final StreamCodec<RegistryFriendlyByteBuf, VfxPayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeVarInt(p.kind);
+                    buf.writeVarInt(p.d.length);
+                    for (double v : p.d) buf.writeFloat((float) v);
+                    buf.writeVarInt(p.i.length);
+                    for (int v : p.i) buf.writeInt(v);
+                },
+                buf -> {
+                    int kind = buf.readVarInt();
+                    double[] d = new double[Math.min(64, buf.readVarInt())];
+                    for (int k = 0; k < d.length; k++) d[k] = buf.readFloat();
+                    int[] i = new int[Math.min(64, buf.readVarInt())];
+                    for (int k = 0; k < i.length; k++) i[k] = buf.readInt();
+                    return new VfxPayload(kind, d, i);
+                });
+
+        @Override
+        public Type<VfxPayload> type() {
+            return TYPE;
+        }
+    }
+
     public static void register() {
+        PayloadTypeRegistry.clientboundPlay().register(VfxPayload.TYPE, VfxPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VanishPayload.TYPE, VanishPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(CastPayload.TYPE, CastPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ActionPayload.TYPE, ActionPayload.CODEC);

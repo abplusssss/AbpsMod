@@ -22,6 +22,7 @@ public final class AbpsClient implements ClientModInitializer {
 
     private static boolean jumpWasDown;
     private static boolean wasOnGround = true;
+    private static boolean vfxSent;
 
     @Override
     public void onInitializeClient() {
@@ -34,10 +35,19 @@ public final class AbpsClient implements ClientModInitializer {
         menuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod.menu", InputConstants.KEY_M, CATEGORY));
 
         registerReceivers();
+        dev.abps.client.fx.FxClient.init();
         HudElementRegistry.addLast(AbpsMod.id("hud"), new Hud());
         ClientTickEvents.END_CLIENT_TICK.register(AbpsClient::tick);
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> ClientState.reset());
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> ClientState.reset());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
+            ClientState.reset();
+            vfxSent = false;
+            dev.abps.client.fx.FxSystem.clear();
+        });
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> {
+            ClientState.reset();
+            vfxSent = false;
+            dev.abps.client.fx.FxSystem.clear();
+        });
         ClientSelfTest.init();
     }
 
@@ -111,6 +121,12 @@ public final class AbpsClient implements ClientModInitializer {
         ClientState.tick();
         LocalPlayer player = mc.player;
         if (player == null) return;
+
+        // Tell the server this client can draw the glowing effects itself, so it can skip the block-based ones
+        if (!vfxSent && dev.abps.client.fx.FxSystem.ready && dev.abps.client.fx.FxSprites.loaded() && connected()) {
+            vfxSent = true;
+            send("vfx_ready", "1");
+        }
 
         while (menuKey.consumeClick()) {
             if (mc.gui.screen() == null) mc.gui.setScreen(new MenuScreen("overview"));

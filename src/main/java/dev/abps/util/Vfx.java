@@ -5,7 +5,11 @@ import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.registries.BuiltInRegistries;
+import dev.abps.AbpsMod;
+import dev.abps.net.Net;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
@@ -59,6 +63,40 @@ public final class Vfx {
     public static void configure(boolean on, double amount) {
         enabled = on;
         density = Math.max(0.1, Math.min(1.0, amount));
+    }
+
+    /**
+     * Players who run the client mod with the effects engine get each effect as a small message and draw it with
+     * real glowing particles. If anyone nearby can't do that, the effect is spawned as display entities instead so
+     * everybody sees the same thing. Returns true when the effect has been dealt with (or nobody is there to see it).
+     */
+    private static boolean remote(ServerLevel level, Vec3 at, int kind, double[] d, int[] i) {
+        if (!enabled) return true;
+        java.util.List<ServerPlayer> ready = new ArrayList<>();
+        for (ServerPlayer p : level.players()) {
+            if (p.position().distanceToSqr(at) > 96 * 96) continue;
+            if (!AbpsMod.service().vfxReady(p)) return false;
+            ready.add(p);
+        }
+        if (ready.isEmpty()) return true;
+        Net.VfxPayload payload = new Net.VfxPayload(kind, d, i);
+        for (ServerPlayer p : ready) ServerPlayNetworking.send(p, payload);
+        return true;
+    }
+
+    /** Sends to every nearby player who can draw effects, without falling back to displays for anyone else. */
+    private static void sendReady(ServerLevel level, Vec3 at, int kind, double[] d, int[] i) {
+        Net.VfxPayload payload = new Net.VfxPayload(kind, d, i);
+        for (ServerPlayer p : level.players()) {
+            if (p.position().distanceToSqr(at) <= 96 * 96 && AbpsMod.service().vfxReady(p)) ServerPlayNetworking.send(p, payload);
+        }
+    }
+
+    /** The color to send to the client: the exact color if there is one, otherwise the color of the block. */
+    private static int col(BlockState s, int glow) {
+        if (glow >= 0) return glow & 0xFFFFFF;
+        for (int i = 0; i < BLOCKS.length; i++) if (BLOCKS[i] == s || GLASS[i] == s) return PALETTE[i];
+        return 0xC8C8C8;
     }
 
     /** Swaps a solid concrete color for the same color of stained glass. Anything else is left alone. */
@@ -180,6 +218,7 @@ public final class Vfx {
 
     /** One tumbling chunk that flies out, falls a little and shrinks away. Velocity is blocks per tick. */
     public static void shard(ServerLevel level, Vec3 at, BlockState state, float size, Vec3 vel, double gravity, int life, int glowRgb) {
+        if (remote(level, at, FxKind.SHARD, new double[]{at.x, at.y, at.z, vel.x, vel.y, vel.z, size, gravity}, new int[]{life, col(state, glowRgb)})) return;
         Quaternionf q0 = randomRotation();
         Quaternionf q1 = new Quaternionf(q0).rotateAxis(3.0f + ThreadLocalRandom.current().nextFloat() * 3f, 0.3f, 1f, 0.2f);
         Display.BlockDisplay d = make(level, at, state, centered(new Vector3f(), q0, new Vector3f(size)), -1);
@@ -190,6 +229,7 @@ public final class Vfx {
 
     /** A burst of shards flying out in every direction, leaning upward. */
     public static void burst(ServerLevel level, Vec3 at, BlockState state, int count, double speed, float size, int life, int glowRgb) {
+        if (remote(level, at, FxKind.BURST, new double[]{at.x, at.y, at.z, speed, size}, new int[]{count, life, col(state, glowRgb)})) return;
         ThreadLocalRandom r = ThreadLocalRandom.current();
         for (int i = 0; i < count; i++) {
             Vec3 dir = new Vec3(r.nextGaussian(), Math.abs(r.nextGaussian()) * 0.9 + 0.2, r.nextGaussian()).normalize();
@@ -204,6 +244,8 @@ public final class Vfx {
      */
     public static void ring(ServerLevel level, Vec3 center, Vec3 normal, double r0, double r1, int segments, BlockState state,
                             float thick, int life, int glowRgb) {
+        Vec3 nn = normal.normalize();
+        if (remote(level, center, FxKind.RING, new double[]{center.x, center.y, center.z, nn.x, nn.y, nn.z, r0, r1, thick}, new int[]{segments, life, col(state, glowRgb)})) return;
         state = soft(state);
         Vector3f n = v(normal.normalize());
         Vector3f helper = Math.abs(n.y) < 0.9f ? new Vector3f(0, 1, 0) : new Vector3f(1, 0, 0);
@@ -230,6 +272,8 @@ public final class Vfx {
 
     /** A glowing line between two points that flashes thick and thins to nothing. */
     public static void beam(ServerLevel level, Vec3 a, Vec3 b, float thick, BlockState state, int life, int glowRgb) {
+        if (b.subtract(a).lengthSqr() < 0.0025) return;
+        if (remote(level, a.lerp(b, 0.5), FxKind.BEAM, new double[]{a.x, a.y, a.z, b.x, b.y, b.z, thick}, new int[]{life, col(state, glowRgb)})) return;
         state = soft(state);
         Vec3 dir = b.subtract(a);
         double len = dir.length();
@@ -243,6 +287,7 @@ public final class Vfx {
 
     /** A beam that follows a jagged path, like lightning or a crack in the world. */
     public static void zigzag(ServerLevel level, Vec3 a, Vec3 b, int pieces, double jitter, float thick, BlockState state, int life, int glowRgb) {
+        if (remote(level, a.lerp(b, 0.5), FxKind.ZIGZAG, new double[]{a.x, a.y, a.z, b.x, b.y, b.z, jitter, thick}, new int[]{pieces, life, col(state, glowRgb)})) return;
         ThreadLocalRandom r = ThreadLocalRandom.current();
         Vec3 prev = a;
         for (int i = 1; i <= pieces; i++) {
@@ -255,6 +300,7 @@ public final class Vfx {
 
     /** A column that shoots up out of the ground, holds, then narrows away. */
     public static void pillar(ServerLevel level, Vec3 base, double radius, double height, BlockState state, int grow, int hold, int shrink, int glowRgb) {
+        if (remote(level, base, FxKind.PILLAR, new double[]{base.x, base.y, base.z, radius, height}, new int[]{grow, hold, shrink, col(state, glowRgb)})) return;
         float d2 = (float) (radius * 2);
         Quaternionf id = new Quaternionf();
         Display.BlockDisplay d = make(level, base, soft(state), based(new Vector3f(), id, new Vector3f(d2, 0.05f, d2)), -1);
@@ -265,6 +311,7 @@ public final class Vfx {
 
     /** Ring of tall teeth that burst out of the ground and snap shut toward the middle. */
     public static void jaws(ServerLevel level, Vec3 center, double radius, int teeth, double height, BlockState state, int glowRgb) {
+        if (remote(level, center, FxKind.JAWS, new double[]{center.x, center.y, center.z, radius, height}, new int[]{teeth, col(state, glowRgb)})) return;
         for (int i = 0; i < teeth; i++) {
             double a = Math.PI * 2 * i / teeth;
             Vec3 radial = new Vec3(Math.cos(a), 0, Math.sin(a));
@@ -288,6 +335,7 @@ public final class Vfx {
         Vec3 flat = new Vec3(dir.x, 0, dir.z);
         if (flat.lengthSqr() < 1.0e-4) flat = new Vec3(0, 0, 1);
         flat = flat.normalize();
+        if (remote(level, center, FxKind.SLASH, new double[]{center.x, center.y, center.z, flat.x, flat.y, flat.z, radius, arcRadians, thick}, new int[]{col(state, glowRgb)})) return;
         double baseAngle = Math.atan2(flat.z, flat.x);
         int pieces = 9;
         for (int i = 0; i < pieces; i++) {
@@ -311,6 +359,7 @@ public final class Vfx {
     /** Shards that circle an entity for a while. */
     public static void orbit(ServerLevel level, Entity anchor, int count, double radius, double height, BlockState state, float size,
                              int ticks, double turnsPerSecond, int glowRgb) {
+        if (remote(level, anchor.position(), FxKind.ORBIT, new double[]{radius, height, size, turnsPerSecond}, new int[]{anchor.getId(), count, ticks, col(state, glowRgb)})) return;
         List<Display.BlockDisplay> parts = new ArrayList<>();
         Vec3 c = anchor.position();
         for (int i = 0; i < count; i++) {
@@ -337,6 +386,7 @@ public final class Vfx {
     /** Shards circling a fixed point, for things like whirlpools. Height rises the further out you go. */
     public static void vortex(ServerLevel level, Vec3 center, double radius, int count, BlockState state, float size, int ticks,
                               double turnsPerSecond, int glowRgb) {
+        if (remote(level, center, FxKind.VORTEX, new double[]{center.x, center.y, center.z, radius, size, turnsPerSecond}, new int[]{count, ticks, col(state, glowRgb)})) return;
         List<Display.BlockDisplay> parts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), randomRotation(), new Vector3f(size)), -1);
@@ -359,6 +409,7 @@ public final class Vfx {
 
     /** Flat triangular fins that circle a point at the water surface, like sharks circling prey. */
     public static void fins(ServerLevel level, Vec3 center, double radius, int count, BlockState state, int ticks, double turnsPerSecond, int glowRgb) {
+        if (remote(level, center, FxKind.FINS, new double[]{center.x, center.y, center.z, radius, turnsPerSecond}, new int[]{count, ticks, col(state, glowRgb)})) return;
         List<Display.BlockDisplay> parts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), new Quaternionf(), new Vector3f(0.08f, 0.02f, 0.02f)), -1);
@@ -398,6 +449,7 @@ public final class Vfx {
 
     /** A quick bright flash: a few crossed slabs that swell and vanish. */
     public static void flash(ServerLevel level, Vec3 at, float size, BlockState state, int life, int glowRgb) {
+        if (remote(level, at, FxKind.FLASH, new double[]{at.x, at.y, at.z, size}, new int[]{life, col(state, glowRgb)})) return;
         state = soft(state);
         int grow = Math.max(2, life / 3);
         for (int i = 0; i < 3; i++) {
@@ -411,6 +463,7 @@ public final class Vfx {
 
     /** Shards spread evenly over a sphere that swells from r0 to r1 while they shrink. */
     public static void sphere(ServerLevel level, Vec3 center, double r0, double r1, int count, BlockState state, float size, int life, int glowRgb) {
+        if (remote(level, center, FxKind.SPHERE, new double[]{center.x, center.y, center.z, r0, r1, size}, new int[]{count, life, col(state, glowRgb)})) return;
         state = soft(state);
         double golden = Math.PI * (3 - Math.sqrt(5));
         for (int i = 0; i < count; i++) {
@@ -429,6 +482,7 @@ public final class Vfx {
     /** A spiral that draws itself upward from base, then fades. */
     public static void helix(ServerLevel level, Vec3 base, double radius, double height, double turns, int pieces, BlockState state,
                              float size, int life, int glowRgb) {
+        if (remote(level, base, FxKind.HELIX, new double[]{base.x, base.y, base.z, radius, height, turns, size}, new int[]{pieces, life, col(state, glowRgb)})) return;
         for (int i = 0; i < pieces; i++) {
             double t = (double) i / Math.max(1, pieces - 1);
             double a = t * turns * Math.PI * 2;
@@ -439,6 +493,7 @@ public final class Vfx {
 
     /** Leaves a fading streak behind an entity for a while. */
     public static void trail(ServerLevel level, Entity e, int ticks, BlockState state, float size, int glowRgb) {
+        if (remote(level, e.position(), FxKind.TRAIL, new double[]{size}, new int[]{e.getId(), ticks, col(state, glowRgb)})) return;
         Tasks.repeat(ticks, 1, step -> {
             if (e.isRemoved()) return;
             shard(level, e.position().add(0, e.getBbHeight() * 0.5, 0), state, size, Vec3.ZERO, 0, 8, glowRgb);
@@ -448,11 +503,18 @@ public final class Vfx {
     // ---------------- Stand-ins for vanilla particles ----------------
 
     /** How a vanilla particle is drawn here: as a small full-bright block. */
-    private record Look(BlockState block, float size) {
+    private record Look(BlockState block, float size, int style) {
+        Look(BlockState block, float size) {
+            this(block, size, FxKind.STYLE_ENERGY);
+        }
+
+        Look asSmoke() {
+            return new Look(block, size, FxKind.STYLE_SMOKE);
+        }
     }
 
     private static Look look(ParticleOptions p) {
-        if (p instanceof BlockParticleOption b) return new Look(b.getState(), 1f);
+        if (p instanceof BlockParticleOption b) return new Look(b.getState(), 1f, FxKind.STYLE_DEBRIS);
         if (p instanceof DustParticleOptions dust) {
             Vector3f c = dust.getColor();
             float k = c.x > 1.5f || c.y > 1.5f || c.z > 1.5f ? 1f : 255f;
@@ -466,8 +528,8 @@ public final class Vfx {
             case "soul_fire_flame" -> new Look(tint(0x4DD0E1), 1f);
             case "soul" -> new Look(tint(0x80DEEA), 1f);
             case "sculk_soul" -> new Look(tint(0x00E5FF), 1f);
-            case "smoke", "large_smoke", "campfire_cosy_smoke", "campfire_signal_smoke" -> new Look(tint(0x757575), 1.1f);
-            case "cloud", "poof" -> new Look(tint(0xECEFF1), 1.1f);
+            case "smoke", "large_smoke", "campfire_cosy_smoke", "campfire_signal_smoke" -> new Look(tint(0x757575), 1.1f).asSmoke();
+            case "cloud", "poof" -> new Look(tint(0xECEFF1), 1.1f).asSmoke();
             case "heart" -> new Look(tint(0xFF4081), 1.2f);
             case "happy_villager" -> new Look(tint(0x69F0AE), 1f);
             case "angry_villager" -> new Look(tint(0xFF1744), 1.1f);
@@ -493,6 +555,8 @@ public final class Vfx {
     /** Drop-in for a burst of vanilla particles: a handful of tumbling shards instead. */
     public static void particles(ServerLevel level, ParticleOptions p, Vec3 at, int count, double sx, double sy, double sz, double speed) {
         Look look = look(p);
+        if (remote(level, at, FxKind.PARTICLES, new double[]{at.x, at.y, at.z, sx, sy, sz, speed, look.size},
+                new int[]{count, col(look.block, -1), look.style()})) return;
         ThreadLocalRandom r = ThreadLocalRandom.current();
         int n = count <= 0 ? 1 : Math.min(count, 10);
         float size = Math.max(0.09f, Math.min(0.34f, 0.11f * look.size + (count > 10 ? 0.04f : 0f)));
@@ -506,17 +570,24 @@ public final class Vfx {
 
     public static void particleRing(ServerLevel level, ParticleOptions p, Vec3 center, double radius, int points) {
         Look look = look(p);
+        if (remote(level, center, FxKind.RING, new double[]{center.x, center.y + 0.2, center.z, 0, 1, 0, radius, radius * 1.12, 0.08f * Math.max(1f, look.size * 0.8f)},
+                new int[]{Math.max(8, Math.min(points, 18)), 6, col(look.block, -1)})) return;
         ring(level, center.add(0, 0.2, 0), new Vec3(0, 1, 0), radius, radius * 1.12, Math.max(8, Math.min(points, 18)), look.block,
                 0.08f * Math.max(1f, look.size * 0.8f), 6, -1);
     }
 
     public static void particleLine(ServerLevel level, ParticleOptions p, Vec3 from, Vec3 to) {
         Look look = look(p);
+        if (to.subtract(from).lengthSqr() < 0.0025) return;
+        if (remote(level, from.lerp(to, 0.5), FxKind.BEAM, new double[]{from.x, from.y, from.z, to.x, to.y, to.z, 0.06f * Math.max(1f, look.size)},
+                new int[]{6, col(look.block, -1)})) return;
         beam(level, from, to, 0.06f * Math.max(1f, look.size), look.block, 6, -1);
     }
 
     public static void particleSpiral(ServerLevel level, ParticleOptions p, Vec3 base, double radius, double height, int points, double turn) {
         Look look = look(p);
+        if (remote(level, base, FxKind.HELIX, new double[]{base.x, base.y, base.z, radius, height, 3, 0.13f * Math.max(1f, look.size * 0.7f)},
+                new int[]{Math.min(points, 16), 10, col(look.block, -1)})) return;
         int n = Math.min(points, 16);
         for (int i = 0; i < n; i++) {
             double t = (double) i / n;
@@ -539,6 +610,12 @@ public final class Vfx {
         private final List<Display.BlockDisplay> crest = new ArrayList<>();
         private final Quaternionf yaw;
         private final List<Integer> slots = new ArrayList<>();
+        /** True when players draw this wave themselves, so no display entities exist. */
+        private final boolean remote;
+        private final ServerLevel level;
+        private final Vec3 origin;
+        private final int id;
+        private static int nextId;
 
         public Wave(ServerLevel level, Vec3 origin, Vec3 dir, int columns, double height, BlockState bodyState, BlockState crestState, int glowRgb) {
             Vec3 flat = new Vec3(dir.x, 0, dir.z);
@@ -547,7 +624,12 @@ public final class Vfx {
             this.columns = columns;
             this.height = height;
             this.yaw = new Quaternionf().rotationTo(new Vector3f(0, 0, 1), v(this.dir));
-            for (int i = 0; i < columns; i++) {
+            this.level = level;
+            this.origin = origin;
+            this.id = ++nextId;
+            this.remote = Vfx.remote(level, origin, FxKind.WAVE, new double[]{origin.x, origin.y, origin.z, this.dir.x, this.dir.y, this.dir.z, height},
+                    new int[]{columns, Vfx.col(bodyState, glowRgb), this.id});
+            for (int i = 0; i < (remote ? 0 : columns); i++) {
                 Display.BlockDisplay b = makeAlways(level, origin, bodyState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 2.4f)), -1);
                 Display.BlockDisplay c = makeAlways(level, origin, crestState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 1.4f)), -1);
                 if (b == null || c == null) {
@@ -565,6 +647,7 @@ public final class Vfx {
 
         /** Moves the wall so its middle is at center. growth runs 0 to 1 and scales the height, phase makes it ripple. */
         public void update(Vec3 center, double growth, int phase) {
+            if (remote) return; // the players' own engines move it
             for (int k = 0; k < body.size(); k++) {
                 int i = slots.get(k);
                 double lo = i - (columns - 1) / 2.0;
@@ -590,6 +673,10 @@ public final class Vfx {
 
         /** Lets the wave collapse and removes it. */
         public void collapse() {
+            if (remote) {
+                sendReady(level, origin, FxKind.WAVE_STOP, new double[]{origin.x, origin.y, origin.z}, new int[]{id});
+                return;
+            }
             for (Display.BlockDisplay d : body) {
                 d.setTransformation(based(new Vector3f(), yaw, new Vector3f(1.2f, 0.05f, 2.4f)));
                 d.setTransformationInterpolationDelay(0);

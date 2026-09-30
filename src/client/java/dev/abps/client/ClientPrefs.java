@@ -22,6 +22,8 @@ public final class ClientPrefs {
     /** Where the HUD panel sits, or -1 for the default corner. Set by dragging it in the HUD editor. */
     public int hudX = -1;
     public int hudY = -1;
+    /** Detail of the glowing effects: 0 low, 1 normal, 2 high. */
+    public int fxQuality = 1;
 
     public static ClientPrefs get() {
         if (instance == null) load();
