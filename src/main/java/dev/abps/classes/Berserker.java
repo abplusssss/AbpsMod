@@ -148,7 +148,7 @@ public final class Berserker extends AttributeClass {
         if (hit.weapon().is(ItemTags.AXES)) m *= axe(d.level);
         if (p.getHealth() < maxHp(p) * 0.5) m *= 1 + lowHp(d.level);
         if (d.stacks > 0 && now() <= d.stacksUntil) m *= 1 + furyPer(d.level) * d.stacks;
-        return m;
+        return Math.min(m, 2.4);
     }
 
     @Override
@@ -307,7 +307,7 @@ public final class Berserker extends AttributeClass {
             if (d.buffs.containsKey("exec_done_" + start)) return;
             d.buffs.put("exec_done_" + start, now() + 5000);
             double missing = Math.max(0, t.getMaxHealth() - t.getHealth());
-            double dmg = cleave(d.level) + Math.min(12, missing * 0.25);
+            double dmg = cleave(d.level) + Math.min(8, missing * 0.25);
             Targets.damage(t, dmg, p);
             for (LivingEntity e : Targets.enemiesNear(p, t.position(), 3)) {
                 if (e != t) Targets.damage(e, dmg * 0.5, p);

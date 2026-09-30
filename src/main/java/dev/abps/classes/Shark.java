@@ -51,15 +51,15 @@ public final class Shark extends AttributeClass {
 
     private double digBonus(int lvl) { return lerp(lvl, 1.0, 3.0); }
     private double wetDamage(int lvl) { return lerp(lvl, 0.15, 0.35); }
-    private double dashDamage(int lvl) { return lerp(lvl, 6, 10); }
+    private double dashDamage(int lvl) { return lerp(lvl, 6, 9); }
     private double scentTime(int lvl) { return lerp(lvl, 8, 14); }
-    private double whirlDamage(int lvl) { return lerp(lvl, 2, 3.5); }
-    private double frenzyTime(int lvl) { return lerp(lvl, 10, 16); }
-    private double frenzySteal(int lvl) { return lerp(lvl, 0.25, 0.40); }
-    private double breachDamage(int lvl) { return lerp(lvl, 12, 18); }
-    private double cannonDamage(int lvl) { return lerp(lvl, 12, 18); }
-    private double tsunamiDamage(int lvl) { return lerp(lvl, 18, 28); }
-    private double leviathanDamage(int lvl) { return lerp(lvl, 45, 70); }
+    private double whirlDamage(int lvl) { return lerp(lvl, 0.8, 1.2); }
+    private double frenzyTime(int lvl) { return lerp(lvl, 8, 12); }
+    private double frenzySteal(int lvl) { return lerp(lvl, 0.20, 0.30); }
+    private double breachDamage(int lvl) { return lerp(lvl, 8, 12); }
+    private double cannonDamage(int lvl) { return lerp(lvl, 8, 12); }
+    private double tsunamiDamage(int lvl) { return lerp(lvl, 9, 13); }
+    private double leviathanDamage(int lvl) { return lerp(lvl, 16, 22); }
     private double leviathanTime(int lvl) { return lerp(lvl, 10, 14); }
 
     private static boolean wet(ServerPlayer p) {
@@ -115,12 +115,12 @@ public final class Shark extends AttributeClass {
             case 3 -> "Open a whirlpool where you look for 5s while fins circle it. Enemies within 8 blocks are spun in and take "
                     + num(whirlDamage(lvl)) + " damage every half second. When it ends it implodes for double damage.";
             case 4 -> "Leap out of the water, then crash down as a giant set of jaws snaps shut. The shockwave hits everything within 10 blocks for "
-                    + num(breachDamage(lvl)) + " damage (+50% to enemies in water), launches and slows them, and starts a Frenzy: Strength, Speed, Haste and "
+                    + num(breachDamage(lvl)) + " damage (+25% to enemies in water), launches and slows them, and starts a Frenzy: Strength, Speed, Haste and "
                     + pct(frenzySteal(lvl)) + " lifesteal for " + num(frenzyTime(lvl)) + "s. Kills add 2s.";
             case 5 -> "Summon a tsunami. A wall of water rises in front of you and thunders 32 blocks forward, hitting everything for "
                     + num(tsunamiDamage(lvl)) + " damage and carrying it along before it crashes.";
             default -> "The Leviathan wakes. For 2s the sea drags every enemy within 22 blocks toward you as giant fins circle, then colossal jaws erupt "
-                    + "and snap shut for " + num(leviathanDamage(lvl)) + " damage (+50% in water), and three tidal waves roll out. You grow huge and enter a Frenzy for "
+                    + "and snap shut for " + num(leviathanDamage(lvl)) + " damage (+25% in water), and three tidal waves roll out. You grow huge and enter a Frenzy for "
                     + num(leviathanTime(lvl)) + "s.";
         };
     }
@@ -132,7 +132,7 @@ public final class Shark extends AttributeClass {
             case 2 -> 22;
             case 3 -> 45;
             case 4 -> 50;
-            default -> 70;
+            default -> 75;
         };
     }
 
@@ -462,7 +462,7 @@ public final class Shark extends AttributeClass {
         ServerLevel level = level(p);
         double dmg = breachDamage(d.level);
         for (LivingEntity e : Targets.enemiesNear(p, at, 10)) {
-            Targets.damage(e, e.isInWater() ? dmg * 1.5 : dmg, p);
+            Targets.damage(e, e.isInWater() ? dmg * 1.25 : dmg, p);
             Targets.pushAway(at, e, 1.4, 0.8);
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1));
             Fx.burst(level, ParticleTypes.SPLASH, e.position().add(0, 1, 0), 20, 0.4, 0.2);
@@ -598,7 +598,7 @@ public final class Shark extends AttributeClass {
             Fx.sound(level, center, SoundEvents.GENERIC_SPLASH, 2f, 0.3f);
             Fx.shakeNear(level, center, 30, 16, 1f);
             for (LivingEntity e : Targets.enemiesNear(p, center, 14)) {
-                Targets.damage(e, e.isInWater() ? dmg * 1.5 : dmg, p);
+                Targets.damage(e, e.isInWater() ? dmg * 1.25 : dmg, p);
                 Targets.velocity(e, new Vec3(e.getDeltaMovement().x, 1.3, e.getDeltaMovement().z));
                 e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 2));
             }

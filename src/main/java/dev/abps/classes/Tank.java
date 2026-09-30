@@ -38,14 +38,14 @@ public final class Tank extends AttributeClass {
     @Override public String tagline() { return "Hard to move. Harder to kill."; }
     @Override public String mastery() { return "Take 40% less damage while under 30% health."; }
 
-    private double bonusHp(int lvl) { return Math.round(lerp(lvl, 10, 20)); }
+    private double bonusHp(int lvl) { return Math.round(lerp(lvl, 6, 12)); }
     private double kb(int lvl) { return lerp(lvl, 0.60, 1.00); }
-    private double reduction(int lvl) { return lerp(lvl, 0.15, 0.25); }
-    private double thorns(int lvl) { return lerp(lvl, 0.30, 0.60); }
+    private double reduction(int lvl) { return lerp(lvl, 0.12, 0.20); }
+    private double thorns(int lvl) { return lerp(lvl, 0.25, 0.45); }
     private double fortifyTime(int lvl) { return lerp(lvl, 10, 14); }
-    private double bashDamage(int lvl) { return lerp(lvl, 10, 16); }
-    private double unbreakableTime(int lvl) { return lerp(lvl, 8, 12); }
-    private double stompDamage(int lvl) { return lerp(lvl, 7, 11); }
+    private double bashDamage(int lvl) { return lerp(lvl, 7, 10); }
+    private double unbreakableTime(int lvl) { return lerp(lvl, 6, 9); }
+    private double stompDamage(int lvl) { return lerp(lvl, 2, 3); }
 
     @Override
     public List<String> passives(int lvl) {

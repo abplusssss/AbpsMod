@@ -47,7 +47,7 @@ public final class Windwalker extends AttributeClass {
     private double gustDamage(int lvl) { return lerp(lvl, 5, 8); }
     private double tailwindTime(int lvl) { return lerp(lvl, 8, 12); }
     private double tornadoDamage(int lvl) { return lerp(lvl, 2, 3.5); }
-    private double boltDamage(int lvl) { return lerp(lvl, 5, 7); }
+    private double boltDamage(int lvl) { return lerp(lvl, 4, 5); }
 
     @Override
     public List<String> passives(int lvl) {

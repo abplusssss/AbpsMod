@@ -45,10 +45,10 @@ public final class Assassin extends AttributeClass {
     @Override public String mastery() { return "Backstabs give the target Poison II for 3s."; }
 
     private double speed(int lvl) { return lerp(lvl, 0.12, 0.25); }
-    private double backstab(int lvl) { return lerp(lvl, 1.40, 1.80); }
-    private double crit(int lvl) { return lerp(lvl, 0.20, 0.40); }
-    private double opener(int lvl) { return lerp(lvl, 0.30, 0.60); }
-    private double execute(int lvl) { return lerp(lvl, 0.25, 0.50); }
+    private double backstab(int lvl) { return lerp(lvl, 1.30, 1.60); }
+    private double crit(int lvl) { return lerp(lvl, 0.15, 0.30); }
+    private double opener(int lvl) { return lerp(lvl, 0.25, 0.45); }
+    private double execute(int lvl) { return lerp(lvl, 0.20, 0.40); }
     private double vanishTime(int lvl) { return lerp(lvl, 5, 8); }
     private double cutDamage(int lvl) { return lerp(lvl, 6, 8); }
 
@@ -85,10 +85,10 @@ public final class Assassin extends AttributeClass {
     @Override
     public String abilityDesc(int idx, int lvl) {
         return switch (idx) {
-            case 1 -> "Vanish for " + num(vanishTime(lvl)) + "s. Your first hit out of it deals x2 damage.";
+            case 1 -> "Vanish for " + num(vanishTime(lvl)) + "s. Your first hit out of it deals x1.6 damage.";
             case 2 -> "Dash forward fast. Your next hit in 3s deals x1.5 damage. No fall damage.";
             case 3 -> "Throw smoke. Enemies within 5 blocks are blinded for 4s and slowed. You get Speed II.";
-            case 4 -> "Teleport behind what you look at (24 blocks). Your next hit in 3s deals x2.5 damage.";
+            case 4 -> "Teleport behind what you look at (24 blocks). Your next hit in 3s deals x2 damage.";
             default -> "Blink between enemies within 12 blocks, striking 5 times for " + num(cutDamage(lvl))
                     + " damage each. The same enemy can only be hit 3 times.";
         };
@@ -145,15 +145,16 @@ public final class Assassin extends AttributeClass {
         float vMax = victim.getMaxHealth();
         if (victim.getHealth() >= vMax - 0.01) m *= 1 + opener(d.level);
         else if (victim.getHealth() < vMax * 0.3) m *= 1 + execute(d.level);
-        if (d.vanished) m *= 2;
+        if (d.vanished) m *= 1.6;
         else if (d.buff("shadowstep")) {
-            m *= 2.5;
+            m *= 2.0;
             d.buffs.remove("shadowstep");
         } else if (now() < d.empoweredUntil) {
             m *= 1.5;
             d.empoweredUntil = 0;
         }
-        return m;
+        // A backstab opener from stealth is the big hit, but capped so it can't delete a full health player
+        return Math.min(m, 2.5);
     }
 
     @Override

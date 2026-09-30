@@ -46,14 +46,14 @@ public final class Pyromancer extends AttributeClass {
     private double fireResist(int lvl) { return lerp(lvl, 0.70, 1.00); }
     private double lavaResist(int lvl) { return lerp(lvl, 0.40, 0.70); }
     private double igniteChance(int lvl) { return lerp(lvl, 0.50, 0.80); }
-    private double burnBonus(int lvl) { return lerp(lvl, 0.25, 0.50); }
+    private double burnBonus(int lvl) { return lerp(lvl, 0.15, 0.30); }
     private double netherBonus(int lvl) { return lerp(lvl, 0.15, 0.25); }
-    private double fireballDamage(int lvl) { return lerp(lvl, 10, 15); }
-    private double novaDamage(int lvl) { return lerp(lvl, 10, 15); }
+    private double fireballDamage(int lvl) { return lerp(lvl, 6, 9); }
+    private double novaDamage(int lvl) { return lerp(lvl, 7, 10); }
     private double popDamage(int lvl) { return lerp(lvl, 5, 9); }
-    private double dashDamage(int lvl) { return lerp(lvl, 6, 9); }
-    private double meteorDamage(int lvl) { return lerp(lvl, 20, 28); }
-    private double infernoDamage(int lvl) { return lerp(lvl, 5, 8); }
+    private double dashDamage(int lvl) { return lerp(lvl, 5, 7); }
+    private double meteorDamage(int lvl) { return lerp(lvl, 12, 16); }
+    private double infernoDamage(int lvl) { return lerp(lvl, 3, 4); }
 
     @Override
     public List<String> passives(int lvl) {

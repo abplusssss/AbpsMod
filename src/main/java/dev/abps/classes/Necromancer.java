@@ -58,14 +58,14 @@ public final class Necromancer extends AttributeClass {
 
     private double xpBonus(int lvl) { return lerp(lvl, 0.30, 0.80); }
     private double minionTime(int lvl) { return lerp(lvl, 25, 40); }
-    private double minionDamage(int lvl) { return lerp(lvl, 4, 8); }
+    private double minionDamage(int lvl) { return lerp(lvl, 3, 6); }
     private double minionHealth(int lvl) { return Math.round(lerp(lvl, 24, 40)); }
     private double explodeDamage(int lvl) { return lerp(lvl, 3, 6); }
     private double drain(int lvl) { return lerp(lvl, 6, 10); }
     private int zombies(int lvl) { return lvl >= 20 ? 6 : lvl >= 10 ? 5 : 4; }
     private int skeletons(int lvl) { return lvl >= 15 ? 3 : 2; }
     private double knightHealth(int lvl) { return Math.round(lerp(lvl, 60, 100)); }
-    private double knightDamage(int lvl) { return lerp(lvl, 10, 14); }
+    private double knightDamage(int lvl) { return lerp(lvl, 7, 10); }
     private double soulBlast(int lvl) { return lerp(lvl, 8, 11); }
 
     @Override

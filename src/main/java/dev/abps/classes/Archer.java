@@ -41,16 +41,16 @@ public final class Archer extends AttributeClass {
     @Override public String tagline() { return "Kill them before they get close."; }
     @Override public String mastery() { return "Your arrows pierce through 1 extra target."; }
 
-    private double arrowDmg(int lvl) { return lerp(lvl, 1.20, 1.40); }
+    private double arrowDmg(int lvl) { return lerp(lvl, 1.15, 1.30); }
     private double arrowSpeed(int lvl) { return lerp(lvl, 0.15, 0.30); }
     private double saveChance(int lvl) { return lerp(lvl, 0.25, 0.50); }
     private double critBonus(int lvl) { return lerp(lvl, 0.15, 0.30); }
-    private double headshot(int lvl) { return lerp(lvl, 0.30, 0.60); }
-    private double markBonus(int lvl) { return lerp(lvl, 0.35, 0.50); }
-    private double longshot(int lvl) { return lerp(lvl, 0.20, 0.40); }
+    private double headshot(int lvl) { return lerp(lvl, 0.25, 0.45); }
+    private double markBonus(int lvl) { return lerp(lvl, 0.25, 0.35); }
+    private double longshot(int lvl) { return lerp(lvl, 0.15, 0.30); }
     private int volleyCount(int lvl) { return lvl >= 20 ? 9 : lvl >= 10 ? 7 : 5; }
     private int stormWaves(int lvl) { return (int) Math.round(lerp(lvl, 16, 24)); }
-    private double beamDamage(int lvl) { return lerp(lvl, 12, 16); }
+    private double beamDamage(int lvl) { return lerp(lvl, 15, 20); }
 
     @Override
     public List<String> passives(int lvl) {
@@ -131,7 +131,8 @@ public final class Archer extends AttributeClass {
         }
         if (hit.melee()) m *= 0.75;
         if (d.buff("mark") && victim.getUUID().equals(d.markTarget)) m *= 1 + markBonus(d.level);
-        return m;
+        // Everything lining up (crit headshot from far on a marked target) is great, but never a one-shot
+        return Math.min(m, 2.25);
     }
 
     @Override

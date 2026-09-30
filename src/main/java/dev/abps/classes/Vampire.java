@@ -43,7 +43,7 @@ public final class Vampire extends AttributeClass {
     @Override public String tagline() { return "Drink their life. Own the night."; }
     @Override public String mastery() { return "Kills give you Strength I for 8s."; }
 
-    private double lifesteal(int lvl) { return lerp(lvl, 0.30, 0.50); }
+    private double lifesteal(int lvl) { return lerp(lvl, 0.25, 0.40); }
     private double sword(int lvl) { return lerp(lvl, 1.20, 1.35); }
     private double nightSpeed(int lvl) { return lerp(lvl, 0.30, 0.50); }
     private double killHeal(int lvl) { return lerp(lvl, 4, 8); }
@@ -51,7 +51,7 @@ public final class Vampire extends AttributeClass {
     private double bleedChance(int lvl) { return lerp(lvl, 0.25, 0.45); }
     private double burstDamage(int lvl) { return lerp(lvl, 5, 8); }
     private double moonTime(int lvl) { return lerp(lvl, 15, 20); }
-    private double feastDrain(int lvl) { return lerp(lvl, 1.5, 2.2); }
+    private double feastDrain(int lvl) { return lerp(lvl, 1.2, 1.7); }
 
     @Override
     public List<String> passives(int lvl) {

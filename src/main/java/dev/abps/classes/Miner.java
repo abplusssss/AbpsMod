@@ -62,7 +62,7 @@ public final class Miner extends AttributeClass {
     private double senseTime(int lvl) { return lerp(lvl, 10, 16); }
     private int tunnelDepth(int lvl) { return (int) Math.round(lerp(lvl, 8, 12)); }
     private double rushTime(int lvl) { return lerp(lvl, 20, 30); }
-    private double shatterDamage(int lvl) { return lerp(lvl, 10, 14); }
+    private double shatterDamage(int lvl) { return lerp(lvl, 12, 17); }
 
     public static boolean isOre(BlockState state) {
         if (state.is(Blocks.ANCIENT_DEBRIS)) return true;

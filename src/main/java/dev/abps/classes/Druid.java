@@ -64,14 +64,14 @@ public final class Druid extends AttributeClass {
     private double poisonBonus(int lvl) { return lerp(lvl, 0.15, 0.30); }
     private double cropChance(int lvl) { return lerp(lvl, 0.30, 0.65); }
     private double grassEvery(int lvl) { return lerp(lvl, 2.5, 1); }
-    private double healAmount(int lvl) { return lerp(lvl, 12, 20); }
+    private double healAmount(int lvl) { return lerp(lvl, 10, 16); }
     private double zoneTime(int lvl) { return lerp(lvl, 8, 12); }
     private double zoneDamage(int lvl) { return lerp(lvl, 3, 5); }
     private int wolfCount(int lvl) { return lvl >= 18 ? 5 : 4; }
     private double wolfTime(int lvl) { return lerp(lvl, 40, 60); }
     private double wolfDamage(int lvl) { return lerp(lvl, 6, 10); }
-    private double wrathDamage(int lvl) { return lerp(lvl, 12, 18); }
-    private double treeDamage(int lvl) { return lerp(lvl, 4, 6); }
+    private double wrathDamage(int lvl) { return lerp(lvl, 9, 13); }
+    private double treeDamage(int lvl) { return lerp(lvl, 1.5, 2.5); }
 
     @Override
     public List<String> passives(int lvl) {
@@ -351,25 +351,16 @@ public final class Druid extends AttributeClass {
         ServerLevel level = level(p);
         Vec3 base = p.position();
         int life = 200;
-        // Trunk and a big leafy top
-        FakeBlocks.temp(level, base, Blocks.OAK_LOG.defaultBlockState(), new Vector3f(0.4f, 0.2f, 0.4f), new Vector3f(1.2f, 5f, 1.2f), 20, life);
-        FakeBlocks.temp(level, base.add(0, 4.2, 0), Blocks.FLOWERING_AZALEA_LEAVES.defaultBlockState(), new Vector3f(0.5f),
-                new Vector3f(5f, 3f, 5f), 25, life);
-        FakeBlocks.temp(level, base.add(0, 6.5, 0), Blocks.OAK_LEAVES.defaultBlockState(), new Vector3f(0.4f),
-                new Vector3f(3f, 1.6f, 3f), 30, life);
+        // The tree itself is drawn by the client mod: a braided trunk, branches, roots and a healing ring
         Fx.sound(level, base, SoundEvents.ROOTS_PLACE, 2f, 0.5f);
-        dev.abps.util.Fancy.sigil(level, base, 8, 12, 0x76FF03, 0x1B5E20, life);
-        dev.abps.util.Vfx.pillar(level, base, 0.7, 12, dev.abps.util.Vfx.tint(0x76FF03), 20, 160, 20, 0x76FF03);
         Fx.sound(level, base, SoundEvents.AMETHYST_BLOCK_RESONATE, 1f, 0.6f);
         Fx.shakeNear(level, base, 12, 10, 0.5f);
         double dmg = treeDamage(d.level);
         Tasks.repeat(20, 10, step -> {
             if (p.isRemoved()) return;
-            Fx.ring(level, ParticleTypes.HAPPY_VILLAGER, base, 8, 40);
-            if (step % 2 == 0) dev.abps.util.Vfx.groundRing(level, base, 1, 8, 32, dev.abps.util.Vfx.tint(0x69F0AE), 0.14f, 14, 0x69F0AE);
-            Fx.burst(level, ParticleTypes.FALLING_SPORE_BLOSSOM, base.add(0, 6, 0), 20, 3, 1, 3, 0);
-            Fx.burst(level, ParticleTypes.CHERRY_LEAVES, base.add(0, 5, 0), 10, 3, 1, 3, 0);
             if (step % 2 != 0) return;
+            // A light ring of vanilla sparkles so players without the mod can see the area too
+            Fx.ring(level, ParticleTypes.HAPPY_VILLAGER, base, 8, 24);
             for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, new net.minecraft.world.phys.AABB(base, base).inflate(8))) {
                 if (other.gameMode() == GameType.SPECTATOR || !other.isAlive()) continue;
                 heal(other, 2);
