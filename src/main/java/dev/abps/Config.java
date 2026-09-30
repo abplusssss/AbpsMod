@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import dev.abps.classes.AttributeClass;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -29,13 +31,19 @@ public final class Config {
 
     // ---- Prices ----
     public int rerollXpLevels = 30;
-    public Map<String, Integer> rerollItems = new LinkedHashMap<>(Map.of("minecraft:diamond", 32));
+    public Map<String, Integer> rerollItems = new LinkedHashMap<>(Map.of("minecraft:netherite_ingot", 4));
     public boolean rerollNoRepeat = true;
-    public int upgradeXpBase = 3;
-    public int upgradeXpPerLevel = 1;
-    public int upgradeXpMax = 25;
-    /** Extra items when upgrading to level 5, 10, 15, 20 and 25. */
-    public Map<String, Integer> upgradeMilestoneItems = new LinkedHashMap<>(Map.of("minecraft:diamond", 5));
+    public int upgradeXpBase = 8;
+    public int upgradeXpPerLevel = 2;
+    public int upgradeXpMax = 40;
+    /** Extra items when upgrading to level 5, 10, 15, 20 and 25, multiplied by (level / 5). */
+    public Map<String, Integer> upgradeMilestoneItems = new LinkedHashMap<>(Map.of("minecraft:netherite_scrap", 1));
+    /** Extra items for the very last upgrade to max level. */
+    public Map<String, Integer> upgradeMaxLevelItems = new LinkedHashMap<>(Map.of("minecraft:netherite_ingot", 2, "minecraft:nether_star", 1));
+    /** Multiplies how many of each themed item an upgrade needs. 1.0 = default, 0.5 = half as many. */
+    public double upgradeItemScale = 1.0;
+    /** Lets the mod replace old default prices once when the prices are reworked. */
+    public int priceVersion = 0;
 
     // ---- Ultimates ----
     /** Damage you must deal to players to fully charge your ultimate. */
@@ -97,7 +105,19 @@ public final class Config {
         abilityUnlockLevels[0] = 1;
         cooldownReductionAtMax = Math.max(0, Math.min(0.9, cooldownReductionAtMax));
         if (rerollItems == null) rerollItems = new LinkedHashMap<>();
+        if (priceVersion < 2) {
+            // Prices were reworked: netherite rerolls and themed, much more expensive upgrades. Applied once to old configs.
+            rerollXpLevels = 30;
+            rerollItems = new LinkedHashMap<>(Map.of("minecraft:netherite_ingot", 4));
+            upgradeXpBase = 8;
+            upgradeXpPerLevel = 2;
+            upgradeXpMax = 40;
+            upgradeMilestoneItems = new LinkedHashMap<>(Map.of("minecraft:netherite_scrap", 1));
+            priceVersion = 2;
+        }
         if (upgradeMilestoneItems == null) upgradeMilestoneItems = new LinkedHashMap<>();
+        if (upgradeMaxLevelItems == null) upgradeMaxLevelItems = new LinkedHashMap<>(Map.of("minecraft:netherite_ingot", 2, "minecraft:nether_star", 1));
+        upgradeItemScale = Math.max(0.1, upgradeItemScale);
         ultimateDamageToCharge = Math.max(1, ultimateDamageToCharge);
         doubleTapMs = Math.max(100, doubleTapMs);
     }
@@ -126,10 +146,26 @@ public final class Config {
         return new Cost(rerollXpLevels, rerollItems);
     }
 
-    /** Cost to go from currentLevel to currentLevel + 1. */
-    public Cost upgradeCost(int currentLevel) {
+    /**
+     * Cost to go from currentLevel to currentLevel + 1. The items come from the attribute's theme and get rarer
+     * as the levels go up (levels 2-6, 7-12, 13-18 and 19-25 each use a different item).
+     */
+    public Cost upgradeCost(int currentLevel, AttributeClass cls) {
+        int target = currentLevel + 1;
         int xp = Math.min(upgradeXpMax, upgradeXpBase + upgradeXpPerLevel * currentLevel);
-        boolean milestone = (currentLevel + 1) % 5 == 0;
-        return new Cost(xp, milestone ? upgradeMilestoneItems : Map.of());
+        String[] ids = cls == null ? AttributeClass.DEFAULT_UPGRADE_ITEMS : cls.upgradeItems();
+        int[] base = cls == null ? AttributeClass.DEFAULT_UPGRADE_COUNTS : cls.upgradeCounts();
+        int tier = target <= 6 ? 0 : target <= 12 ? 1 : target <= 18 ? 2 : 3;
+        int tierStart = new int[]{2, 7, 13, 19}[tier];
+        Map<String, Integer> items = new LinkedHashMap<>();
+        int count = (int) Math.max(1, Math.round(base[tier] * (1 + 0.12 * (target - tierStart)) * upgradeItemScale));
+        items.put(ids[tier], count);
+        if (target % 5 == 0) {
+            for (Map.Entry<String, Integer> e : upgradeMilestoneItems.entrySet()) items.merge(e.getKey(), e.getValue() * (target / 5), Integer::sum);
+        }
+        if (target >= maxLevel) {
+            for (Map.Entry<String, Integer> e : upgradeMaxLevelItems.entrySet()) items.merge(e.getKey(), e.getValue(), Integer::sum);
+        }
+        return new Cost(xp, items);
     }
 }

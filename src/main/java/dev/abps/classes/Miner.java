@@ -433,4 +433,14 @@ public final class Miner extends AttributeClass {
         dev.abps.util.Vfx.jaws(level, at, ult ? 6 : 2.6, ult ? 16 : 7, ult ? 3.5 : 1.3, net.minecraft.world.level.block.Blocks.DEEPSLATE.defaultBlockState(), rgb());
         dev.abps.util.Vfx.burst(level, at.add(0, 0.5, 0), net.minecraft.world.level.block.Blocks.COBBLED_DEEPSLATE.defaultBlockState(), ult ? 30 : 12, 0.2, 0.22f, 18, -1);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:iron_ingot", "minecraft:gold_ingot", "minecraft:diamond", "minecraft:ancient_debris"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{32, 24, 10, 3};
+    }
 }

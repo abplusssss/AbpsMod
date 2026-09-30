@@ -386,4 +386,14 @@ public final class Druid extends AttributeClass {
         dev.abps.util.Vfx.vortex(level, at, ult ? 5 : 2.5, ult ? 14 : 6, net.minecraft.world.level.block.Blocks.FLOWERING_AZALEA_LEAVES.defaultBlockState(), 0.18f, ult ? 80 : 30, -0.9, -1);
         dev.abps.util.Vfx.burst(level, at.add(0, 0.3, 0), net.minecraft.world.level.block.Blocks.MOSS_BLOCK.defaultBlockState(), 12, 0.14, 0.16f, 18, -1);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:wheat", "minecraft:honeycomb", "minecraft:golden_carrot", "minecraft:totem_of_undying"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{40, 16, 24, 1};
+    }
 }

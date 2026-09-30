@@ -408,4 +408,14 @@ public final class Necromancer extends AttributeClass {
         }
         dev.abps.util.Vfx.vortex(level, at, ult ? 5 : 3, ult ? 18 : 9, net.minecraft.world.level.block.Blocks.SOUL_SAND.defaultBlockState(), 0.15f, ult ? 70 : 30, 1.2, 0x64FFDA);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:bone", "minecraft:soul_sand", "minecraft:wither_skeleton_skull", "minecraft:echo_shard"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{40, 32, 2, 3};
+    }
 }

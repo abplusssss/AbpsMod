@@ -317,4 +317,14 @@ public final class Archer extends AttributeClass {
         dev.abps.util.Vfx.beam(level, eye.add(look.scale(0.8)).add(0, -0.25, 0), eye.add(look.scale(ult ? 30 : 14)), ult ? 0.16f : 0.07f, dev.abps.util.Vfx.tint(rgb()), 10, rgb());
         dev.abps.util.Vfx.burst(level, eye.add(look.scale(1.2)), dev.abps.util.Vfx.tint(rgb2()), 8, 0.14, 0.1f, 12, rgb2());
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:arrow", "minecraft:spectral_arrow", "minecraft:diamond", "minecraft:netherite_scrap"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{48, 24, 8, 3};
+    }
 }

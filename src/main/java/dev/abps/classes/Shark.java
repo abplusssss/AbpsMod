@@ -548,4 +548,14 @@ public final class Shark extends AttributeClass {
         dev.abps.util.Vfx.groundRing(level, at, 0.5, ult ? 9 : 3.6, ult ? 34 : 20, dev.abps.util.Vfx.tint(0x4DD0E1), 0.12f, 12, 0x4DD0E1);
         dev.abps.util.Vfx.fins(level, at.add(0, 0.1, 0), ult ? 4.5 : 2.4, ult ? 5 : 3, net.minecraft.world.level.block.Blocks.CONCRETE.blue().defaultBlockState(), ult ? 70 : 32, 0.5, 0x0288D1);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:prismarine_shard", "minecraft:prismarine_crystals", "minecraft:nautilus_shell", "minecraft:heart_of_the_sea"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{40, 24, 6, 1};
+    }
 }

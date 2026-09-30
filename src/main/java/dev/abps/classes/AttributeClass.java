@@ -69,6 +69,23 @@ public abstract class AttributeClass {
     /** Cooldown in seconds at level 1, for abilities 1-4. */
     public abstract double baseCooldown(int idx);
 
+    // ---- Upgrade recipe theme ----
+    public static final String[] DEFAULT_UPGRADE_ITEMS = {"minecraft:iron_ingot", "minecraft:gold_ingot", "minecraft:diamond", "minecraft:netherite_scrap"};
+    public static final int[] DEFAULT_UPGRADE_COUNTS = {24, 16, 8, 3};
+
+    /**
+     * The item every upgrade asks for, by tier: levels 2-6, 7-12, 13-18 and 19-25. Each class picks items that
+     * match its theme, getting rarer with each tier.
+     */
+    public String[] upgradeItems() {
+        return DEFAULT_UPGRADE_ITEMS;
+    }
+
+    /** How many of the tier's item the first upgrade of that tier needs. It grows a bit with each level. */
+    public int[] upgradeCounts() {
+        return DEFAULT_UPGRADE_COUNTS;
+    }
+
     public int rgb() {
         return Text.parseColor(color());
     }

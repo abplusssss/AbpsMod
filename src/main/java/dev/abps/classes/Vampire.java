@@ -319,4 +319,14 @@ public final class Vampire extends AttributeClass {
         }
         dev.abps.util.Vfx.burst(level, at.add(0, 1, 0), net.minecraft.world.level.block.Blocks.REDSTONE_BLOCK.defaultBlockState(), ult ? 30 : 14, 0.12, 0.12f, 22, 0xB71C1C);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:redstone", "minecraft:fermented_spider_eye", "minecraft:ghast_tear", "minecraft:wither_skeleton_skull"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{40, 16, 6, 2};
+    }
 }

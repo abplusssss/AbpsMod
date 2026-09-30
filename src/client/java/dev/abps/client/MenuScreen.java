@@ -245,8 +245,8 @@ public final class MenuScreen extends Screen {
         button(g, mx, my, x, y, bw, 18, max ? "Max level" : "⬆ Upgrade", 0x69F0AE, !max, () -> confirm = "upgrade");
         button(g, mx, my, x + bw + 6, y, bw, 18, "🎲 Reroll", 0xFF5252, true, () -> confirm = "reroll");
         y += 22;
-        if (!max) Draw.text(g, "<gray>Next level: </gray>" + s.upgradeCost(), x, y);
-        y += 14;
+        if (!max) y += Draw.wrapped(g, "<gray>Next level: </gray>" + s.upgradeCost(), x, y, cw - 16, Draw.MUTED);
+        y += 6;
 
         // Stats
         Draw.text(g, "<gray>Abilities used:</gray> <white>" + s.abilitiesUsed() + "</white>   <gray>Rerolls:</gray> <white>" + s.rerolls()
@@ -748,7 +748,7 @@ public final class MenuScreen extends Screen {
     private void popup(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c) {
         g.fill(px, py, px + pw, py + ph, 0xA0000000);
         boolean reroll = confirm.equals("reroll");
-        int w = Math.min(pw - 40, 260), h = reroll ? 118 : 100;
+        int w = Math.min(pw - 40, 260), h = reroll ? 146 : 130;
         int x = px + (pw - w) / 2, y = py + (ph - h) / 2;
         int col = reroll ? 0xFF5252 : 0x69F0AE;
         Draw.panel(g, x - 1, y - 1, w + 2, h + 2, Draw.argb(col, 0x90));
@@ -760,15 +760,14 @@ public final class MenuScreen extends Screen {
         if (reroll) {
             Draw.scaled(g, "<bold><gradient:#FF5252:#FFAB40>Reroll your attribute?</gradient></bold>", x + w / 2f, yy, 1.25f, true);
             yy += 16;
-            yy += Draw.wrapped(g, "<gray>You get a random new attribute. <red><bold>You lose all " + s.level() + " levels.</bold></red>", x + 10, yy, w - 20, Draw.TEXT) + 4;
-            Draw.text(g, "<gray>Price: </gray>" + s.rerollCost(), x + 10, yy);
-            yy += 12;
+            yy += Draw.wrapped(g, "<gray>You get a random new attribute. <red><bold>You lose all " + s.level()
+                    + " levels and every XP level you have.</bold></red>", x + 10, yy, w - 20, Draw.TEXT) + 4;
+            yy += Draw.wrapped(g, "<gray>Price: </gray>" + s.rerollCost(), x + 10, yy, w - 20, Draw.MUTED) + 2;
             if (!s.canReroll()) Draw.text(g, "<red>You can't afford this yet.", x + 10, yy);
         } else {
             Draw.scaled(g, "<bold>" + Draw.gradient(c.color(), c.color2(), "Upgrade to level " + (s.level() + 1) + "?") + "</bold>", x + w / 2f, yy, 1.25f, true);
             yy += 18;
-            Draw.text(g, "<gray>Price: </gray>" + s.upgradeCost(), x + 10, yy);
-            yy += 12;
+            yy += Draw.wrapped(g, "<gray>Price: </gray>" + s.upgradeCost(), x + 10, yy, w - 20, Draw.MUTED) + 2;
             for (int u = 0; u < 4; u++) {
                 if (s.unlock()[u] == s.level() + 1) {
                     Draw.text(g, "<yellow>✦ Unlocks " + c.abilityNames().get(u), x + 10, yy);

@@ -336,4 +336,14 @@ public final class Pyromancer extends AttributeClass {
         dev.abps.util.Vfx.burst(level, at.add(0, 0.5, 0), net.minecraft.world.level.block.Blocks.MAGMA_BLOCK.defaultBlockState(), ult ? 36 : 14, 0.22, 0.2f, 20, 0xFF3D00);
         dev.abps.util.Vfx.vortex(level, at, ult ? 5 : 2.5, ult ? 18 : 8, net.minecraft.world.level.block.Blocks.SHROOMLIGHT.defaultBlockState(), 0.16f, ult ? 60 : 24, 2.0, 0xFFD600);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:coal", "minecraft:blaze_powder", "minecraft:blaze_rod", "minecraft:lava_bucket"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{40, 24, 12, 3};
+    }
 }

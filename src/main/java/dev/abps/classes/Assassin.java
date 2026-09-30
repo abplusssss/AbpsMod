@@ -325,4 +325,14 @@ public final class Assassin extends AttributeClass {
         dev.abps.util.Vfx.slash(level, at.add(0, 0.9, 0), look.yRot(0.4f), 2.4, 2.4, 0.09f, net.minecraft.world.level.block.Blocks.CONCRETE.purple().defaultBlockState(), rgb2());
         dev.abps.util.Vfx.burst(level, at.add(0, 1, 0), net.minecraft.world.level.block.Blocks.CONCRETE.black().defaultBlockState(), ult ? 30 : 12, 0.2, 0.14f, 14, rgb2());
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:spider_eye", "minecraft:phantom_membrane", "minecraft:ender_pearl", "minecraft:ender_eye"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{32, 12, 10, 4};
+    }
 }

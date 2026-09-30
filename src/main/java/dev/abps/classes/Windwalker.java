@@ -311,4 +311,14 @@ public final class Windwalker extends AttributeClass {
         }
         dev.abps.util.Vfx.vortex(level, at, ult ? 4 : 2, ult ? 16 : 8, net.minecraft.world.level.block.Blocks.CONCRETE.white().defaultBlockState(), 0.12f, ult ? 60 : 24, 1.8, 0xE0F7FA);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:feather", "minecraft:phantom_membrane", "minecraft:breeze_rod", "minecraft:shulker_shell"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{40, 14, 10, 3};
+    }
 }

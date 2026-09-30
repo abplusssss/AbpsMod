@@ -281,6 +281,7 @@ public final class Service {
         if (c != null) {
             raw(p, " <gray>Current: " + c.display() + " <gray>(Level " + d.level + ")");
             if (d.level > 1) raw(p, " <red>You will lose all " + d.level + " levels.");
+            raw(p, " <red>All of your XP levels are wiped too.");
         }
         raw(p, " <gray>Price: " + cost.describe(p));
         p.sendSystemMessage(buttons("Reroll", "Pay and roll a new attribute", () -> confirmReroll(p)));
@@ -297,6 +298,9 @@ public final class Service {
             return;
         }
         cost.take(p);
+        // A reroll wipes every XP level you have, not just the price
+        p.setExperienceLevels(0);
+        p.setExperiencePoints(0);
         d.rerolls++;
         roll(p, true);
     }
@@ -317,7 +321,7 @@ public final class Service {
             return;
         }
         int next = d.level + 1;
-        Cost cost = cfg().upgradeCost(d.level);
+        Cost cost = cfg().upgradeCost(d.level, cls(d));
         raw(p, LINE);
         raw(p, " <gold><bold>Upgrade " + c.name() + "</bold>");
         raw(p, " <gray>Level " + d.level + " <dark_gray>→ <green>Level " + next);
@@ -334,7 +338,7 @@ public final class Service {
         PlayerData d = data(p);
         AttributeClass c = cls(d);
         if (c == null || d.level >= cfg().maxLevel || p.isRemoved()) return;
-        Cost cost = cfg().upgradeCost(d.level);
+        Cost cost = cfg().upgradeCost(d.level, cls(d));
         if (!cost.canAfford(p)) {
             send(p, "<red>You can't afford this. You need " + cost.describe(p) + "<red>.");
             Fx.sound(level(p), p, SoundEvents.VILLAGER_NO, 1f, 1f);
@@ -583,7 +587,7 @@ public final class Service {
             total[i] = c == null ? 0 : cooldownMs(c, i, d.level);
         }
         boolean max = d.level >= cfg().maxLevel;
-        Cost up = cfg().upgradeCost(d.level);
+        Cost up = cfg().upgradeCost(d.level, cls(d));
         Cost re = cfg().rerollCost();
         int[] unlock = {cfg().unlockLevel(1), cfg().unlockLevel(2), cfg().unlockLevel(3), cfg().unlockLevel(4)};
         Net.SyncPayload payload = new Net.SyncPayload(c == null ? "" : c.id(), d.level, cfg().maxLevel, unlock, left, total,

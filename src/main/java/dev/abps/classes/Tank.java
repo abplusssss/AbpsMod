@@ -274,4 +274,14 @@ public final class Tank extends AttributeClass {
         dev.abps.util.Vfx.groundRing(level, at, 1, ult ? 10 : 5, ult ? 40 : 24, net.minecraft.world.level.block.Blocks.IRON_BLOCK.defaultBlockState(), ult ? 0.5f : 0.35f, 12, rgb());
         dev.abps.util.Vfx.jaws(level, at, ult ? 5 : 2.2, ult ? 14 : 6, ult ? 2.8 : 1.4, net.minecraft.world.level.block.Blocks.SMOOTH_STONE.defaultBlockState(), rgb());
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:iron_ingot", "minecraft:iron_block", "minecraft:diamond", "minecraft:netherite_scrap"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{40, 12, 10, 4};
+    }
 }

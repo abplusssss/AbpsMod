@@ -323,4 +323,14 @@ public final class Berserker extends AttributeClass {
         dev.abps.util.Vfx.slash(level, at.add(0, 1.1, 0), look, 2.6, 2.6, 0.16f, net.minecraft.world.level.block.Blocks.CONCRETE.red().defaultBlockState(), 0xFF1744);
         dev.abps.util.Vfx.slash(level, at.add(0, 0.6, 0), look, 2.2, 2.2, 0.12f, net.minecraft.world.level.block.Blocks.CONCRETE.orange().defaultBlockState(), 0xFF6D00);
     }
+
+    @Override
+    public String[] upgradeItems() {
+        return new String[]{"minecraft:gunpowder", "minecraft:blaze_rod", "minecraft:diamond", "minecraft:netherite_scrap"};
+    }
+
+    @Override
+    public int[] upgradeCounts() {
+        return new int[]{32, 12, 8, 3};
+    }
 }
