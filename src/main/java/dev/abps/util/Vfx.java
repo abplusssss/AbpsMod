@@ -57,6 +57,29 @@ public final class Vfx {
     public static final BlockState WHITE = BLOCKS[0];
 
     /** Server settings: effects can be turned off, or thinned out on busy servers. Set from the config. */
+    /** Which class the effects being made right now belong to (see FxKind.theme). Set while an ability runs and remembered by scheduled tasks. */
+    private static int theme;
+
+    public static int theme() {
+        return theme;
+    }
+
+    /** Sets the class the following effects belong to and returns the old one so it can be restored. */
+    public static int theme(int value) {
+        int old = theme;
+        theme = value;
+        return old;
+    }
+
+    /**
+     * Sends the signature effect of an ability to every nearby player who can draw it. Returns true when everyone
+     * nearby could, meaning the older display-entity effects should be skipped; false means somebody can't, and the
+     * caller should make the old effects so they see something.
+     */
+    public static boolean signature(ServerLevel level, Vec3 at, double[] d, int[] i) {
+        return remote(level, at, FxKind.SIGNATURE, d, i);
+    }
+
     private static volatile boolean enabled = true;
     private static volatile double density = 1.0;
 
@@ -72,6 +95,7 @@ public final class Vfx {
      */
     private static boolean remote(ServerLevel level, Vec3 at, int kind, double[] d, int[] i) {
         if (!enabled) return true;
+        kind |= theme << 8;
         java.util.List<ServerPlayer> ready = new ArrayList<>();
         for (ServerPlayer p : level.players()) {
             if (p.position().distanceToSqr(at) > 96 * 96) continue;
@@ -86,6 +110,7 @@ public final class Vfx {
 
     /** Sends to every nearby player who can draw effects, without falling back to displays for anyone else. */
     private static void sendReady(ServerLevel level, Vec3 at, int kind, double[] d, int[] i) {
+        kind |= theme << 8;
         Net.VfxPayload payload = new Net.VfxPayload(kind, d, i);
         for (ServerPlayer p : level.players()) {
             if (p.position().distanceToSqr(at) <= 96 * 96 && AbpsMod.service().vfxReady(p)) ServerPlayNetworking.send(p, payload);

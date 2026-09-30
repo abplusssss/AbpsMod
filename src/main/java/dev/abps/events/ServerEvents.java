@@ -172,6 +172,7 @@ public final class ServerEvents {
 
     private static void tick(MinecraftServer server) {
         if (!AbpsMod.running()) return;
+        dev.abps.util.Vfx.theme(0);
         Tasks.tick();
         ticks++;
         boolean slow = ticks % 5 == 0;

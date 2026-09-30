@@ -35,6 +35,7 @@ public final class FxSystem {
 
     public static void clear() {
         EMITTERS.clear();
+        FxParticle.resetCount();
     }
 
     /** 0.5, 1 or 1.5, from the quality setting. Scales how many pieces each effect is made of. */
@@ -48,7 +49,7 @@ public final class FxSystem {
 
     /** Hard limit on effect particles alive at once. */
     public static int maxParticles() {
-        return (int) (2600 * density());
+        return (int) (3400 * density());
     }
 
     public static void tick(Minecraft mc) {
@@ -73,29 +74,33 @@ public final class FxSystem {
 
     /** Handles one effect message from the server. Never throws: a broken effect must not crash the game. */
     public static void handle(Net.VfxPayload p) {
-        if (!ready || ClientPrefs.get().fxQuality < 0 || Minecraft.getInstance().level == null) return;
+        if (!ready || !FxSprites.loaded() || Minecraft.getInstance().level == null) return;
         try {
             double[] d = p.d();
             int[] i = p.i();
-            switch (p.kind()) {
-                case FxKind.SHARD -> FxEffects.shard(d, i);
-                case FxKind.BURST -> FxEffects.burst(d, i);
-                case FxKind.RING -> FxEffects.ring(d, i);
-                case FxKind.BEAM -> FxEffects.beam(d, i);
-                case FxKind.ZIGZAG -> FxEffects.zigzag(d, i);
-                case FxKind.PILLAR -> FxEffects.pillar(d, i);
-                case FxKind.JAWS -> FxEffects.jaws(d, i);
-                case FxKind.SLASH -> FxEffects.slash(d, i);
-                case FxKind.ORBIT -> FxEffects.orbit(d, i);
-                case FxKind.VORTEX -> FxEffects.vortex(d, i);
-                case FxKind.FINS -> FxEffects.fins(d, i);
-                case FxKind.FLASH -> FxEffects.flash(d, i);
-                case FxKind.SPHERE -> FxEffects.sphere(d, i);
-                case FxKind.HELIX -> FxEffects.helix(d, i);
-                case FxKind.TRAIL -> FxEffects.trail(d, i);
-                case FxKind.WAVE -> FxEffects.wave(d, i);
-                case FxKind.WAVE_STOP -> FxEffects.waveStop(i);
-                case FxKind.PARTICLES -> FxEffects.particles(d, i);
+            int kind = p.kind() & 0xFF;
+            int theme = (p.kind() >> 8) & 0xFF;
+            Skin s = Skin.of(theme);
+            switch (kind) {
+                case FxKind.SHARD -> FxEffects.shard(d, i, s);
+                case FxKind.BURST -> FxEffects.burst(d, i, s);
+                case FxKind.RING -> FxEffects.ring(d, i, s);
+                case FxKind.BEAM -> FxEffects.beam(d, i, s);
+                case FxKind.ZIGZAG -> FxEffects.zigzag(d, i, s);
+                case FxKind.PILLAR -> FxEffects.pillar(d, i, s);
+                case FxKind.JAWS -> FxEffects.jaws(d, i, s);
+                case FxKind.SLASH -> FxEffects.slash(d, i, s, theme);
+                case FxKind.ORBIT -> FxEffects.orbit(d, i, s);
+                case FxKind.VORTEX -> FxEffects.vortex(d, i, s);
+                case FxKind.FINS -> FxEffects.fins(d, i, s);
+                case FxKind.FLASH -> FxEffects.flash(d, i, s);
+                case FxKind.SPHERE -> FxEffects.sphere(d, i, s);
+                case FxKind.HELIX -> FxEffects.helix(d, i, s);
+                case FxKind.TRAIL -> FxEffects.trail(d, i, s);
+                case FxKind.WAVE -> Tsunami.start(d, i);
+                case FxKind.WAVE_STOP -> Tsunami.stop(i[0]);
+                case FxKind.PARTICLES -> FxEffects.particles(d, i, s);
+                case FxKind.SIGNATURE -> Signatures.play(d, i);
                 default -> {
                 }
             }

@@ -102,15 +102,20 @@ public abstract class AttributeClass {
     // ---- Abilities ----
     public boolean useAbility(int idx, ServerPlayer p, PlayerData d) {
         lastFail = null;
-        return switch (idx) {
-            case 1 -> ability1(p, d);
-            case 2 -> ability2(p, d);
-            case 3 -> ability3(p, d);
-            case 4 -> ability4(p, d);
-            case 5 -> abilityCount() >= 5 && ability5(p, d);
-            case 6 -> ultimate(p, d);
-            default -> false;
-        };
+        int outer = Vfx.theme(dev.abps.util.FxKind.theme(id()));
+        try {
+            return switch (idx) {
+                case 1 -> ability1(p, d);
+                case 2 -> ability2(p, d);
+                case 3 -> ability3(p, d);
+                case 4 -> ability4(p, d);
+                case 5 -> abilityCount() >= 5 && ability5(p, d);
+                case 6 -> ultimate(p, d);
+                default -> false;
+            };
+        } finally {
+            Vfx.theme(outer);
+        }
     }
 
     protected abstract boolean ability1(ServerPlayer p, PlayerData d);
@@ -327,6 +332,13 @@ public abstract class AttributeClass {
     protected void castFx(ServerPlayer p, int idx) {
         ServerLevel level = level(p);
         Vec3 at = p.position();
+        // Players with the client mod get this ability's own hand-made effect; the plain one below is for everyone else
+        Vec3 look = p.getLookAngle();
+        LivingEntity aimed = dev.abps.util.Targets.lookTarget(p, 32);
+        Vec3 aim = aimed != null ? aimed.position().add(0, aimed.getBbHeight() * 0.5, 0) : dev.abps.util.Targets.aimPoint(p, 32);
+        double[] sd = {at.x, at.y, at.z, look.x, look.y, look.z, aim.x, aim.y, aim.z};
+        int[] si = {dev.abps.util.FxKind.theme(id()), idx, p.getId(), aimed == null ? -1 : aimed.getId(), rgb(), rgb2()};
+        if (Vfx.signature(level, at, sd, si)) return;
         boolean ult = idx == ULTIMATE;
         net.minecraft.world.level.block.state.BlockState main = Vfx.tint(rgb()), alt = Vfx.tint(rgb2());
         Vfx.flash(level, at.add(0, 1, 0), ult ? 3.4f : 1.7f, Vfx.WHITE, ult ? 9 : 6, rgb());

@@ -49,7 +49,10 @@ public final class Service {
     }
 
     public AttributeClass cls(PlayerData d) {
-        return Classes.get(d.classId);
+        AttributeClass c = Classes.get(d.classId);
+        // Whatever effects the class's hooks make next are drawn in that class's style
+        if (c != null) dev.abps.util.Vfx.theme(dev.abps.util.FxKind.theme(c.id()));
+        return c;
     }
 
     public AttributeClass cls(ServerPlayer p) {

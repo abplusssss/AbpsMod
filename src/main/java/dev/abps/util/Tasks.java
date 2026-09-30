@@ -16,6 +16,8 @@ public final class Tasks {
         int step;
         final IntConsumer body;
         boolean cancelled;
+        /** The class whose effects this task makes, so they look right when it runs later. */
+        final int theme = Vfx.theme();
 
         Task(long runAt, long period, int count, IntConsumer body) {
             this.runAt = runAt;
@@ -71,11 +73,14 @@ public final class Tasks {
         tasks.removeIf(t -> {
             if (t.cancelled) return true;
             if (tick < t.runAt) return false;
+            int outer = Vfx.theme(t.theme);
             try {
                 t.body.accept(t.step++);
             } catch (Exception e) {
                 AbpsMod.LOGGER.warn("A scheduled effect stopped: {}", e.toString());
                 return true;
+            } finally {
+                Vfx.theme(outer);
             }
             t.remaining--;
             t.runAt = tick + t.period;
