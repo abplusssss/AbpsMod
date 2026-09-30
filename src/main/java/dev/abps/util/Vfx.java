@@ -27,12 +27,12 @@ public final class Vfx {
     private static final int[] PALETTE = {0xF9FFFE, 0xF9801D, 0xC74EBD, 0x3AB3DA, 0xFED83D, 0x80C71F, 0xF38BAA, 0x474F52,
             0x9D9D97, 0x169C9C, 0x8932B8, 0x3C44AA, 0x835432, 0x5E7C16, 0xB02E26, 0x1D1D21};
     private static final BlockState[] BLOCKS = {
-            Blocks.WHITE_CONCRETE.defaultBlockState(), Blocks.ORANGE_CONCRETE.defaultBlockState(), Blocks.MAGENTA_CONCRETE.defaultBlockState(),
-            Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState(), Blocks.YELLOW_CONCRETE.defaultBlockState(), Blocks.LIME_CONCRETE.defaultBlockState(),
-            Blocks.PINK_CONCRETE.defaultBlockState(), Blocks.GRAY_CONCRETE.defaultBlockState(), Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState(),
-            Blocks.CYAN_CONCRETE.defaultBlockState(), Blocks.PURPLE_CONCRETE.defaultBlockState(), Blocks.BLUE_CONCRETE.defaultBlockState(),
-            Blocks.BROWN_CONCRETE.defaultBlockState(), Blocks.GREEN_CONCRETE.defaultBlockState(), Blocks.RED_CONCRETE.defaultBlockState(),
-            Blocks.BLACK_CONCRETE.defaultBlockState()};
+            Blocks.CONCRETE.white().defaultBlockState(), Blocks.CONCRETE.orange().defaultBlockState(), Blocks.CONCRETE.magenta().defaultBlockState(),
+            Blocks.CONCRETE.lightBlue().defaultBlockState(), Blocks.CONCRETE.yellow().defaultBlockState(), Blocks.CONCRETE.lime().defaultBlockState(),
+            Blocks.CONCRETE.pink().defaultBlockState(), Blocks.CONCRETE.gray().defaultBlockState(), Blocks.CONCRETE.lightGray().defaultBlockState(),
+            Blocks.CONCRETE.cyan().defaultBlockState(), Blocks.CONCRETE.purple().defaultBlockState(), Blocks.CONCRETE.blue().defaultBlockState(),
+            Blocks.CONCRETE.brown().defaultBlockState(), Blocks.CONCRETE.green().defaultBlockState(), Blocks.CONCRETE.red().defaultBlockState(),
+            Blocks.CONCRETE.black().defaultBlockState()};
 
     public static final BlockState WHITE = BLOCKS[0];
 
@@ -320,5 +320,75 @@ public final class Vfx {
     private static Transformation fin(float length, float height, Quaternionf yaw) {
         Quaternionf lean = new Quaternionf(yaw).rotateZ(-0.55f);
         return based(new Vector3f(), lean, new Vector3f(length * 0.35f, height, 0.06f));
+    }
+
+    /**
+     * A wall of water that can be moved every couple of ticks. Made of one column and one leaning foam crest per
+     * block of width, with the height rippling as it travels.
+     */
+    public static final class Wave {
+        private final Vec3 dir, lateral;
+        private final int columns;
+        private final double height;
+        private final List<Display.BlockDisplay> body = new ArrayList<>();
+        private final List<Display.BlockDisplay> crest = new ArrayList<>();
+        private final Quaternionf yaw;
+
+        public Wave(ServerLevel level, Vec3 origin, Vec3 dir, int columns, double height, BlockState bodyState, BlockState crestState, int glowRgb) {
+            Vec3 flat = new Vec3(dir.x, 0, dir.z);
+            this.dir = flat.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : flat.normalize();
+            this.lateral = new Vec3(-this.dir.z, 0, this.dir.x);
+            this.columns = columns;
+            this.height = height;
+            this.yaw = new Quaternionf().rotationTo(new Vector3f(0, 0, 1), v(this.dir));
+            for (int i = 0; i < columns; i++) {
+                Display.BlockDisplay b = make(level, origin, bodyState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 2.4f)), glowRgb);
+                b.setPosRotInterpolationDuration(2);
+                body.add(b);
+                Display.BlockDisplay c = make(level, origin, crestState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 1.4f)), -1);
+                c.setPosRotInterpolationDuration(2);
+                crest.add(c);
+            }
+        }
+
+        /** Moves the wall so its middle is at center. growth runs 0 to 1 and scales the height, phase makes it ripple. */
+        public void update(Vec3 center, double growth, int phase) {
+            for (int i = 0; i < columns; i++) {
+                double lo = i - (columns - 1) / 2.0;
+                Vec3 at = center.add(lateral.scale(lo));
+                // Taller in the middle, lower at the edges, and rippling
+                double edge = 1.0 - Math.pow(Math.abs(lo) / (columns / 2.0 + 0.5), 2) * 0.45;
+                double h = Math.max(0.1, height * growth * edge * (0.82 + 0.18 * Math.sin(phase * 0.6 + i * 0.8)));
+                Display.BlockDisplay b = body.get(i);
+                b.setPos(at.x, at.y, at.z);
+                b.setTransformation(based(new Vector3f(), yaw, new Vector3f(1.2f, (float) h, 2.4f)));
+                b.setTransformationInterpolationDelay(0);
+                b.setTransformationInterpolationDuration(2);
+
+                Display.BlockDisplay c = crest.get(i);
+                Vec3 top = at.add(dir.scale(0.9));
+                c.setPos(top.x, top.y + h - 0.35, top.z);
+                Quaternionf lean = new Quaternionf(yaw).rotateX(0.75f);
+                c.setTransformation(based(new Vector3f(), lean, new Vector3f(1.2f, (float) Math.max(0.1, 0.9 * growth), 1.4f)));
+                c.setTransformationInterpolationDelay(0);
+                c.setTransformationInterpolationDuration(2);
+            }
+        }
+
+        /** Lets the wave collapse and removes it. */
+        public void collapse() {
+            for (Display.BlockDisplay d : body) {
+                d.setTransformation(based(new Vector3f(), yaw, new Vector3f(1.2f, 0.05f, 2.4f)));
+                d.setTransformationInterpolationDelay(0);
+                d.setTransformationInterpolationDuration(8);
+                remove(d, 8);
+            }
+            for (Display.BlockDisplay d : crest) {
+                d.setTransformation(based(new Vector3f(), yaw, new Vector3f(1.2f, 0.02f, 1.4f)));
+                d.setTransformationInterpolationDelay(0);
+                d.setTransformationInterpolationDuration(6);
+                remove(d, 6);
+            }
+        }
     }
 }

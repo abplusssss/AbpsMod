@@ -168,7 +168,7 @@ public final class Draw {
             case "druid" -> new String[]{"golden_apple", "sweet_berries", "bone", "oak_log", "flowering_azalea"};
             case "windwalker" -> new String[]{"feather", "wind_charge", "rabbit_foot", "breeze_rod", "lightning_rod"};
             case "necromancer" -> new String[]{"zombie_head", "soul_lantern", "bone", "wither_skeleton_skull", "echo_shard"};
-            case "shark" -> new String[]{"trident", "nautilus_shell", "heart_of_the_sea", "prismarine_shard", "conduit"};
+            case "shark" -> new String[]{"trident", "prismarine_crystals", "heart_of_the_sea", "nautilus_shell", "conduit"};
             default -> new String[]{"barrier", "barrier", "barrier", "barrier", "nether_star"};
         };
         return "minecraft:" + icons[Math.max(0, Math.min(4, idx - 1))];

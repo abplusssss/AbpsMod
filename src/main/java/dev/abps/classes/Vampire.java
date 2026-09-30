@@ -315,7 +315,7 @@ public final class Vampire extends AttributeClass {
         for (int i = 0; i < (ult ? 8 : 4); i++) {
             double a = Math.PI * 2 * i / (ult ? 8 : 4);
             net.minecraft.world.phys.Vec3 from = at.add(Math.cos(a) * 2.5, 0.1, Math.sin(a) * 2.5);
-            dev.abps.util.Vfx.zigzag(level, from, at.add(0, 1.2, 0), 5, 0.5, 0.07f, net.minecraft.world.level.block.Blocks.RED_CONCRETE.defaultBlockState(), 14, 0xB71C1C);
+            dev.abps.util.Vfx.zigzag(level, from, at.add(0, 1.2, 0), 5, 0.5, 0.07f, net.minecraft.world.level.block.Blocks.CONCRETE.red().defaultBlockState(), 14, 0xB71C1C);
         }
         dev.abps.util.Vfx.burst(level, at.add(0, 1, 0), net.minecraft.world.level.block.Blocks.REDSTONE_BLOCK.defaultBlockState(), ult ? 30 : 14, 0.12, 0.12f, 22, 0xB71C1C);
     }

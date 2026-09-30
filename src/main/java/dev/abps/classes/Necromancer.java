@@ -404,7 +404,7 @@ public final class Necromancer extends AttributeClass {
             double a = Math.PI * 2 * i / (ult ? 10 : 5);
             net.minecraft.world.phys.Vec3 base = at.add(Math.cos(a) * (ult ? 5 : 3), 0.1, Math.sin(a) * (ult ? 5 : 3));
             dev.abps.util.Vfx.pillar(level, base, 0.12, ult ? 5 : 3, dev.abps.util.Vfx.tint(0x64FFDA), 4, 8, 8, 0x64FFDA);
-            dev.abps.util.Vfx.beam(level, base.add(0, ult ? 5 : 3, 0), at.add(0, 1.6, 0), 0.05f, net.minecraft.world.level.block.Blocks.PURPLE_CONCRETE.defaultBlockState(), 12, 0x7C4DFF);
+            dev.abps.util.Vfx.beam(level, base.add(0, ult ? 5 : 3, 0), at.add(0, 1.6, 0), 0.05f, net.minecraft.world.level.block.Blocks.CONCRETE.purple().defaultBlockState(), 12, 0x7C4DFF);
         }
         dev.abps.util.Vfx.vortex(level, at, ult ? 5 : 3, ult ? 18 : 9, net.minecraft.world.level.block.Blocks.SOUL_SAND.defaultBlockState(), 0.15f, ult ? 70 : 30, 1.2, 0x64FFDA);
     }
