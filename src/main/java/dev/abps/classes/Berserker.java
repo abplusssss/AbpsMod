@@ -132,6 +132,8 @@ public final class Berserker extends AttributeClass {
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 40, 1));
         }
         Fx.burst(level, ParticleTypes.EXPLOSION, c, 3, 1, 0.2, 1, 0);
+        dev.abps.util.Fancy.impact(level, c.add(0, 0.5, 0), (float) (radius / 2.2), 0xFF6D00, 0xFF1744);
+        dev.abps.util.Vfx.jaws(level, c, radius * 0.8, 10, 1.6, dev.abps.util.Vfx.tint(0x8D6E63), 0xFF6D00);
         Fx.burst(level, Fx.block(level.getBlockState(BlockPos.containing(c).below())), c, 50, radius / 2, 0.1, radius / 2, 0.2);
         // A shockwave ring spreading out
         Tasks.repeat(4, 1, step -> Fx.ring(level, ParticleTypes.CLOUD, c, 1 + step * radius / 4, 18 + step * 6));
@@ -152,6 +154,7 @@ public final class Berserker extends AttributeClass {
     @Override
     public void afterHit(ServerPlayer p, PlayerData d, LivingEntity victim, float dealt, Hit hit) {
         if (!hit.melee()) return;
+        dev.abps.util.Vfx.burst(level(p), victim.position().add(0, victim.getBbHeight() / 2, 0), dev.abps.util.Vfx.tint(0xFF1744), 4 + d.stacks, 0.14, 0.12f, 10, -1);
         if (hit.weapon().is(ItemTags.AXES) && rand() < stunChance(d.level)) {
             victim.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20, 3));
             Fx.burst(level(p), ParticleTypes.CRIT, victim.getEyePosition(), 10, 0.3, 0.1);
@@ -212,6 +215,9 @@ public final class Berserker extends AttributeClass {
         ServerLevel level = level(p);
         Fx.sound(level, p, SoundEvents.RAVAGER_ROAR, 0.8f, 1.3f);
         Fx.burst(level, Fx.dust(0xFF1744, 1.5f), p.position().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0);
+        dev.abps.util.Fancy.aura(level, p, (int) (rageTime(d.level) * 20), 0xFF1744, 0xFF6D00);
+        dev.abps.util.Fancy.impact(level, p.position().add(0, 1, 0), 2f, 0xFF1744, 0xFF6D00);
+        dev.abps.util.Vfx.pillar(level, p.position(), 0.6, 5, dev.abps.util.Vfx.tint(0xFF1744), 4, 6, 8, 0xFF1744);
         Fx.screen(p, Fx.TINT, 0xFF1744, (int) (rageTime(d.level) * 20), 0.12f);
         used(p, 1);
         return true;
@@ -226,6 +232,8 @@ public final class Berserker extends AttributeClass {
         d.leapStart = now();
         d.noFallUntil = now() + 5000;
         Fx.sound(level(p), p, SoundEvents.GOAT_LONG_JUMP, 1f, 0.8f);
+        dev.abps.util.Vfx.trail(level(p), p, 24, dev.abps.util.Vfx.tint(0xFF6D00), 0.2f, 0xFF6D00);
+        dev.abps.util.Vfx.groundRing(level(p), p.position(), 0.5, 3, 16, dev.abps.util.Vfx.tint(0xFF6D00), 0.12f, 10, 0xFF6D00);
         used(p, 2);
         return true;
     }
@@ -243,6 +251,8 @@ public final class Berserker extends AttributeClass {
             }
             Fx.ring(level, ParticleTypes.SWEEP_ATTACK, c.add(0, 0.8, 0), 2.2, 8);
             Fx.ring(level, Fx.dust(0xFFAB00, 1f), c.add(0, 0.5, 0), 3.2, 20);
+            dev.abps.util.Vfx.slash(level, c.add(0, 1, 0), new Vec3(Math.cos(step * 1.3), 0, Math.sin(step * 1.3)), 2.7, 4.2, 0.15f, dev.abps.util.Vfx.tint(0xFFAB00), 0xFFAB00);
+            dev.abps.util.Vfx.slash(level, c.add(0, 1, 0), new Vec3(-Math.cos(step * 1.3), 0, -Math.sin(step * 1.3)), 2.7, 4.2, 0.15f, dev.abps.util.Vfx.WHITE, 0xFFAB00);
             Fx.sound(level, c, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 0.7f + step * 0.1f);
         });
         used(p, 3);
@@ -260,6 +270,9 @@ public final class Berserker extends AttributeClass {
         }
         ServerLevel level = level(p);
         Tasks.repeat(5, 2, step -> Fx.ring(level, Fx.dust(0xFF5252, 1.4f), c, 2 + step * 2, 20 + step * 8));
+        dev.abps.util.Fancy.sigil(level, c, 10, 10, 0xFF5252, 0xFF1744, 30);
+        dev.abps.util.Vfx.sphere(level, c.add(0, 1, 0), 1, 10, 40, dev.abps.util.Vfx.tint(0xFF5252), 0.2f, 16, 0xFF5252);
+        dev.abps.util.Fancy.aura(level, p, 100, 0xFF5252, 0xFF6D00);
         Fx.sound(level, c, SoundEvents.RAID_HORN, 1.5f, 1f);
         Fx.sound(level, c, SoundEvents.RAVAGER_ROAR, 1f, 0.8f);
         Fx.shakeNear(level, c, 14, 10, 0.5f);
@@ -284,6 +297,7 @@ public final class Berserker extends AttributeClass {
         Targets.velocity(p, dir.add(0, 1.0, 0));
         d.noFallUntil = now() + 5000;
         Fx.sound(level, p, SoundEvents.RAVAGER_ROAR, 1f, 0.6f);
+        dev.abps.util.Vfx.trail(level, p, 40, dev.abps.util.Vfx.tint(0xFF1744), 0.26f, 0xFF1744);
         long start = now();
         Tasks.repeat(60, 1, step -> {
             if (p.isRemoved() || !t.isAlive()) return;
@@ -299,6 +313,10 @@ public final class Berserker extends AttributeClass {
                 if (e != t) Targets.damage(e, dmg * 0.5, p);
             }
             Vec3 c = t.position();
+            dev.abps.util.Fancy.impact(level, c.add(0, 1, 0), 2.6f, 0xFF1744, 0x8B0000);
+            dev.abps.util.Vfx.slash(level, c.add(0, 1.4, 0), p.getLookAngle(), 3.2, 3.6, 0.22f, dev.abps.util.Vfx.WHITE, 0xFF1744);
+            dev.abps.util.Vfx.jaws(level, c, 3.5, 12, 2.2, dev.abps.util.Vfx.tint(0x8B0000), 0xFF1744);
+            dev.abps.util.Fancy.laser(level, c.add(0, 8, 0), c, 0.4f, 0xFF1744, 0xFFFFFF, 12);
             Fx.burst(level, ParticleTypes.SWEEP_ATTACK, c.add(0, 1, 0), 6, 0.8, 0.1);
             Fx.burst(level, ParticleTypes.EXPLOSION, c.add(0, 0.5, 0), 2, 0.5, 0);
             Fx.burst(level, Fx.dust(0x8B0000, 2f), c.add(0, 1, 0), 60, 0.8, 0.8, 0.8, 0);

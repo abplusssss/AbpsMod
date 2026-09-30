@@ -150,6 +150,7 @@ public final class Tank extends AttributeClass {
         if (reflect < 0.5) return;
         Targets.damage(attacker, reflect, p);
         Fx.burst(level(p), ParticleTypes.CRIT, attacker.position().add(0, 1, 0), 6, 0.3, 0.1);
+        dev.abps.util.Fancy.impact(level(p), attacker.position().add(0, 1, 0), 0.8f, 0x42A5F5, 0xFFFFFF);
     }
 
     @Override
@@ -162,6 +163,9 @@ public final class Tank extends AttributeClass {
         Fx.sound(level, p, SoundEvents.ANVIL_PLACE, 0.5f, 1.4f);
         Fx.spiral(level, Fx.dust(0x90CAF9, 1.2f), p.position(), 1, 2.2, 36, 0);
         Fx.burst(level, ParticleTypes.ENCHANTED_HIT, p.position().add(0, 1, 0), 25, 0.5, 0.8, 0.5, 0.1);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 1.9, 1.9, 30, dev.abps.util.Vfx.tint(0x90CAF9), 0.18f, 40, 0x90CAF9);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 0.5, 2.6, 24, dev.abps.util.Vfx.tint(0xFFFFFF), 0.16f, 12, 0x90CAF9);
+        dev.abps.util.Fancy.aura(level, p, ticks, 0x90CAF9, 0xFFFFFF);
         used(p, 1);
         return true;
     }
@@ -183,11 +187,14 @@ public final class Tank extends AttributeClass {
             if (pull.lengthSqr() > 0.01) Targets.velocity(e, pull.normalize().scale(0.9).add(0, 0.35, 0));
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 0));
             Fx.line(level, Fx.dust(0x42A5F5, 0.8f), e.position().add(0, 1, 0), c.add(0, 1, 0), 0.5);
+            dev.abps.util.Fancy.laser(level, e.position().add(0, 1, 0), c.add(0, 1, 0), 0.08f, 0x42A5F5, 0xFFFFFF, 10);
             pulled++;
         }
         // 1 enemy = 2 hearts, 2-3 = 4, 4-5 = 6, 6+ = 8
         if (pulled > 0) p.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, Math.min(3, pulled / 2)));
         Fx.ring(level, ParticleTypes.CRIT, c, 7, 40);
+        dev.abps.util.Fancy.sigil(level, c, 8, 10, 0x42A5F5, 0xB0BEC5, 30);
+        dev.abps.util.Vfx.flash(level, c.add(0, 1, 0), 2f, dev.abps.util.Vfx.WHITE, 6, 0x42A5F5);
         Fx.sound(level, c, SoundEvents.IRON_GOLEM_HURT, 1f, 0.5f);
         Fx.sound(level, c, SoundEvents.RAID_HORN, 0.6f, 1.6f);
         used(p, 2);
@@ -203,6 +210,7 @@ public final class Tank extends AttributeClass {
         }
         Vec3 fdir = dir.normalize();
         Targets.velocity(p, fdir.scale(1.5).add(0, 0.15, 0));
+        dev.abps.util.Vfx.trail(level(p), p, 10, dev.abps.util.Vfx.tint(0x90CAF9), 0.36f, 0x42A5F5);
         double dmg = bashDamage(d.level);
         boolean[] hit = {false};
         ServerLevel level = level(p);
@@ -214,6 +222,8 @@ public final class Tank extends AttributeClass {
                 Targets.root(e, 40);
                 Targets.velocity(e, fdir.scale(1.2).add(0, 0.35, 0));
                 Fx.burst(level, ParticleTypes.EXPLOSION, e.position().add(0, 1, 0), 1, 0, 0);
+                dev.abps.util.Fancy.impact(level, e.position().add(0, 1, 0), 2f, 0x42A5F5, 0xFFFFFF);
+                dev.abps.util.Vfx.groundRing(level, e.position(), 0.5, 3.5, 20, dev.abps.util.Vfx.tint(0x90CAF9), 0.16f, 10, 0x42A5F5);
                 Fx.sound(level, e, SoundEvents.SHIELD_BLOCK.value(), 1f, 0.6f);
                 Fx.shakeNear(level, e.position(), 6, 5, 0.6f);
                 Targets.velocity(p, Vec3.ZERO);
@@ -233,6 +243,8 @@ public final class Tank extends AttributeClass {
         Fx.sound(level, p, SoundEvents.ANVIL_USE, 1f, 0.5f);
         Fx.sound(level, p, SoundEvents.TOTEM_USE, 0.6f, 0.6f);
         Fx.ring(level, ParticleTypes.ENCHANTED_HIT, p.position(), 2, 30);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 2.0, 2.0, 36, dev.abps.util.Vfx.tint(0x90CAF9), 0.2f, 30, 0x90CAF9);
+        dev.abps.util.Fancy.aura(level, p, (int) (unbreakableTime(d.level) * 20), 0x90CAF9, 0xFFFFFF);
         Fx.screen(p, Fx.TINT, 0x90CAF9, (int) (unbreakableTime(d.level) * 20), 0.1f);
         used(p, 4);
         return true;
@@ -245,6 +257,8 @@ public final class Tank extends AttributeClass {
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 200, 0));
         ServerLevel level = level(p);
         Fx.sound(level, p, SoundEvents.WARDEN_EMERGE, 1f, 1.2f);
+        dev.abps.util.Fancy.sigil(level, p.position(), 6, 12, 0x42A5F5, 0xB0BEC5, 40);
+        dev.abps.util.Vfx.pillar(level, p.position(), 1.2, 12, dev.abps.util.Vfx.tint(0x90CAF9), 6, 10, 10, 0x42A5F5);
         Fx.shakeNear(level, p.position(), 16, 10, 0.8f);
         double dmg = stompDamage(d.level);
         Tasks.schedule(20, 20, 10, step -> {
@@ -255,6 +269,8 @@ public final class Tank extends AttributeClass {
                 Targets.pushAway(c, e, 1.0, 0.45);
             }
             Fx.burst(level, Fx.block(level.getBlockState(BlockPos.containing(c).below())), c, 60, 2.5, 0.1, 2.5, 0.2);
+            dev.abps.util.Vfx.groundRing(level, c, 1, 7, 30, dev.abps.util.Vfx.tint(0xB0BEC5), 0.3f, 12, 0x42A5F5);
+            dev.abps.util.Vfx.jaws(level, c, 5, 12, 1.8, dev.abps.util.Vfx.tint(0x78909C), 0x42A5F5);
             Tasks.repeat(3, 1, s -> Fx.ring(level, ParticleTypes.CLOUD, c, 1.5 + s * 1.6, 24));
             Fx.sound(level, c, SoundEvents.WARDEN_STEP, 2f, 0.6f);
             Fx.shakeNear(level, c, 14, 6, 0.6f);

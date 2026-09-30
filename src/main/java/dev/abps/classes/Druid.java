@@ -247,9 +247,12 @@ public final class Druid extends AttributeClass {
             }
             Fx.burst(level, ParticleTypes.HEART, other.position().add(0, 2, 0), 5, 0.4, 0.3, 0.4, 0);
             Fx.spiral(level, Fx.dust(0x76FF03, 1f), other.position(), 0.8, 2, 20, 0);
+            dev.abps.util.Vfx.helix(level, other.position(), 0.8, 2.2, 1.5, 14, dev.abps.util.Vfx.tint(0x76FF03), 0.13f, 14, 0x76FF03);
             if (other != p) count++;
         }
         Fx.ring(level, ParticleTypes.HAPPY_VILLAGER, p.position(), 3, 24);
+        dev.abps.util.Fancy.sigil(level, p.position(), 10, 8, 0x76FF03, 0x1B5E20, 30);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 1, 10, 36, dev.abps.util.Vfx.tint(0x69F0AE), 0.2f, 18, 0x76FF03);
         Fx.sound(level, p, SoundEvents.AMETHYST_BLOCK_CHIME, 1f, 1.2f);
         used(p, 1);
         if (count > 0) AbpsMod.service().actionBar(p, gradient("<bold>✦ Rejuvenate</bold>") + " <gray>healed you and " + count + " others.");
@@ -272,6 +275,8 @@ public final class Druid extends AttributeClass {
         Fx.sound(level, p, SoundEvents.AZALEA_LEAVES_PLACE, 1.2f, 0.6f);
         Fx.sound(level, p, SoundEvents.ROOTS_PLACE, 1.2f, 0.8f);
         zoneTick(p, d);
+        dev.abps.util.Fancy.sigil(level, d.zone, ZONE_RADIUS, 10, 0x76FF03, 0x1B5E20, Math.min(240, (int) (zoneTime(d.level) * 20)));
+        dev.abps.util.Vfx.jaws(level, d.zone, ZONE_RADIUS, 16, 1.4, dev.abps.util.Vfx.tint(0x2E7D32), 0x76FF03);
         used(p, 2);
         return true;
     }
@@ -300,6 +305,8 @@ public final class Druid extends AttributeClass {
             d.minions.put(wolf.getUUID(), until);
             Fx.burst(level, ParticleTypes.HAPPY_VILLAGER, at.add(0, 0.5, 0), 10, 0.3, 0);
             Fx.burst(level, Fx.block(Blocks.OAK_LEAVES.defaultBlockState()), at.add(0, 0.5, 0), 15, 0.4, 0);
+            dev.abps.util.Fancy.impact(level, at.add(0, 0.5, 0), 1.2f, 0x76FF03, 0x1B5E20);
+            dev.abps.util.Vfx.pillar(level, at, 0.4, 3, dev.abps.util.Vfx.tint(0x76FF03), 3, 4, 8, 0x76FF03);
         }
         Fx.sound(level, p, SoundEvents.EVOKER_PREPARE_SUMMON, 1f, 1.4f);
         used(p, 3);
@@ -318,6 +325,7 @@ public final class Druid extends AttributeClass {
             FakeBlocks.temp(level, e.position(), Blocks.OAK_LOG.defaultBlockState(), new Vector3f(0.3f, 0.1f, 0.3f),
                     new Vector3f(0.5f, 1.4f, 0.5f), 4, 60);
             Fx.burst(level, Fx.block(Blocks.OAK_LOG.defaultBlockState()), e.position(), 20, 0.3, 0.5, 0.3, 0);
+            dev.abps.util.Vfx.jaws(level, e.position(), 1.2, 8, 2, dev.abps.util.Vfx.tint(0x5D4037), 0x76FF03);
         }
         for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, p.getBoundingBox().inflate(8))) {
             if (other.gameMode() == GameType.SPECTATOR || !other.isAlive()) continue;
@@ -327,6 +335,9 @@ public final class Druid extends AttributeClass {
         }
         Tasks.repeat(6, 1, step -> Fx.ring(level, ParticleTypes.HAPPY_VILLAGER, c, 1.5 + step * 1.3, 12 + step * 8));
         Fx.burst(level, Fx.block(Blocks.MOSS_BLOCK.defaultBlockState()), c, 80, 4, 0.2, 4, 0);
+        dev.abps.util.Fancy.sigil(level, c, 8, 12, 0x76FF03, 0x1B5E20, 30);
+        dev.abps.util.Vfx.sphere(level, c.add(0, 1, 0), 1, 8, 44, dev.abps.util.Vfx.tint(0x76FF03), 0.24f, 18, 0x76FF03);
+        dev.abps.util.Vfx.jaws(level, c, 8, 20, 3.5, dev.abps.util.Vfx.tint(0x5D4037), 0x76FF03);
         Fx.sound(level, c, SoundEvents.ROOTED_DIRT_BREAK, 1.5f, 0.5f);
         Fx.sound(level, c, SoundEvents.EVOKER_CAST_SPELL, 1f, 0.8f);
         Fx.shakeNear(level, c, 10, 6, 0.5f);
@@ -347,12 +358,15 @@ public final class Druid extends AttributeClass {
         FakeBlocks.temp(level, base.add(0, 6.5, 0), Blocks.OAK_LEAVES.defaultBlockState(), new Vector3f(0.4f),
                 new Vector3f(3f, 1.6f, 3f), 30, life);
         Fx.sound(level, base, SoundEvents.ROOTS_PLACE, 2f, 0.5f);
+        dev.abps.util.Fancy.sigil(level, base, 8, 12, 0x76FF03, 0x1B5E20, life);
+        dev.abps.util.Vfx.pillar(level, base, 0.7, 12, dev.abps.util.Vfx.tint(0x76FF03), 20, 160, 20, 0x76FF03);
         Fx.sound(level, base, SoundEvents.AMETHYST_BLOCK_RESONATE, 1f, 0.6f);
         Fx.shakeNear(level, base, 12, 10, 0.5f);
         double dmg = treeDamage(d.level);
         Tasks.repeat(20, 10, step -> {
             if (p.isRemoved()) return;
             Fx.ring(level, ParticleTypes.HAPPY_VILLAGER, base, 8, 40);
+            if (step % 2 == 0) dev.abps.util.Vfx.groundRing(level, base, 1, 8, 32, dev.abps.util.Vfx.tint(0x69F0AE), 0.14f, 14, 0x69F0AE);
             Fx.burst(level, ParticleTypes.FALLING_SPORE_BLOSSOM, base.add(0, 6, 0), 20, 3, 1, 3, 0);
             Fx.burst(level, ParticleTypes.CHERRY_LEAVES, base.add(0, 5, 0), 10, 3, 1, 3, 0);
             if (step % 2 != 0) return;

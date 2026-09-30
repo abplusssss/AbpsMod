@@ -152,6 +152,7 @@ public final class Archer extends AttributeClass {
     @Override
     public void onShoot(ServerPlayer p, PlayerData d, AbstractArrow arrow) {
         arrow.setDeltaMovement(arrow.getDeltaMovement().scale(1 + arrowSpeed(d.level)));
+        dev.abps.util.Vfx.trail(level(p), arrow, 30, dev.abps.util.Vfx.tint(rgb()), 0.08f, rgb());
         if (mastered(d)) pierce(arrow, 1);
         // Chance to get the arrow back (only for bows, not in creative)
         if (p.isCreative() || arrow.pickup != AbstractArrow.Pickup.ALLOWED || !p.getMainHandItem().is(Items.BOW)) return;
@@ -183,6 +184,9 @@ public final class Archer extends AttributeClass {
         d.noFallUntil = now() + 4000;
         ServerLevel level = level(p);
         Fx.line(level, Fx.dust(0xD7CCC8, 0.6f), p.getEyePosition(), to, 0.5);
+        dev.abps.util.Fancy.laser(level, p.getEyePosition().add(0, -0.2, 0), to, 0.1f, 0xD7CCC8, 0xFFFFFF, 12);
+        dev.abps.util.Fancy.impact(level, to, 1.2f, 0xD7CCC8, 0xFFFFFF);
+        dev.abps.util.Vfx.trail(level, p, 14, dev.abps.util.Vfx.tint(0xD7CCC8), 0.16f, 0xFFFFFF);
         Fx.sound(level, p, SoundEvents.TRIDENT_RIPTIDE_1, 1f, 1.3f);
         return true;
     }
@@ -208,6 +212,11 @@ public final class Archer extends AttributeClass {
         Fx.sound(level, p, SoundEvents.ARROW_SHOOT, 1f, 0.8f);
         Fx.sound(level, p, SoundEvents.CROSSBOW_SHOOT, 1f, 1.2f);
         Fx.burst(level, ParticleTypes.CRIT, p.getEyePosition().add(look), 12, 0.3, 0.2);
+        for (int i = 0; i < n; i++) {
+            Vec3 fan = look.yRot((float) Math.toRadians((i - (n - 1) / 2.0) * 5));
+            dev.abps.util.Vfx.beam(level, p.getEyePosition().add(fan), p.getEyePosition().add(fan.scale(18)), 0.05f, dev.abps.util.Vfx.tint(rgb()), 8, rgb());
+        }
+        dev.abps.util.Vfx.flash(level, p.getEyePosition().add(look.scale(1.2)), 1.4f, dev.abps.util.Vfx.tint(rgb2()), 6, rgb2());
         used(p, 1);
         return true;
     }
@@ -228,6 +237,12 @@ public final class Archer extends AttributeClass {
             Fx.ring(level, Fx.dust(0x00BFA5, 0.8f), t.position().add(0, t.getBbHeight() + 0.4, 0), 0.5, 10);
         });
         Fx.line(level, ParticleTypes.END_ROD, p.getEyePosition(), t.getEyePosition(), 1.2);
+        Vec3 core = t.position().add(0, t.getBbHeight() / 2, 0);
+        dev.abps.util.Vfx.ring(level, core, new Vec3(0, 1, 0), 2.0, 0.8, 16, dev.abps.util.Vfx.tint(rgb()), 0.09f, 26, rgb());
+        dev.abps.util.Vfx.ring(level, core, new Vec3(1, 0, 0), 2.0, 0.8, 16, dev.abps.util.Vfx.tint(rgb2()), 0.09f, 26, rgb2());
+        dev.abps.util.Vfx.ring(level, core, new Vec3(0, 0, 1), 2.0, 0.8, 16, dev.abps.util.Vfx.tint(rgb()), 0.09f, 26, rgb());
+        dev.abps.util.Fancy.laser(level, p.getEyePosition().add(0, -0.2, 0), core, 0.06f, 0x00BFA5, 0xFFFFFF, 10);
+        dev.abps.util.Fancy.aura(level, t, 120, rgb(), rgb2());
         Fx.sound(level, p, SoundEvents.NOTE_BLOCK_PLING.value(), 1f, 1.6f);
         used(p, 2);
         return true;
@@ -240,6 +255,7 @@ public final class Archer extends AttributeClass {
         a.shoot(look.x, look.y, look.z, 3.2f, 0f);
         a.setBaseDamage(0.5);
         a.addTag("abps_grapple");
+        dev.abps.util.Vfx.trail(level(p), a, 30, dev.abps.util.Vfx.tint(0xD7CCC8), 0.1f, 0xFFFFFF);
         a.setGlowingTag(true);
         p.level().addFreshEntity(a);
         Fx.sound(level(p), p, SoundEvents.CROSSBOW_LOADING_END.value(), 1f, 1.4f);
@@ -252,14 +268,17 @@ public final class Archer extends AttributeClass {
         Vec3 center = Targets.aimPoint(p, 40);
         ServerLevel level = level(p);
         Fx.sound(level, center, SoundEvents.CROSSBOW_SHOOT, 1.5f, 0.6f);
+        dev.abps.util.Fancy.sigil(level, center, 4.5, 8, 0x9CCC65, 0x00BFA5, 30);
         Tasks.repeat(stormWaves(d.level), 5, step -> {
             if (p.isRemoved()) return;
             Fx.ring(level, Fx.dust(0x9CCC65, 1f), center, 4.5, 30);
+            dev.abps.util.Vfx.groundRing(level, center, 4.5, 4.5, 28, dev.abps.util.Vfx.tint(0x9CCC65), 0.12f, 10, 0x9CCC65);
             for (int i = 0; i < 5; i++) {
                 double ang = rand() * Math.PI * 2, r = Math.sqrt(rand()) * 4.5;
                 Vec3 from = center.add(Math.cos(ang) * r, 14, Math.sin(ang) * r);
                 Arrow arrow = abilityArrow(p, from);
                 arrow.shoot(0, -1, 0, 2.2f, 2f);
+                dev.abps.util.Vfx.beam(level, from, from.add(0, -16, 0), 0.05f, dev.abps.util.Vfx.tint(0x9CCC65), 6, 0x9CCC65);
                 arrow.setCritArrow(true);
                 level.addFreshEntity(arrow);
             }
@@ -282,6 +301,7 @@ public final class Archer extends AttributeClass {
             if (step < 20) {
                 // Light gathering in front of the archer
                 Vec3 tip = eye.add(look.scale(1.2));
+                if (step == 0) dev.abps.util.Vfx.sphere(level, tip, 2.2, 0.2, 24, dev.abps.util.Vfx.tint(rgb()), 0.16f, 20, rgb());
                 double r = 1.5 - step * 0.07;
                 for (int i = 0; i < 6; i++) {
                     double a = step * 0.5 + i * Math.PI / 3;
@@ -290,6 +310,7 @@ public final class Archer extends AttributeClass {
                 return;
             }
             Vec3 end = eye.add(look.scale(60));
+
             HitResult block = level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
             if (block.getType() == HitResult.Type.BLOCK) end = block.getLocation();
             AABB area = new AABB(eye, end).inflate(1.2);
@@ -300,6 +321,12 @@ public final class Archer extends AttributeClass {
                 Fx.burst(level, ParticleTypes.END_ROD, e.getEyePosition(), 10, 0.3, 0.2);
             }
             Fx.line(level, ParticleTypes.END_ROD, eye, end, 0.4);
+            dev.abps.util.Fancy.laser(level, eye.add(look.scale(1.0)).add(0, -0.25, 0), end, 0.7f, 0x00BFA5, 0xFFFFFF, 14);
+            dev.abps.util.Fancy.impact(level, end, 3f, 0x00BFA5, 0xFFFFFF);
+            double beamLen = end.distanceTo(eye);
+            for (double along = 4; along < beamLen; along += 4) {
+                dev.abps.util.Vfx.ring(level, eye.add(look.scale(along)), look, 0.4, 2.0, 14, dev.abps.util.Vfx.tint(rgb2()), 0.1f, 8, rgb2());
+            }
             Fx.line(level, Fx.dust(0x00BFA5, 1.5f), eye, end, 0.3);
             Fx.burst(level, ParticleTypes.EXPLOSION, end, 1, 0, 0);
             Fx.sound(level, p, SoundEvents.WARDEN_SONIC_BOOM, 1f, 1.4f);

@@ -198,6 +198,7 @@ public final class Miner extends AttributeClass {
         if (!isOre(state)) return;
         Integer id = d.highlights.remove(pos.asLong());
         if (id != null) FakeBlocks.hide(p, id);
+        dev.abps.util.Vfx.burst(level, Vec3.atCenterOf(pos), dev.abps.util.Vfx.tint(oreColor(state)), 8, 0.14, 0.14f, 14, oreColor(state));
         if (p.isCreative()) return;
         double base = baseXp(state);
         if (base <= 0) return;
@@ -260,6 +261,9 @@ public final class Miner extends AttributeClass {
             return false;
         }
         Vec3 c = Vec3.atCenterOf(center);
+        dev.abps.util.Fancy.impact(level, c, 1.8f, rgb(), rgb2());
+        dev.abps.util.Vfx.burst(level, c, Blocks.STONE.defaultBlockState(), 14, 0.26, 0.24f, 18, -1);
+        dev.abps.util.Vfx.zigzag(level, c.add(0, 2, 0), c.add(0, -2, 0), 4, 0.9, 0.09f, dev.abps.util.Vfx.tint(rgb()), 10, rgb());
         Fx.burst(level, ParticleTypes.CLOUD, c, 20, 1, 0.02);
         Fx.burst(level, Fx.dust(rgb(), 1.2f), c, 25, 1.2, 0);
         Fx.sound(level, c, SoundEvents.DEEPSLATE_BREAK, 1f, 0.7f);
@@ -319,6 +323,8 @@ public final class Miner extends AttributeClass {
         Fx.sound(level, p, SoundEvents.AMETHYST_BLOCK_RESONATE, 1f, 1.2f);
         // A pulse ring going out from the player
         Tasks.repeat(6, 2, step -> Fx.ring(level, Fx.dust(rgb(), 1f), p.position(), 1.5 + step * 1.8, 20 + step * 8));
+        dev.abps.util.Fancy.sigil(level, p.position(), SENSE_RADIUS, 10, rgb(), rgb2(), 30);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 1, SENSE_RADIUS, 36, dev.abps.util.Vfx.tint(rgb()), 0.18f, 20, rgb());
         used(p, 2);
         dev.abps.AbpsMod.service().actionBar(p, gradient("<bold>✦ Ore Sense</bold>") + " <gray>found <white>" + found + "</white> ores.");
         return true;
@@ -355,6 +361,8 @@ public final class Miner extends AttributeClass {
                 }
             }
             Fx.burst(level, ParticleTypes.CLOUD, Vec3.atCenterOf(center), 6, 0.8, 0.02);
+            dev.abps.util.Vfx.ring(level, Vec3.atCenterOf(center), new Vec3(fx, fy, fz), 0.5, 2.3, 12, dev.abps.util.Vfx.tint(rgb()), 0.1f, 7, rgb());
+            if (step % 3 == 0) dev.abps.util.Fancy.impact(level, Vec3.atCenterOf(center), 0.9f, rgb(), rgb2());
             if (step % 3 == 0) Fx.sound(level, Vec3.atCenterOf(center), SoundEvents.GRINDSTONE_USE, 0.8f, 0.6f);
         });
         if (sy < 0) d.noFallUntil = now() + 4000;
@@ -372,6 +380,9 @@ public final class Miner extends AttributeClass {
         ServerLevel level = level(p);
         Fx.burst(level, ParticleTypes.WAX_ON, p.position().add(0, 1, 0), 50, 0.6, 0.3);
         Fx.spiral(level, Fx.dust(0xFFD600, 1.2f), p.position(), 1.2, 2.5, 40, 0);
+        dev.abps.util.Vfx.helix(level, p.position(), 1.1, 2.6, 2.5, 24, dev.abps.util.Vfx.tint(0xFFD600), 0.15f, 16, 0xFFD600);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 0.4, 3, 24, dev.abps.util.Vfx.tint(0xFFD600), 0.16f, 14, 0xFFD600);
+        dev.abps.util.Fancy.aura(level, p, (int) (ms / 50), 0xFFD600, 0xFF6F00);
         Fx.sound(level, p, SoundEvents.PLAYER_LEVELUP, 1f, 0.7f);
         Fx.sound(level, p, SoundEvents.AMETHYST_BLOCK_CHIME, 1f, 0.8f);
         Fx.screen(p, Fx.TINT, 0xFFD600, 20, 0.15f);
@@ -393,6 +404,8 @@ public final class Miner extends AttributeClass {
         Set<UUID> hit = new HashSet<>();
         Vec3 start = p.position();
         Vec3 step = dir;
+        dev.abps.util.Fancy.sigil(level, start, 4, 8, rgb(), rgb2(), 26);
+        dev.abps.util.Vfx.beam(level, start.add(0, 0.15, 0), start.add(dir.scale(15)).add(0, 0.15, 0), 0.16f, dev.abps.util.Vfx.tint(0x8D6E63), 20, 0x8D6E63);
         Fx.sound(level, p, SoundEvents.WARDEN_SONIC_CHARGE, 1f, 0.6f);
         Tasks.repeat(14, 1, i -> {
             if (p.isRemoved()) return;
@@ -407,6 +420,8 @@ public final class Miner extends AttributeClass {
             FakeBlocks.temp(level, top, Blocks.POINTED_DRIPSTONE.defaultBlockState(), new Vector3f(0.6f, 0.05f, 0.6f),
                     new Vector3f(0.9f, h, 0.9f), 3, 30);
             Fx.burst(level, Fx.block(under), top, 16, 0.4, 0.1, 0.4, 0.1);
+            dev.abps.util.Vfx.groundRing(level, top, 0.3, 2.4, 12, dev.abps.util.Vfx.tint(0x8D6E63), 0.18f, 8, 0x8D6E63);
+            dev.abps.util.Vfx.flash(level, top.add(0, 0.6, 0), 1.6f, dev.abps.util.Vfx.tint(rgb()), 5, rgb());
             if (i % 2 == 0) Fx.sound(level, top, SoundEvents.POINTED_DRIPSTONE_LAND, 1f, 0.6f);
             for (LivingEntity e : Targets.enemiesNear(p, top.add(0, 0.5, 0), 1.9)) {
                 if (!hit.add(e.getUUID())) continue;

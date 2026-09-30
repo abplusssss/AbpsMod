@@ -209,6 +209,9 @@ public final class Vampire extends AttributeClass {
         if (!(t instanceof ServerPlayer)) t.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20 * 10, 0));
         ServerLevel level = level(p);
         Fx.spiral(level, BLOOD, t.position(), 0.8, 2.2, 30, 0);
+        dev.abps.util.Fancy.chains(level, t, 60, 0xB71C1C, 0x4A148C);
+        dev.abps.util.Fancy.laser(level, p.getEyePosition(), t.getEyePosition(), 0.12f, 0xB71C1C, 0x4A148C, 10);
+        dev.abps.util.Fancy.sigil(level, t.position(), 2.4, 6, 0x8B0000, 0x4A148C, 30);
         Fx.line(level, BLOOD, p.getEyePosition(), t.getEyePosition(), 0.4);
         Fx.sound(level, p, SoundEvents.WARDEN_HEARTBEAT, 1f, 1f);
         if (t instanceof ServerPlayer tp) {
@@ -237,6 +240,8 @@ public final class Vampire extends AttributeClass {
             Fx.ring(level, BLOOD, t.position().add(0, 0.3 + (step % 4) * 0.4, 0), 0.7, 12);
         });
         Fx.burst(level, BLOOD, t.position().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0);
+        dev.abps.util.Fancy.chains(level, t, (int) (bindTime(d.level) * 20), 0xB71C1C, 0xFF5252);
+        dev.abps.util.Fancy.impact(level, t.position().add(0, 1, 0), 1.4f, 0xB71C1C, 0xFF5252);
         Fx.sound(level, t, SoundEvents.PHANTOM_BITE, 1f, 0.6f);
         used(p, 2);
         return true;
@@ -259,6 +264,8 @@ public final class Vampire extends AttributeClass {
         heal(p, total * 0.3);
         ServerLevel level = level(p);
         Tasks.repeat(5, 1, step -> Fx.ring(level, BLOOD, p.position().add(0, 0.4, 0), 1 + step * 1.25, 14 + step * 8));
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 0.5, 6.5, 40, dev.abps.util.Vfx.tint(0xB71C1C), 0.2f, 14, 0xFF1744);
+        dev.abps.util.Fancy.sigil(level, p.position(), 6, 8, 0xB71C1C, 0xFF5252, 20);
         Fx.sound(level, p, SoundEvents.WARDEN_ATTACK_IMPACT, 1f, 0.8f);
         Fx.shakeNear(level, p.position(), 8, 5, 0.4f);
         used(p, 3);
@@ -273,6 +280,9 @@ public final class Vampire extends AttributeClass {
         ServerLevel level = level(p);
         Fx.sound(level, p, SoundEvents.WITHER_SPAWN, 0.5f, 1.4f);
         Fx.spiral(level, BLOOD, p.position(), 1.6, 3, 60, 0);
+        dev.abps.util.Vfx.helix(level, p.position(), 1.4, 3.2, 3, 26, dev.abps.util.Vfx.tint(0xB71C1C), 0.15f, 16, 0xFF1744);
+        dev.abps.util.Fancy.aura(level, p, ticks, 0xB71C1C, 0x4A148C);
+        dev.abps.util.Vfx.flash(level, p.position().add(0, 14, 0), 6f, dev.abps.util.Vfx.tint(0xB71C1C), 30, 0xFF1744);
         Fx.screen(p, Fx.TINT, 0x8B0000, ticks, 0.18f);
         used(p, 4);
         return true;
@@ -292,12 +302,14 @@ public final class Vampire extends AttributeClass {
         Tasks.repeat(12, 10, step -> {
             if (p.isRemoved() || !p.isAlive()) return;
             Vec3 me = p.position().add(0, 1.2, 0);
+            if (step == 0) dev.abps.util.Fancy.sigil(level, p.position(), 10, 12, 0x8B0000, 0x6A0DAD, 120);
             double healed = 0;
             for (LivingEntity t : Targets.enemiesNear(p, p.position(), 10)) {
                 float before = t.getHealth();
                 Targets.damage(t, drain, p);
                 healed += Math.max(0, before - t.getHealth());
                 Fx.line(level, BLOOD, t.position().add(0, 1, 0), me, 0.35);
+                dev.abps.util.Fancy.laser(level, t.position().add(0, 1, 0), me, 0.1f, 0xB71C1C, 0x6A0DAD, 8);
                 Fx.burst(level, BLOOD, t.position().add(0, 1, 0), 6, 0.3, 0.4, 0.3, 0);
             }
             heal(p, healed * 0.8);

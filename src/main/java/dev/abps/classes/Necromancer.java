@@ -200,6 +200,7 @@ public final class Necromancer extends AttributeClass {
     private void explode(ServerPlayer p, Vec3 at, double dmg) {
         ServerLevel level = level(p);
         for (LivingEntity e : Targets.enemiesNear(p, at, 3.5)) Targets.damage(e, dmg, p);
+        dev.abps.util.Fancy.impact(level, at.add(0, 0.8, 0), 1.2f, 0x64FFDA, 0x311B92);
         Fx.burst(level, ParticleTypes.SOUL_FIRE_FLAME, at.add(0, 0.8, 0), 20, 0.5, 0.06);
         Fx.burst(level, ParticleTypes.EXPLOSION, at.add(0, 0.8, 0), 1, 0, 0);
         Fx.sound(level, at, SoundEvents.GENERIC_EXPLODE, 0.5f, 1.6f);
@@ -264,6 +265,7 @@ public final class Necromancer extends AttributeClass {
         int n = z + s;
         long life = (long) (minionTime(d.level) * 1000);
         ServerLevel level = level(p);
+        dev.abps.util.Fancy.sigil(level, p.position(), 5, 10, 0x64FFDA, 0x311B92, 60);
         // Rise one after another for a nicer effect
         Tasks.repeat(n, 2, i -> {
             if (p.isRemoved()) return;
@@ -271,6 +273,7 @@ public final class Necromancer extends AttributeClass {
             double r = i % 2 == 0 ? 2.0 : 3.0;
             Vec3 at = p.position().add(Math.cos(a) * r, 0, Math.sin(a) * r);
             spawnMinion(p, d, at, life, i >= z ? EntityTypes.SKELETON : EntityTypes.ZOMBIE);
+            dev.abps.util.Vfx.pillar(level, at, 0.5, 4, dev.abps.util.Vfx.tint(0x64FFDA), 4, 6, 8, 0x64FFDA);
         });
         Fx.ring(level, ParticleTypes.SOUL_FIRE_FLAME, p.position(), 3, 36);
         Fx.spiral(level, Fx.dust(0x64FFDA, 1.2f), p.position(), 3, 2.5, 40, 0);
@@ -301,6 +304,8 @@ public final class Necromancer extends AttributeClass {
         }
         Fx.line(level, ParticleTypes.SOUL, t.getEyePosition(), p.getEyePosition(), 0.5);
         Fx.line(level, Fx.dust(0x64FFDA, 0.8f), t.getEyePosition(), p.getEyePosition(), 0.3);
+        dev.abps.util.Fancy.laser(level, t.getEyePosition(), p.getEyePosition(), 0.14f, 0x64FFDA, 0x7C4DFF, 12);
+        dev.abps.util.Fancy.impact(level, t.getEyePosition(), 1.4f, 0x64FFDA, 0x7C4DFF);
         Fx.sound(level, p, SoundEvents.WITHER_SHOOT, 0.6f, 1.4f);
         used(p, 2);
         return true;
@@ -327,8 +332,10 @@ public final class Necromancer extends AttributeClass {
             mob.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 160, 1));
             Fx.burst(level, ParticleTypes.ANGRY_VILLAGER, mob.getEyePosition().add(0, 0.4, 0), 1, 0, 0);
             Fx.line(level, Fx.dust(0x311B92, 0.6f), mob.getEyePosition(), t.getEyePosition(), 0.8);
+            dev.abps.util.Vfx.beam(level, mob.getEyePosition(), t.getEyePosition(), 0.06f, dev.abps.util.Vfx.tint(0x7C4DFF), 10, 0x7C4DFF);
         }
         t.addEffect(new MobEffectInstance(MobEffects.GLOWING, 160, 0));
+        dev.abps.util.Fancy.chains(level, t, 100, 0x7C4DFF, 0x64FFDA);
         Fx.sound(level, p, SoundEvents.WITHER_AMBIENT, 0.6f, 1.6f);
         used(p, 3);
         return true;
@@ -352,6 +359,10 @@ public final class Necromancer extends AttributeClass {
         Fx.burst(level, ParticleTypes.SOUL_FIRE_FLAME, at.add(0, 1, 0), 60, 0.6, 1.2, 0.6, 0.05);
         Fx.burst(level, ParticleTypes.EXPLOSION, at, 2, 0.3, 0);
         Fx.sound(level, at, SoundEvents.WITHER_SPAWN, 0.7f, 1.2f);
+        dev.abps.util.Fancy.sigil(level, at, 4, 8, 0x64FFDA, 0x311B92, 40);
+        dev.abps.util.Vfx.pillar(level, at, 1.0, 10, dev.abps.util.Vfx.tint(0x64FFDA), 4, 10, 10, 0x64FFDA);
+        dev.abps.util.Vfx.jaws(level, at, 2.5, 10, 3, dev.abps.util.Vfx.tint(0x311B92), 0x64FFDA);
+        dev.abps.util.Vfx.sphere(level, at.add(0, 1, 0), 0.5, 4, 30, dev.abps.util.Vfx.tint(0x64FFDA), 0.2f, 16, 0x64FFDA);
         Fx.shakeNear(level, at, 12, 8, 0.6f);
         used(p, 4);
         return true;
@@ -384,6 +395,8 @@ public final class Necromancer extends AttributeClass {
             }
         }
         Tasks.repeat(6, 2, step -> Fx.ring(level, ParticleTypes.SOUL_FIRE_FLAME, c, 1.5 + step * 1.6, 20 + step * 8));
+        dev.abps.util.Fancy.sigil(level, c, 10, 14, 0x64FFDA, 0x311B92, 40);
+        dev.abps.util.Vfx.sphere(level, c.add(0, 1, 0), 1, 10, 50, dev.abps.util.Vfx.tint(0x64FFDA), 0.24f, 20, 0x64FFDA);
         Fx.spiral(level, ParticleTypes.SOUL, c, 3, 4, 60, 0);
         Fx.sound(level, c, SoundEvents.WARDEN_SONIC_BOOM, 0.8f, 0.6f);
         Fx.sound(level, c, SoundEvents.EVOKER_PREPARE_SUMMON, 1f, 0.6f);

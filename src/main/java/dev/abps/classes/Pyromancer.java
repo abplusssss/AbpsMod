@@ -112,6 +112,7 @@ public final class Pyromancer extends AttributeClass {
 
     @Override
     public void tick(ServerPlayer p, PlayerData d) {
+        if (d.tickCount % 8 == 0) dev.abps.util.Vfx.groundRing(level(p), p.position(), 3.8, 4.0, 14, dev.abps.util.Vfx.tint(0xFF6D00), 0.06f, 10, 0xFF6D00);
         if (d.tickCount % 8 != 0) return; // every 2 seconds
         ServerLevel level = level(p);
         for (LivingEntity e : Targets.enemiesNear(p, p.position(), 4)) {
@@ -188,6 +189,8 @@ public final class Pyromancer extends AttributeClass {
             le.igniteForSeconds(3);
         }
         Fx.burst(level, ParticleTypes.FLAME, at, 40, 0.8, 0.08);
+        dev.abps.util.Fancy.impact(level, at, 2f, 0xFF6D00, 0xFFD600);
+        dev.abps.util.Vfx.sphere(level, at, 0.3, 3, 20, dev.abps.util.Vfx.tint(0xFF6D00), 0.2f, 12, 0xFF6D00);
         Fx.burst(level, ParticleTypes.LAVA, at, 6, 0.5, 0);
         Fx.burst(level, ParticleTypes.EXPLOSION, at, 1, 0, 0);
         Fx.sound(level, at, SoundEvents.BLAZE_HURT, 0.7f, 1.4f);
@@ -214,6 +217,8 @@ public final class Pyromancer extends AttributeClass {
         fb.addTag("abps_ability");
         p.level().addFreshEntity(fb);
         Fx.sound(level(p), p, SoundEvents.BLAZE_SHOOT, 1f, 1f);
+        dev.abps.util.Vfx.trail(level(p), fb, 40, dev.abps.util.Vfx.tint(0xFF9800), 0.24f, 0xFF6D00);
+        dev.abps.util.Vfx.flash(level(p), p.getEyePosition().add(look), 1.3f, dev.abps.util.Vfx.tint(0xFFD600), 6, 0xFF6D00);
         used(p, 1);
         return true;
     }
@@ -239,6 +244,8 @@ public final class Pyromancer extends AttributeClass {
             if (step % 2 == 0) Fx.ring(level, Fx.dust(0xFF3D00, 1.3f), c.add(0, 0.3, 0), 1 + step, 8 + step * 6);
         });
         Fx.burst(level, ParticleTypes.LAVA, c, 12, 2, 0.3, 2, 0);
+        dev.abps.util.Fancy.sigil(level, c, 7, 10, 0xFF6D00, 0xFFD600, 24);
+        dev.abps.util.Vfx.sphere(level, c.add(0, 1, 0), 0.5, 7, 46, dev.abps.util.Vfx.tint(0xFF6D00), 0.24f, 14, 0xFF3D00);
         Fx.sound(level, c, SoundEvents.FIRECHARGE_USE, 1f, 0.7f);
         Fx.sound(level, c, SoundEvents.BLAZE_SHOOT, 0.8f, 0.6f);
         Fx.shakeNear(level, c, 10, 5, 0.4f);
@@ -251,12 +258,15 @@ public final class Pyromancer extends AttributeClass {
         Targets.velocity(p, dir);
         d.noFallUntil = now() + 3000;
         java.util.Set<java.util.UUID> burned = new java.util.HashSet<>();
+        final Vec3 ndir = dir.normalize();
+        dev.abps.util.Vfx.trail(level(p), p, 14, dev.abps.util.Vfx.tint(0xFF9800), 0.3f, 0xFF6D00);
         ServerLevel level = level(p);
         Tasks.repeat(12, 1, step -> {
             if (p.isRemoved()) return;
             Vec3 at = p.position();
             Fx.burst(level, ParticleTypes.FLAME, at.add(0, 0.3, 0), 8, 0.3, 0.2, 0.3, 0.02);
             Fx.burst(level, Fx.dust(0xFFD600, 1f), at.add(0, 0.8, 0), 3, 0.2, 0);
+            if (step % 2 == 0) dev.abps.util.Vfx.ring(level, at.add(0, 1, 0), ndir, 0.4, 2.0, 14, dev.abps.util.Vfx.tint(0xFF6D00), 0.1f, 8, 0xFF6D00);
             for (LivingEntity e : Targets.enemiesNear(p, at, 1.8)) {
                 if (!burned.add(e.getUUID())) continue;
                 Targets.damage(e, dashDamage(d.level), p);
@@ -274,6 +284,7 @@ public final class Pyromancer extends AttributeClass {
         double dmg = meteorDamage(d.level);
         ServerLevel level = level(p);
         Fx.sound(level, target, SoundEvents.GHAST_WARN, 1.5f, 0.6f);
+        dev.abps.util.Fancy.sigil(level, target, 6, 12, 0xFF3D00, 0xFFD600, 34);
         // The meteor falls for 30 ticks, then hits
         Tasks.repeat(31, 1, step -> {
             if (step < 30) {
@@ -282,6 +293,8 @@ public final class Pyromancer extends AttributeClass {
                 Fx.burst(level, ParticleTypes.FLAME, at, 14, 0.4, 0.02);
                 Fx.burst(level, ParticleTypes.LARGE_SMOKE, at, 4, 0.3, 0.01);
                 Fx.burst(level, Fx.dust(0xFF3D00, 2f), at, 6, 0.5, 0);
+                dev.abps.util.Vfx.beam(level, target.add(0, h + 4, 0), target.add(0, h, 0), 1.1f, dev.abps.util.Vfx.tint(0xFF6D00), 3, 0xFF3D00);
+                dev.abps.util.Vfx.flash(level, at, 2.2f, dev.abps.util.Vfx.tint(0xFFD600), 3, 0xFFD600);
                 if (step % 5 == 0) Fx.ring(level, ParticleTypes.FLAME, target, 6, 34);
                 return;
             }
@@ -292,6 +305,10 @@ public final class Pyromancer extends AttributeClass {
                 Targets.pushAway(target, e, 1.1, 0.6);
             }
             Fx.burst(level, ParticleTypes.EXPLOSION_EMITTER, target, 1, 0, 0);
+            dev.abps.util.Fancy.impact(level, target.add(0, 1, 0), 4f, 0xFF6D00, 0xFFD600);
+            dev.abps.util.Vfx.sphere(level, target.add(0, 1, 0), 0.5, 8, 60, dev.abps.util.Vfx.tint(0xFF6D00), 0.3f, 20, 0xFF3D00);
+            dev.abps.util.Vfx.jaws(level, target, 6, 18, 3, dev.abps.util.Vfx.tint(0xFF3D00), 0xFFD600);
+            dev.abps.util.Vfx.pillar(level, target, 2, 14, dev.abps.util.Vfx.tint(0xFF6D00), 3, 6, 10, 0xFF3D00);
             Fx.burst(level, ParticleTypes.LAVA, target, 30, 2.5, 0.5, 2.5, 0);
             Fx.burst(level, ParticleTypes.FLAME, target, 100, 2.5, 0.8, 2.5, 0.15);
             Fx.sound(level, target, SoundEvents.GENERIC_EXPLODE, 2f, 0.6f);
@@ -310,12 +327,17 @@ public final class Pyromancer extends AttributeClass {
         double dmg = infernoDamage(d.level);
         Fx.sound(level, p, SoundEvents.BLAZE_AMBIENT, 1.5f, 0.5f);
         Fx.screen(p, Fx.TINT, 0xFF6F00, 120, 0.18f);
+        dev.abps.util.Fancy.aura(level, p, 120, 0xFF3D00, 0xFFD600);
         Tasks.repeat(24, 5, step -> {
             if (p.isRemoved() || !p.isAlive()) return;
             Vec3 c = p.position();
             // Two flame spirals spinning around the player
             Fx.spiral(level, ParticleTypes.FLAME, c, 2.5, 3.5, 30, step * 0.6);
             Fx.spiral(level, Fx.dust(0xFF3D00, 1.4f), c, 4, 2, 24, -step * 0.6);
+            if (step == 0) {
+                dev.abps.util.Fancy.sigil(level, c, 8, 12, 0xFF3D00, 0xFFD600, 120);
+                dev.abps.util.Fancy.tornado(level, c, 3, 9, 110, dev.abps.util.Vfx.tint(0xFF6D00), 0xFF3D00);
+            }
             Fx.ring(level, ParticleTypes.FLAME, c, 8, 40);
             if (step % 4 != 0) return;
             for (LivingEntity e : Targets.enemiesNear(p, c, 8)) {

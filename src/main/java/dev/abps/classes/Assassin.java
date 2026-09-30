@@ -137,6 +137,7 @@ public final class Assassin extends AttributeClass {
             m *= backstab(d.level);
             if (mastered(d)) victim.addEffect(new MobEffectInstance(MobEffects.POISON, 60, 1));
             Fx.burst(level, ParticleTypes.CRIT, victim.getEyePosition(), 8, 0.2, 0.2);
+            dev.abps.util.Vfx.slash(level, victim.position().add(0, 1, 0), p.getLookAngle(), 1.6, 2.4, 0.09f, dev.abps.util.Vfx.WHITE, 0x4A148C);
             Fx.burst(level, Fx.dust(0x4A148C, 1f), victim.position().add(0, 1, 0), 8, 0.3, 0);
         }
         // Same check vanilla uses for a critical hit
@@ -194,6 +195,8 @@ public final class Assassin extends AttributeClass {
         ServerLevel level = level(p);
         Fx.burst(level, ParticleTypes.LARGE_SMOKE, p.position().add(0, 1, 0), 30, 0.3, 0.6, 0.3, 0.02);
         Fx.burst(level, Fx.dust(0x4A148C, 1.4f), p.position().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0);
+        dev.abps.util.Fancy.impact(level, p.position().add(0, 1, 0), 1.6f, 0x4A148C, 0x311B92);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 1, 0), 0.3, 3, 24, dev.abps.util.Vfx.tint(0x4A148C), 0.18f, 14, 0x4A148C);
         Fx.sound(level, p, SoundEvents.ILLUSIONER_MIRROR_MOVE, 1f, 1f);
         Fx.screen(p, Fx.TINT, 0x311B92, ticks, 0.2f);
         used(p, 1);
@@ -208,6 +211,7 @@ public final class Assassin extends AttributeClass {
         broadcastVanish();
         p.removeEffect(MobEffects.INVISIBILITY);
         Fx.burst(level(p), ParticleTypes.LARGE_SMOKE, p.position().add(0, 1, 0), 15, 0.3, 0.6, 0.3, 0.02);
+        dev.abps.util.Vfx.sphere(level(p), p.position().add(0, 1, 0), 3, 0.3, 20, dev.abps.util.Vfx.tint(0x4A148C), 0.16f, 12, 0x4A148C);
         if (message != null) AbpsMod.service().actionBar(p, message);
     }
 
@@ -220,6 +224,8 @@ public final class Assassin extends AttributeClass {
         d.empoweredUntil = now() + 3000;
         ServerLevel level = level(p);
         Tasks.repeat(8, 1, step -> Fx.burst(level, Fx.dust(0x4A148C, 1.2f), p.position().add(0, 1, 0), 4, 0.2, 0.4, 0.2, 0));
+        dev.abps.util.Vfx.trail(level, p, 10, dev.abps.util.Vfx.tint(0x4A148C), 0.32f, 0xB388FF);
+        dev.abps.util.Vfx.slash(level, p.position().add(0, 1, 0), p.getLookAngle(), 2.2, 2.6, 0.12f, dev.abps.util.Vfx.WHITE, 0xB388FF);
         Fx.sound(level, p, SoundEvents.PHANTOM_FLAP, 1f, 1.4f);
         used(p, 2);
         return true;
@@ -237,6 +243,8 @@ public final class Assassin extends AttributeClass {
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, 60, 1));
         Fx.burst(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, c.add(0, 1, 0), 80, 2.5, 1, 2.5, 0.01);
         Fx.burst(level, ParticleTypes.LARGE_SMOKE, c.add(0, 1, 0), 50, 2, 0.8, 2, 0.02);
+        dev.abps.util.Vfx.sphere(level, c.add(0, 1.2, 0), 0.5, 5, 40, dev.abps.util.Vfx.tint(0x424242), 0.3f, 24, -1);
+        dev.abps.util.Fancy.sigil(level, c, 5, 8, 0x4A148C, 0x311B92, 24);
         Fx.sound(level, c, SoundEvents.GENERIC_EXTINGUISH_FIRE, 1f, 0.6f);
         used(p, 3);
         return true;
@@ -254,8 +262,11 @@ public final class Assassin extends AttributeClass {
         float yaw = (float) (Math.toDegrees(Math.atan2(-face.x, face.z)));
         ServerLevel level = level(p);
         Fx.burst(level, ParticleTypes.PORTAL, p.position().add(0, 1, 0), 30, 0.3, 0.6, 0.3, 0.5);
+        dev.abps.util.Fancy.impact(level, p.position().add(0, 1, 0), 1.4f, 0x4A148C, 0xB388FF);
+        dev.abps.util.Vfx.beam(level, p.position().add(0, 1, 0), to.add(0, 1, 0), 0.18f, dev.abps.util.Vfx.tint(0xB388FF), 10, 0xB388FF);
         p.teleportTo(level, to.x, to.y, to.z, Set.<Relative>of(), yaw, p.getXRot(), false);
         Fx.burst(level, ParticleTypes.LARGE_SMOKE, to.add(0, 1, 0), 20, 0.3, 0.6, 0.3, 0.02);
+        dev.abps.util.Fancy.impact(level, to.add(0, 1, 0), 1.4f, 0x4A148C, 0xB388FF);
         return true;
     }
 
@@ -304,6 +315,11 @@ public final class Assassin extends AttributeClass {
             Targets.damage(pick, dmg, p);
             pick.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 30, 1));
             Fx.burst(level, ParticleTypes.SWEEP_ATTACK, pick.position().add(0, 1, 0), 3, 0.4, 0);
+            Vec3 pc = pick.position().add(0, 1, 0);
+            for (int k = 0; k < 3; k++) {
+                dev.abps.util.Vfx.slash(level, pc, new Vec3(Math.cos(k * 2.1 + step), 0, Math.sin(k * 2.1 + step)), 1.8, 3.0, 0.1f, dev.abps.util.Vfx.WHITE, 0xB388FF);
+            }
+            dev.abps.util.Fancy.impact(level, pc, 1.3f, 0x4A148C, 0xB388FF);
             Fx.burst(level, Fx.dust(0xB388FF, 1.2f), pick.position().add(0, 1, 0), 20, 0.4, 0.6, 0.4, 0);
             Fx.sound(level, pick, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 1.2f + step * 0.1f);
         });

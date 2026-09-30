@@ -329,11 +329,14 @@ public abstract class AttributeClass {
         Vec3 at = p.position();
         boolean ult = idx == ULTIMATE;
         net.minecraft.world.level.block.state.BlockState main = Vfx.tint(rgb()), alt = Vfx.tint(rgb2());
+        Vfx.flash(level, at.add(0, 1, 0), ult ? 3.4f : 1.7f, Vfx.WHITE, ult ? 9 : 6, rgb());
+        Vfx.helix(level, at, ult ? 1.6 : 1.0, ult ? 4.0 : 2.4, ult ? 2.5 : 1.5, ult ? 26 : 12, main, ult ? 0.16f : 0.12f, 12, rgb());
         Vfx.groundRing(level, at, 0.6, ult ? 8 : 3.2, ult ? 36 : 20, main, ult ? 0.22f : 0.14f, ult ? 16 : 10, rgb());
         Vfx.groundRing(level, at, 0.3, ult ? 6 : 2.2, ult ? 28 : 16, alt, 0.1f, ult ? 20 : 12, rgb2());
         Vfx.burst(level, at.add(0, 0.4, 0), alt, ult ? 26 : 10, 0.16, 0.16f, 14, rgb2());
         Vfx.orbit(level, p, ult ? 8 : 4, 1.1, 1.0, main, 0.14f, ult ? 80 : 24, 1.5, rgb());
         if (ult) {
+            Vfx.sphere(level, at.add(0, 1, 0), 1, 9, 48, alt, 0.22f, 22, rgb2());
             Vfx.pillar(level, at, 0.5, 14, main, 6, 12, 14, rgb());
             Vfx.pillar(level, at, 0.25, 18, alt, 4, 16, 12, rgb2());
             for (int i = 0; i < 6; i++) {

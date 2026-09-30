@@ -153,6 +153,8 @@ public final class Windwalker extends AttributeClass {
         ServerLevel level = level(p);
         Fx.ring(level, ParticleTypes.CLOUD, p.position(), 0.7, 12);
         Fx.burst(level, ParticleTypes.SMALL_GUST, p.position(), 1, 0, 0);
+        dev.abps.util.Vfx.groundRing(level, p.position(), 0.4, 2.4, 16, dev.abps.util.Vfx.tint(0xE0F7FA), 0.09f, 8, 0x29B6F6);
+        dev.abps.util.Vfx.sphere(level, p.position().add(0, 0.3, 0), 0.3, 1.8, 12, dev.abps.util.Vfx.tint(0xE0F7FA), 0.12f, 8, 0x29B6F6);
         Fx.sound(level, p, SoundEvents.BREEZE_JUMP, 0.8f, 1.2f);
     }
 
@@ -199,6 +201,8 @@ public final class Windwalker extends AttributeClass {
         Targets.velocity(p, new Vec3(p.getDeltaMovement().x, 1.4, p.getDeltaMovement().z));
         Fx.burst(level, ParticleTypes.GUST, c, 1, 0, 0);
         Fx.spiral(level, ParticleTypes.CLOUD, c, 2, 4, 40, 0);
+        dev.abps.util.Fancy.tornado(level, c, 1.8, 6, 30, dev.abps.util.Vfx.tint(0xE0F7FA), 0x29B6F6);
+        dev.abps.util.Vfx.groundRing(level, c, 0.5, 4.5, 24, dev.abps.util.Vfx.tint(0x29B6F6), 0.14f, 10, 0x29B6F6);
         Fx.sound(level, c, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), 1f, 1f);
         used(p, 1);
         return true;
@@ -218,6 +222,9 @@ public final class Windwalker extends AttributeClass {
             Targets.velocity(e, flat.scale(1.8).add(0, 0.55, 0));
         }
         for (int i = 1; i <= 7; i++) Fx.burst(level, ParticleTypes.GUST, eye.add(look.scale(i * 1.3)), 1, 0, 0);
+        dev.abps.util.Vfx.slash(level, eye.add(look.scale(1.5)), look, 3.5, 2.4, 0.16f, dev.abps.util.Vfx.tint(0xE0F7FA), 0x29B6F6);
+        dev.abps.util.Vfx.slash(level, eye.add(look.scale(3)), look, 5.5, 1.8, 0.14f, dev.abps.util.Vfx.WHITE, 0x29B6F6);
+        dev.abps.util.Fancy.laser(level, eye.add(look), eye.add(look.scale(10)), 0.3f, 0xE0F7FA, 0xFFFFFF, 6);
         Fx.sound(level, p, SoundEvents.BREEZE_SHOOT, 1f, 0.8f);
         used(p, 2);
         return true;
@@ -229,6 +236,8 @@ public final class Windwalker extends AttributeClass {
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
         p.addEffect(new MobEffectInstance(MobEffects.JUMP_BOOST, ticks, 1));
         ServerLevel level = level(p);
+        dev.abps.util.Fancy.aura(level, p, ticks, 0xE0F7FA, 0x29B6F6);
+        dev.abps.util.Vfx.trail(level, p, Math.min(ticks, 400), dev.abps.util.Vfx.tint(0xE0F7FA), 0.16f, 0x29B6F6);
         Tasks.repeat(ticks / 5, 5, step -> {
             if (!p.isRemoved()) Fx.burst(level, ParticleTypes.CLOUD, p.position().add(0, 0.2, 0), 2, 0.2, 0.05, 0.2, 0.01);
         });
@@ -242,6 +251,8 @@ public final class Windwalker extends AttributeClass {
         Vec3 center = Targets.aimPoint(p, 30);
         double dmg = tornadoDamage(d.level);
         ServerLevel level = level(p);
+        dev.abps.util.Fancy.tornado(level, center, 3, 8, 104, dev.abps.util.Vfx.tint(0xE0F7FA), 0x29B6F6);
+        dev.abps.util.Fancy.sigil(level, center, 6, 8, 0x29B6F6, 0xE0F7FA, 104);
         Tasks.repeat(20, 5, step -> {
             if (p.isRemoved()) return;
             // Spinning column of wind
@@ -266,6 +277,8 @@ public final class Windwalker extends AttributeClass {
         ServerLevel level = level(p);
         Targets.velocity(p, new Vec3(0, 1.3, 0));
         Fx.sound(level, p, SoundEvents.LIGHTNING_BOLT_THUNDER, 1f, 1.4f);
+        dev.abps.util.Fancy.aura(level, p, 130, 0x29B6F6, 0xE0F7FA);
+        dev.abps.util.Fancy.tornado(level, p.position(), 3, 8, 120, dev.abps.util.Vfx.tint(0xE0F7FA), 0x29B6F6);
         double dmg = boltDamage(d.level);
         Tasks.repeat(24, 5, step -> {
             if (p.isRemoved() || !p.isAlive()) return;
@@ -284,6 +297,7 @@ public final class Windwalker extends AttributeClass {
             Targets.damage(t, dmg, p);
             t.igniteForSeconds(2);
             Fx.line(level, ParticleTypes.ELECTRIC_SPARK, p.position().add(0, 1, 0), t.position().add(0, 1, 0), 0.4);
+            dev.abps.util.Fancy.lightning(level, t.position().add(0, 18, 0), t.position().add(0, 0.5, 0), 0x29B6F6, 0xFFFFFF);
         });
         used(p, ULTIMATE);
         return true;
