@@ -99,14 +99,29 @@ public final class Config {
     // ---- Daily rewards ----
     public boolean dailyRewardsEnabled = true;
     /** One reward per day of a 7 day streak. Missing a day starts the streak over. Each is a list of item id to count. */
-    public java.util.List<java.util.Map<String, Integer>> dailyRewards = new java.util.ArrayList<>(java.util.List.of(
+    public java.util.List<java.util.Map<String, Integer>> dailyRewards = defaultDailyRewards();
+
+    /** A small bonus for logging in, not a way to get rich. The whole week adds up to about 3 diamonds. */
+    private static java.util.List<java.util.Map<String, Integer>> defaultDailyRewards() {
+        return new java.util.ArrayList<>(java.util.List.of(
+                java.util.Map.of("minecraft:bread", 8),
+                java.util.Map.of("minecraft:iron_ingot", 4),
+                java.util.Map.of("minecraft:experience_bottle", 4),
+                java.util.Map.of("minecraft:gold_ingot", 3),
+                java.util.Map.of("minecraft:emerald", 4),
+                java.util.Map.of("minecraft:diamond", 1),
+                java.util.Map.of("minecraft:diamond", 2, "minecraft:golden_apple", 1)));
+    }
+
+    /** The first version's rewards, which were far too generous. Configs still holding them get the new ones. */
+    private static final java.util.List<java.util.Map<String, Integer>> OLD_DAILY_REWARDS = java.util.List.of(
             java.util.Map.of("minecraft:iron_ingot", 16),
             java.util.Map.of("minecraft:gold_ingot", 12),
             java.util.Map.of("minecraft:diamond", 3),
             java.util.Map.of("minecraft:emerald", 16),
             java.util.Map.of("minecraft:diamond", 5, "minecraft:experience_bottle", 8),
             java.util.Map.of("minecraft:golden_apple", 1, "minecraft:diamond", 4),
-            java.util.Map.of("minecraft:netherite_scrap", 1, "minecraft:diamond", 8)));
+            java.util.Map.of("minecraft:netherite_scrap", 1, "minecraft:diamond", 8));
 
     public Cost shopCreateCost() {
         return new Cost(shopCreateXpLevels, shopCreateItems);
@@ -142,6 +157,7 @@ public final class Config {
         abilityUnlockLevels[0] = 1;
         cooldownReductionAtMax = Math.max(0, Math.min(0.9, cooldownReductionAtMax));
         if (rerollItems == null) rerollItems = new LinkedHashMap<>();
+        if (dailyRewards == null || dailyRewards.isEmpty() || OLD_DAILY_REWARDS.equals(dailyRewards)) dailyRewards = defaultDailyRewards();
         if (priceVersion < 2) {
             // Prices were reworked: netherite rerolls and themed, much more expensive upgrades. Applied once to old configs.
             rerollXpLevels = 30;
