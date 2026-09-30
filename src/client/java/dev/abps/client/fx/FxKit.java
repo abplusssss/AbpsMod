@@ -69,6 +69,13 @@ final class FxKit {
         return new Vec3(v.x * c - v.z * s, v.y, v.x * s + v.z * c);
     }
 
+    /** Turns v about an axis by angle (Rodrigues). */
+    static Vec3 rotAbout(Vec3 v, Vec3 axis, double angle) {
+        Vec3 k = axis.normalize();
+        double c = Math.cos(angle), s = Math.sin(angle);
+        return v.scale(c).add(k.cross(v).scale(s)).add(k.scale(k.dot(v) * (1 - c)));
+    }
+
     /** A uniformly random direction. */
     static Vec3 rndDir() {
         return new Vec3(gauss(), gauss(), gauss()).normalize();
@@ -121,9 +128,9 @@ final class FxKit {
 
     /** A burst of light: soft halo, hot white core and a streaked flare. */
     static void bloom(Vec3 p, float size, int life, int col) {
-        sp("glow", p).size(size * 1.2f, size * 2.4f).life(life + 4).colors(lighten(col, 0.4f), col).envelope(0.1f, 0.35f, 0.9f);
+        sp("glow", p).size(size * 1.0f, size * 1.8f).life(life + 4).colors(lighten(col, 0.4f), col).envelope(0.1f, 0.35f, 0.9f);
         sp("glow", p).size(size * 0.5f, size * 0.9f).life(life).colors(WHITE, lighten(col, 0.5f)).envelope(0.05f, 0.3f, 1f);
-        sp("flare", p).size(0.2f, size * 2.4f + 0.4f).life(life).colors(WHITE, lighten(col, 0.3f)).envelope(0.08f, 0.2f, 1f);
+        sp("flare", p).size(0.15f, size * 1.4f + 0.2f).life(life).colors(WHITE, lighten(col, 0.3f)).envelope(0.08f, 0.2f, 1f);
     }
 
     /** A flat ring expanding from radius r0 to r1. sprite is "ring" (thin line) or "shockwave" (thick, with a trailing glow). */

@@ -125,37 +125,85 @@ final class SigDruid {
         sp(sprite, p.add(0, 0.04, 0)).size((float) radius, (float) radius).life(90).colors(WHITE, WHITE).facing(0, 1, 0).startRoll((float) (rnd() * 6.28)).envelope(0.05f, 0.75f, 1f);
     }
 
+    private static final int BARK = 0x2A1B10, LEAF = 0x7CFF4A, LEAF_DEEP = 0x2E7D32, BLOSSOM = 0xFFB3D1;
+
+    /**
+     * The World Tree, drawn with ribbons. A trunk of bark strands braids up out of the ground, branches arc out from
+     * the top, roots sweep across the ground, and a ring of light marks where it heals. It lasts 10 seconds.
+     */
     private static void worldTree(Ctx c) {
         Vec3 p = c.live();
-        double radius = 8;
-        sp("sigil", p.add(0, 0.05, 0)).size(9f, 9f).life(200).colors(lighten(c.c1, 0.4f), c.c2).facing(0, 1, 0).spin(0.015f).envelope(0.05f, 0.9f, 0.9f);
-        ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, 11, 18, c.c1, "shockwave");
-        bloom(p.add(0, 1, 0), 3.0f, 12, c.c1);
-        // The trunk rises as a shaft of green light while roots spread across the ground
-        during(0, 30, t -> {
-            double h = 20 * ease((t + 1) / 24.0);
-            for (double y = 0; y < h; y += 1.0) sp("glow", p.add(gauss() * 0.3, y, gauss() * 0.3)).size(1.2f, 0.7f).life(4).colors(lighten(c.c1, 0.5f), c.c2).envelope(0.1f, 0.4f, 0.55f);
-            for (int k = 0; k < n(3); k++) {
-                double a = Math.PI * 2 * rnd();
-                double r = rnd() * radius * ease(t / 24.0);
-                c.skin.mote(p.add(Math.cos(a) * r, 0.1, Math.sin(a) * r), new Vec3(0, 0.08, 0), 0.14f, 20, c.c1, 0f);
+        double radius = 8, trunkH = 5.5;
+        int life = 200;
+        Vec3 up = new Vec3(0, 1, 0);
+        bloom(p.add(0, 0.6, 0), 1.6f, 10, LEAF);
+
+        // Trunk: five strands of bark that start wide at the roots and braid tight as they rise
+        for (int k = 0; k < 5; k++) {
+            double start = Math.PI * 2 * k / 5;
+            Ribbon.along(Ribbon.spiral(p, 1.2, 0.35, trunkH, 0.55, start, 0.25)).ink(BARK, LEAF).width(0.62f)
+                    .time(life, 16).hold(0.9f).tailChase(0f).sparks(0).segments(30).play();
+        }
+        // A soft green light inside the trunk
+        for (Vec3 side : new Vec3[]{new Vec3(1, 0, 0), new Vec3(0, 0, 1)}) {
+            Ribbon.along(Ribbon.line(p, p.add(0, trunkH + 0.5, 0), side)).energy(LEAF_DEEP).width(0.5f)
+                    .time(life, 16).hold(0.9f).tailChase(0f).brightness(0.35f).sparks(0).segments(16).play();
+        }
+
+        // Branches: arcs curling up and out from the top of the trunk, drawn once the trunk is up
+        Signatures.at(12, () -> {
+            for (int k = 0; k < 7; k++) {
+                double a = Math.PI * 2 * k / 7 + rnd() * 0.4;
+                Vec3 out = new Vec3(Math.cos(a), 0, Math.sin(a));
+                Vec3 center = p.add(0, trunkH - 0.6, 0).add(out.scale(2.0));
+                Vec3 normal = out.cross(up).normalize();
+                // The arc starts at the trunk (pointing back at it) and curls up and over
+                Ribbon.along(Ribbon.arc(center, out.scale(-1).add(0, 0.5, 0), normal, 2.1, 2.2, 0.15, 1.0)).ink(BARK, LEAF)
+                        .width(0.3f).time(life - 12, 10).hold(0.9f).tailChase(0f).sparks(0).segments(22).play();
             }
+            // Canopy: brush strokes of foliage swirling round the crown at different heights and tilts,
+            // with one soft ring of leaf light through the middle
+            for (int k = 0; k < 11; k++) {
+                double h = trunkH + 0.4 + (k % 3) * 0.8 + rnd() * 0.3;
+                double r = 3.4 - (k % 3) * 0.8;
+                Vec3 tiltAxis = new Vec3(Math.cos(k * 1.7), 0, Math.sin(k * 1.7));
+                Vec3 normal = FxKit.rotAbout(up, tiltAxis, (rnd() - 0.5) * 0.7);
+                Vec3 mid = new Vec3(Math.cos(k * 2.4), 0, Math.sin(k * 2.4));
+                Ribbon.along(Ribbon.arc(p.add(0, h, 0), mid, normal, r, 2.6, (k % 2 == 0 ? 1 : -1) * 0.5, 1.0))
+                        .ink(k % 4 == 3 ? 0x5C2340 : LEAF_DEEP, k % 4 == 3 ? BLOSSOM : LEAF).width(0.95f).time(life - 12 - k, 10).hold(0.92f)
+                        .tailChase(0f).sparks(0).play();
+            }
+            Ribbon.along(Ribbon.arc(p.add(0, trunkH + 1.2, 0), new Vec3(1, 0, 0), up, 2.6, Math.PI * 2, 1.2, 1.0)).energy(LEAF)
+                    .width(0.45f).time(life - 12, 12).hold(0.9f).tailChase(0f).brightness(0.45f).sparks(0).play();
         });
-        // The canopy: a dome of leaves and petals over the whole circle, falling slowly, for the length of the tree
-        during(14, 200, t -> {
-            for (int k = 0; k < n(5); k++) {
-                double a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * (radius + 1);
-                double dome = Math.sqrt(Math.max(0, 1 - (r / (radius + 1)) * (r / (radius + 1))));
-                Vec3 at = p.add(Math.cos(a) * r, 11 + dome * 8 + rnd() * 2, Math.sin(a) * r);
-                c.skin.mote(at, new Vec3(gauss() * 0.01, -0.04, gauss() * 0.01), 0.2f, 44, c.c1, 0.05f);
+
+        // Roots: dark strokes sweeping out across the ground
+        for (int k = 0; k < 6; k++) {
+            double a = Math.PI * 2 * k / 6 + rnd() * 0.4;
+            Vec3 out = new Vec3(Math.cos(a), 0, Math.sin(a));
+            Vec3 from = p.add(out.scale(0.6)).add(0, 0.06, 0), to = p.add(out.scale(2.4 + rnd() * 1.6)).add(0, 0.06, 0);
+            Ribbon.along(Ribbon.line(from, to, out.cross(up))).ink(BARK, LEAF).width(0.26f).time(life, 14).hold(0.9f)
+                    .tailChase(0f).sparks(0).segments(18).play();
+        }
+
+        // The healing area: a ring of light on the ground that pulses every two seconds
+        during(0, life, t -> {
+            if (t % 40 == 0) {
+                Ribbon.along(Ribbon.arc(p.add(0, 0.1, 0), new Vec3(0, 0, 1), up, radius, Math.PI * 2, 0.5, 1.0)).energy(LEAF)
+                        .width(0.35f).time(40, 10).hold(0.5f).tailChase(0f).brightness(0.8f).sparks(0).segments(64).play();
+                Ribbon.along(Ribbon.arc(p.add(0, 0.12, 0), new Vec3(0, 0, 1), up, 0.8, Math.PI * 2, 1.2, radius / 0.8)).energy(LEAF_DEEP)
+                        .width(0.4f).time(22, 2).hold(0.1f).tailChase(0f).brightness(0.7f).sparks(0).segments(48).play();
             }
-            if (t % 6 == 0) {
+            // A few leaves and blossoms drifting down from the crown, not a blizzard
+            if (t > 14 && t % 3 == 0) {
+                double a = rnd() * Math.PI * 2, r = 0.5 + rnd() * 3.5;
+                c.skin.mote(p.add(Math.cos(a) * r, trunkH + 1 + rnd() * 1.5, Math.sin(a) * r), new Vec3(gauss() * 0.01, -0.03, gauss() * 0.01),
+                        0.16f, 50, rnd() < 0.3 ? BLOSSOM : LEAF, 0.02f);
+            }
+            if (t % 10 == 0) {
                 double a = rnd() * Math.PI * 2, r = rnd() * radius;
-                sp("glow", p.add(Math.cos(a) * r, 2 + rnd() * 14, Math.sin(a) * r)).size(0.2f, 0.04f).life(20).colors(0xFFFF80, c.c1).flicker(0.5f).vel(0, 0.02, 0);
-            }
-            if (t % 20 == 0) {
-                ringFlat(p.add(0, 0.12, 0), new Vec3(0, 1, 0), 0.5, radius, 16, c.c1, "ring");
-                for (int k = 0; k < n(5); k++) sp("heart", p.add(gauss() * radius * 0.5, 0.5, gauss() * radius * 0.5)).size(0.3f, 0.2f).life(30).colors(WHITE, 0xFF8AB0).vel(0, 0.06, 0).envelope(0.15f, 0.5f, 0.9f);
+                sp("glow", p.add(Math.cos(a) * r, 0.5 + rnd() * 3, Math.sin(a) * r)).size(0.12f, 0.03f).life(24).colors(0xFFFFA0, LEAF)
+                        .flicker(0.5f).vel(0, 0.015, 0);
             }
         });
     }

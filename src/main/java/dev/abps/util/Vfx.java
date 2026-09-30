@@ -97,12 +97,16 @@ public final class Vfx {
         if (!enabled) return true;
         kind |= theme << 8;
         java.util.List<ServerPlayer> ready = new ArrayList<>();
+        boolean anyone = false;
         for (ServerPlayer p : level.players()) {
             if (p.position().distanceToSqr(at) > 96 * 96) continue;
-            if (!AbpsMod.service().vfxReady(p)) return false;
-            ready.add(p);
+            anyone = true;
+            if (AbpsMod.service().vfxReady(p)) ready.add(p);
         }
-        if (ready.isEmpty()) return true;
+        if (!anyone) return true;
+        // Display entities are seen by everyone, so they are only a fallback when nobody nearby has the mod.
+        // Otherwise players with the mod would get a pile of blocks on top of their own effects.
+        if (ready.isEmpty()) return false;
         Net.VfxPayload payload = new Net.VfxPayload(kind, d, i);
         for (ServerPlayer p : ready) ServerPlayNetworking.send(p, payload);
         return true;

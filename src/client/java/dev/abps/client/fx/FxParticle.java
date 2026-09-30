@@ -275,9 +275,12 @@ public final class FxParticle extends SingleQuadParticle {
         fade = Mth.clamp(fade, 0f, 1f);
         fade = fade * fade * (3f - 2f * fade) * peak;
         if (flicker > 0f) fade *= 1f - flicker * (0.5f + 0.5f * (float) Math.sin((age + partialTick) * 2.3f + x * 7.0 + z * 3.0));
+        fade *= FxView.visibility(camera, Mth.lerp(partialTick, xo, x), Mth.lerp(partialTick, yo, y), Mth.lerp(partialTick, zo, z), getQuadSize(partialTick));
+        if (fade <= 0.004f) return; // fully faded, don't draw an invisible quad
         float r = Mth.lerp(t, r0, r1), g = Mth.lerp(t, g0, g1), b = Mth.lerp(t, b0, b1);
         if (additive) {
             // Additive blending: the light is the color, so fading means dimming the color
+            fade *= FxView.crowd();
             this.rCol = r * fade;
             this.gCol = g * fade;
             this.bCol = b * fade;

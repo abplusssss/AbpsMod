@@ -24,6 +24,8 @@ public final class ClientPrefs {
     public int hudY = -1;
     /** Detail of the glowing effects: 0 low, 1 normal, 2 high. */
     public int fxQuality = 1;
+    /** Fade effects that are right in front of your eyes or on your crosshair. */
+    public boolean clearView = true;
 
     public static ClientPrefs get() {
         if (instance == null) load();

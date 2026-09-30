@@ -44,6 +44,14 @@ abstract class Skin {
         this.accent2 = accent2;
     }
 
+    /** Styles a ribbon in this class's look: dark ink with a glowing rim for the shadowy classes, streaky light for the rest. */
+    Ribbon.Builder stroke(Ribbon.Builder b, int col) {
+        if (this instanceof Assassin) return b.ink(0x0C0A12, 0xE6DAFF);
+        if (this instanceof Necro) return b.ink(0x100A20, 0x64FFDA);
+        if (this instanceof Vampire) return b.ink(0x1C0307, 0xFF4B4B);
+        return b.energy(tone(col));
+    }
+
     /** Effects that ask for plain white get this class's own color instead. */
     int tone(int c) {
         int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;

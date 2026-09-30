@@ -155,7 +155,7 @@ public final class Hud implements HudElement {
         int w = g.guiWidth(), h = g.guiHeight();
         if (ClientState.tintTicks > 0) {
             float life = (float) ClientState.tintTicks / Math.max(1, ClientState.tintTotal);
-            int a = (int) (0xB0 * Math.min(1f, ClientState.tintStrength) * Math.min(1f, life * 2f));
+            int a = (int) (0x80 * Math.min(1f, ClientState.tintStrength) * Math.min(1f, life * 2f));
             int col = ClientState.tintColor;
             int edge = Math.max(20, h / 5);
             g.fillGradient(0, 0, w, edge, Draw.argb(col, a), Draw.argb(col, 0));
@@ -165,7 +165,7 @@ public final class Hud implements HudElement {
         }
         if (ClientState.flashTicks > 0) {
             float life = (float) ClientState.flashTicks / Math.max(1, ClientState.flashTotal);
-            int a = (int) (0xC0 * Math.min(1f, ClientState.flashStrength) * life * life);
+            int a = (int) (0x60 * Math.min(1f, ClientState.flashStrength) * life * life);
             g.fill(0, 0, w, h, Draw.argb(ClientState.flashColor, a));
         }
     }

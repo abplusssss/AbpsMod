@@ -38,18 +38,18 @@ public final class FxSystem {
         FxParticle.resetCount();
     }
 
-    /** 0.5, 1 or 1.5, from the quality setting. Scales how many pieces each effect is made of. */
+    /** 0.35, 0.6 or 1, from the quality setting. Scales how many pieces each effect is made of. Kept low so effects read clearly instead of piling up. */
     public static float density() {
         return switch (ClientPrefs.get().fxQuality) {
-            case 0 -> 0.5f;
-            case 2 -> 1.5f;
-            default -> 1f;
+            case 0 -> 0.35f;
+            case 2 -> 1f;
+            default -> 0.6f;
         };
     }
 
     /** Hard limit on effect particles alive at once. */
     public static int maxParticles() {
-        return (int) (3400 * density());
+        return (int) (1500 * density());
     }
 
     public static void tick(Minecraft mc) {

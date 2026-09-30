@@ -21,11 +21,11 @@ public final class FxTypes {
     /** Sprites made of light: drawn with additive blending, black adds nothing. */
     public static final Set<String> ADDITIVE = Set.of(
             "glow", "spark", "flare", "ring", "shard", "slash", "sigil", "flame", "ember", "streak", "wisp", "rune", "bolt",
-            "swirl", "rays", "claw", "arrow", "heart", "skull", "shockwave", "crackglow");
+            "swirl", "rays", "claw", "arrow", "heart", "skull", "shockwave", "crackglow", "ribbon", "ribboncore");
 
     /** Sprites with real transparency: drawn with normal blending. */
     public static final Set<String> SOLID = Set.of(
-            "smoke", "leaf", "petal", "droplet", "bubble", "foam", "watersheet", "debris", "crack", "splat", "bat", "thorn");
+            "smoke", "leaf", "petal", "droplet", "bubble", "foam", "watersheet", "debris", "crack", "splat", "bat", "thorn", "ink", "ribbonmask");
 
     public static final Map<String, SimpleParticleType> TYPES = new LinkedHashMap<>();
 
