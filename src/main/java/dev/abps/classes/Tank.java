@@ -259,7 +259,7 @@ public final class Tank extends AttributeClass {
             Fx.sound(level, c, SoundEvents.WARDEN_STEP, 2f, 0.6f);
             Fx.shakeNear(level, c, 14, 6, 0.6f);
         });
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

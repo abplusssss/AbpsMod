@@ -23,8 +23,8 @@ public final class Config {
 
     // ---- Levels ----
     public int maxLevel = 25;
-    /** Level needed for abilities 1 to 4. */
-    public int[] abilityUnlockLevels = {1, 5, 12, 20};
+    /** Level needed for abilities 1 to 5 (only attributes with a fifth ability use the last number). */
+    public int[] abilityUnlockLevels = {1, 5, 12, 20, 16};
     /** 0.30 = cooldowns are 30% shorter at max level. */
     public double cooldownReductionAtMax = 0.30;
     public boolean rollOnFirstJoin = true;
@@ -101,7 +101,11 @@ public final class Config {
 
     private void fix() {
         maxLevel = Math.max(2, maxLevel);
-        if (abilityUnlockLevels == null || abilityUnlockLevels.length < 4) abilityUnlockLevels = new int[]{1, 5, 12, 20};
+        if (abilityUnlockLevels == null || abilityUnlockLevels.length < 4) abilityUnlockLevels = new int[]{1, 5, 12, 20, 16};
+        if (abilityUnlockLevels.length < 5) {
+            abilityUnlockLevels = java.util.Arrays.copyOf(abilityUnlockLevels, 5);
+            abilityUnlockLevels[4] = 16;
+        }
         abilityUnlockLevels[0] = 1;
         cooldownReductionAtMax = Math.max(0, Math.min(0.9, cooldownReductionAtMax));
         if (rerollItems == null) rerollItems = new LinkedHashMap<>();
@@ -139,7 +143,7 @@ public final class Config {
     }
 
     public int unlockLevel(int idx) {
-        return idx < 1 || idx > 4 ? 1 : abilityUnlockLevels[idx - 1];
+        return idx < 1 || idx > 5 ? 1 : abilityUnlockLevels[idx - 1];
     }
 
     public Cost rerollCost() {

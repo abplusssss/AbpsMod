@@ -80,9 +80,9 @@ public final class Net {
                     buf.writeUtf(p.classId);
                     buf.writeVarInt(p.level);
                     buf.writeVarInt(p.maxLevel);
-                    for (int i = 0; i < 4; i++) buf.writeVarInt(p.unlock[i]);
-                    for (int i = 0; i < 5; i++) buf.writeVarLong(p.cdLeft[i]);
-                    for (int i = 0; i < 5; i++) buf.writeVarLong(p.cdTotal[i]);
+                    for (int i = 0; i < 5; i++) buf.writeVarInt(p.unlock[i]);
+                    for (int i = 0; i < 7; i++) buf.writeVarLong(p.cdLeft[i]);
+                    for (int i = 0; i < 7; i++) buf.writeVarLong(p.cdTotal[i]);
                     buf.writeFloat(p.ultCharge);
                     buf.writeVarLong(p.ultLockLeft);
                     buf.writeVarLong(p.combatLeft);
@@ -102,12 +102,12 @@ public final class Net {
                     String classId = buf.readUtf();
                     int level = buf.readVarInt();
                     int maxLevel = buf.readVarInt();
-                    int[] unlock = new int[4];
-                    for (int i = 0; i < 4; i++) unlock[i] = buf.readVarInt();
-                    long[] left = new long[5];
-                    for (int i = 0; i < 5; i++) left[i] = buf.readVarLong();
-                    long[] total = new long[5];
-                    for (int i = 0; i < 5; i++) total[i] = buf.readVarLong();
+                    int[] unlock = new int[5];
+                    for (int i = 0; i < 5; i++) unlock[i] = buf.readVarInt();
+                    long[] left = new long[7];
+                    for (int i = 0; i < 7; i++) left[i] = buf.readVarLong();
+                    long[] total = new long[7];
+                    for (int i = 0; i < 7; i++) total[i] = buf.readVarLong();
                     return new SyncPayload(classId, level, maxLevel, unlock, left, total, buf.readFloat(),
                             buf.readVarLong(), buf.readVarLong(), buf.readBoolean(), buf.readVarInt(), buf.readVarInt(),
                             buf.readUtf(), buf.readBoolean(), buf.readUtf(), buf.readBoolean(), buf.readBoolean(),

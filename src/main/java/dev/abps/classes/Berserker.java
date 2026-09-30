@@ -306,7 +306,7 @@ public final class Berserker extends AttributeClass {
             Fx.sound(level, c, SoundEvents.PLAYER_ATTACK_CRIT, 1f, 0.6f);
             Fx.shakeNear(level, c, 12, 10, 1f);
         });
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

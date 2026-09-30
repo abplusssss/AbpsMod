@@ -325,7 +325,7 @@ public final class Pyromancer extends AttributeClass {
             Fx.burst(level, ParticleTypes.LAVA, c, 8, 3, 0.3, 3, 0);
             Fx.sound(level, c, SoundEvents.FIRECHARGE_USE, 1f, 0.6f);
         });
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

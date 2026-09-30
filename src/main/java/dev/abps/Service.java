@@ -325,7 +325,7 @@ public final class Service {
         raw(p, LINE);
         raw(p, " <gold><bold>Upgrade " + c.name() + "</bold>");
         raw(p, " <gray>Level " + d.level + " <dark_gray>→ <green>Level " + next);
-        for (int i = 2; i <= AttributeClass.ABILITIES; i++) {
+        for (int i = 2; i <= c.abilityCount(); i++) {
             if (next == cfg().unlockLevel(i)) raw(p, " <aqua>Unlocks: " + c.gradient("<bold>" + c.abilityName(i) + "</bold>"));
         }
         if (next == cfg().maxLevel) raw(p, " <gold>Unlocks Mastery: <yellow>" + c.mastery());
@@ -355,7 +355,7 @@ public final class Service {
                 "<gray>" + c.name() + (max ? " is now max level" : " upgraded"), c.rgb(), 50);
         Fx.sound(level(p), p, max ? SoundEvents.UI_TOAST_CHALLENGE_COMPLETE : SoundEvents.PLAYER_LEVELUP, 1f, 1.2f);
         send(p, "<green>Upgraded to level " + d.level + "! " + bar(d.level, cfg().maxLevel, 12, c));
-        for (int i = 2; i <= AttributeClass.ABILITIES; i++) {
+        for (int i = 2; i <= c.abilityCount(); i++) {
             if (d.level == cfg().unlockLevel(i)) {
                 send(p, "<aqua>New ability: " + c.gradient("<bold>" + c.abilityName(i) + "</bold>") + " <gray>(" + keyName(p, i) + ")");
             }
@@ -415,6 +415,7 @@ public final class Service {
                 case 2 -> "C";
                 case 3 -> "V";
                 case 4 -> "G";
+                case 5 -> "X";
                 default -> "Z";
             };
         }
@@ -424,6 +425,7 @@ public final class Service {
             case 2 -> "Shift + F";
             case 3 -> "Double-tap F";
             case 4 -> "Shift + Double-tap F";
+            case 5 -> "!Cast 5";
             default -> "!Ult";
         };
     }
@@ -441,6 +443,7 @@ public final class Service {
             return;
         }
         if (d.rolling || idx < 1 || idx > AttributeClass.ULTIMATE || !p.isAlive() || p.isSpectator()) return;
+        if (idx != AttributeClass.ULTIMATE && idx > c.abilityCount()) return;
         if (idx == AttributeClass.ULTIMATE) {
             castUltimate(p, d, c);
             return;
@@ -498,7 +501,7 @@ public final class Service {
         try {
             worked = c.useAbility(AttributeClass.ULTIMATE, p, d);
         } catch (Exception ex) {
-            AbpsMod.LOGGER.warn("Ultimate {} failed for {}", c.abilityName(5), p.getName().getString(), ex);
+            AbpsMod.LOGGER.warn("Ultimate {} failed for {}", c.abilityName(AttributeClass.ULTIMATE), p.getName().getString(), ex);
             actionBar(p, "<red>Something went wrong with your ultimate.");
             return;
         }
@@ -510,7 +513,7 @@ public final class Service {
         d.ultReadyNotified = false;
         d.ultLockUntil = System.currentTimeMillis() + cfg().ultimateLockoutSeconds * 1000L;
         d.abilitiesUsed++;
-        banner(p, c.gradient("<bold>" + c.abilityName(5).toUpperCase() + "</bold>"), "<gray>Ultimate", c.rgb(), 30);
+        banner(p, c.gradient("<bold>" + c.abilityName(AttributeClass.ULTIMATE).toUpperCase() + "</bold>"), "<gray>Ultimate", c.rgb(), 30);
         Fx.screen(p, Fx.FLASH, c.rgb(), 10, 0.35f);
         // Everyone nearby hears it
         Fx.sound(level(p), p, SoundEvents.END_PORTAL_SPAWN, 0.6f, 1.6f);
@@ -526,7 +529,7 @@ public final class Service {
         if (d.ultCharge >= 1 && !d.ultReadyNotified) {
             d.ultReadyNotified = true;
             AttributeClass c = cls(d);
-            banner(p, c.gradient("<bold>ULTIMATE READY</bold>"), "<gray>" + c.abilityName(5) + " <dark_gray>(" + keyName(p, 5) + ")", c.rgb(), 40);
+            banner(p, c.gradient("<bold>ULTIMATE READY</bold>"), "<gray>" + c.abilityName(AttributeClass.ULTIMATE) + " <dark_gray>(" + keyName(p, AttributeClass.ULTIMATE) + ")", c.rgb(), 40);
             Fx.sound(level(p), p, SoundEvents.BEACON_POWER_SELECT, 1f, 1.5f);
         }
     }
@@ -535,7 +538,7 @@ public final class Service {
     /** Runs every 5 ticks for each player. */
     public void tickPlayer(ServerPlayer p, PlayerData d, AttributeClass c) {
         long now = System.currentTimeMillis();
-        for (int i = 1; i <= AttributeClass.ABILITIES; i++) {
+        for (int i = 1; i <= c.abilityCount(); i++) {
             if (!d.readyNotified[i] && d.cooldownEnd[i] != 0 && now >= d.cooldownEnd[i]) {
                 d.readyNotified[i] = true;
                 Fx.sound(level(p), p, SoundEvents.AMETHYST_BLOCK_CHIME, 0.8f, 1.5f);
@@ -562,7 +565,7 @@ public final class Service {
         long now = System.currentTimeMillis();
         boolean show = d.inCombat();
         StringBuilder sb = new StringBuilder();
-        for (int i = 1; i <= AttributeClass.ABILITIES; i++) {
+        for (int i = 1; i <= c.abilityCount(); i++) {
             if (!unlocked(d, i)) continue;
             long left = d.cooldownEnd[i] - now;
             if (d.cooldownEnd[i] != 0 && left > 0 && left < 120_000) show = true;
@@ -580,16 +583,17 @@ public final class Service {
         PlayerData d = data(p);
         AttributeClass c = cls(d);
         long now = System.currentTimeMillis();
-        long[] left = new long[5];
-        long[] total = new long[5];
-        for (int i = 1; i <= 4; i++) {
+        long[] left = new long[7];
+        long[] total = new long[7];
+        for (int i = 1; i <= 5; i++) {
             left[i] = d.noCooldown ? 0 : Math.max(0, d.cooldownEnd[i] - now);
             total[i] = c == null ? 0 : cooldownMs(c, i, d.level);
         }
         boolean max = d.level >= cfg().maxLevel;
         Cost up = cfg().upgradeCost(d.level, cls(d));
         Cost re = cfg().rerollCost();
-        int[] unlock = {cfg().unlockLevel(1), cfg().unlockLevel(2), cfg().unlockLevel(3), cfg().unlockLevel(4)};
+        int[] unlock = {cfg().unlockLevel(1), cfg().unlockLevel(2), cfg().unlockLevel(3), cfg().unlockLevel(4),
+                c != null && c.abilityCount() >= 5 ? cfg().unlockLevel(5) : 0}; // 0 = no fifth ability
         Net.SyncPayload payload = new Net.SyncPayload(c == null ? "" : c.id(), d.level, cfg().maxLevel, unlock, left, total,
                 (float) d.ultCharge, Math.max(0, d.ultLockUntil - now), Math.max(0, d.combatUntil - now), d.noCooldown,
                 d.abilitiesUsed, d.rerolls, max ? "" : up.describe(p), !max && up.canAfford(p), re.describe(p),
@@ -620,13 +624,13 @@ public final class Service {
             for (int lvl = 1; lvl <= max; lvl++) {
                 passives.add(c.passives(lvl));
                 List<String> ds = new ArrayList<>();
-                for (int i = 1; i <= 5; i++) ds.add(c.abilityDesc(i, lvl));
+                for (int i = 1; i <= 6; i++) ds.add(i == 5 && c.abilityCount() < 5 ? "" : c.abilityDesc(i, lvl));
                 descs.add(ds);
             }
             List<String> names = new ArrayList<>();
-            for (int i = 1; i <= 5; i++) names.add(c.abilityName(i));
+            for (int i = 1; i <= 6; i++) names.add(i == 5 && c.abilityCount() < 5 ? "" : c.abilityName(i)); // slot 5 is empty for most
             List<Double> cds = new ArrayList<>();
-            for (int i = 1; i <= 4; i++) cds.add(c.baseCooldown(i));
+            for (int i = 1; i <= 5; i++) cds.add(c.baseCooldown(i));
             list.add(new Net.ClassInfo(c.id(), c.name(), c.rgb(), c.rgb2(), c.symbol(), c.tagline(),
                     net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(c.icon()).toString(),
                     passives, c.negatives(), c.mastery(), names, descs, cds, AbpsMod.state().count(c.id())));
@@ -650,8 +654,8 @@ public final class Service {
         for (String line : c.passives(level)) sb.append("\n<green>+ <gray>").append(line);
         for (String line : c.negatives()) sb.append("\n<red>- <gray>").append(line);
         sb.append("\n");
-        for (int i = 1; i <= AttributeClass.ABILITIES; i++) sb.append("\n<gold>✦ ").append(c.abilityName(i));
-        sb.append("\n<light_purple>✹ ").append(c.abilityName(5)).append(" <dark_gray>(Ultimate)");
+        for (int i = 1; i <= c.abilityCount(); i++) sb.append("\n<gold>✦ ").append(c.abilityName(i));
+        sb.append("\n<light_purple>✹ ").append(c.abilityName(AttributeClass.ULTIMATE)).append(" <dark_gray>(Ultimate)");
         return sb.toString();
     }
 
@@ -717,16 +721,16 @@ public final class Service {
         raw(to, " <red><bold>Weaknesses");
         for (String line : c.negatives()) raw(to, "  <red>- <gray>" + line);
         raw(to, " <gold><bold>Abilities");
-        for (int i = 1; i <= AttributeClass.ABILITIES; i++) {
+        for (int i = 1; i <= c.abilityCount(); i++) {
             boolean locked = !unlocked(d, i);
             String head = "  <yellow>[" + keyName(target, i) + "] " + c.gradient("<bold>" + c.abilityName(i) + "</bold>");
             if (locked) raw(to, head + " <dark_gray>(Unlocks at level " + cfg().unlockLevel(i) + ")");
             else raw(to, head + " <dark_gray>(" + Text.seconds(cooldownMs(c, i, d.level) / 1000.0) + " cooldown)");
             raw(to, "    <gray>" + c.abilityDesc(i, d.level));
         }
-        raw(to, " <light_purple><bold>✹ Ultimate</bold> <dark_gray>[" + keyName(target, 5) + "] " + c.gradient("<bold>" + c.abilityName(5) + "</bold>")
+        raw(to, " <light_purple><bold>✹ Ultimate</bold> <dark_gray>[" + keyName(target, AttributeClass.ULTIMATE) + "] " + c.gradient("<bold>" + c.abilityName(AttributeClass.ULTIMATE) + "</bold>")
                 + " <gray>(" + Math.round(d.ultCharge * 100) + "% charged)");
-        raw(to, "    <gray>" + c.abilityDesc(5, d.level));
+        raw(to, "    <gray>" + c.abilityDesc(AttributeClass.ULTIMATE, d.level));
         boolean mastered = c.mastered(d);
         raw(to, " <gold><bold>★ Mastery</bold> " + (mastered ? "<green>(Unlocked)" : "<dark_gray>(Level " + cfg().maxLevel + ")"));
         raw(to, "    " + (mastered ? "<yellow>" : "<dark_gray>") + c.mastery());

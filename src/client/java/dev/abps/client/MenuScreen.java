@@ -235,6 +235,7 @@ public final class MenuScreen extends Screen {
         Draw.bar(g, x, y, cw - 16, 5, (float) s.level() / s.maxLevel(), c.color(), c.color2());
         // Marks where abilities unlock
         for (int u : s.unlock()) {
+            if (u <= 0) continue; // no fifth ability for this attribute
             int mxp = x + (int) ((cw - 16) * (u / (float) s.maxLevel()));
             g.fill(mxp, y - 1, mxp + 1, y + 6, u <= s.level() ? 0xFFFFFFFF : 0x80FFFFFF);
         }
@@ -275,8 +276,10 @@ public final class MenuScreen extends Screen {
     private int abilities(GuiGraphicsExtractor g, Net.SyncPayload s, Net.ClassInfo c, int y0) {
         int x = cx + 6, y = y0 + 4;
         int lvlIdx = Math.max(0, Math.min(c.descsByLevel().size() - 1, s.level() - 1));
-        for (int i = 1; i <= 5; i++) {
-            boolean ult = i == 5;
+        int count = ClientState.abilityCount(c);
+        for (int i = 1; i <= 6; i++) {
+            if (i == 5 && count < 5) continue;
+            boolean ult = i == ClientState.ULTIMATE;
             boolean unlocked = ClientState.unlocked(i);
             String desc = c.descsByLevel().get(lvlIdx).get(i - 1);
             int textW = cw - 16 - 34 - 6;
@@ -285,7 +288,7 @@ public final class MenuScreen extends Screen {
             Draw.framed(g, x, y, cw - 16, h, ult ? 0xE0181420 : 0xE0121218, Draw.argb(border, 0xFF));
             Draw.framed(g, x + 5, y + 5, 24, 24, 0xFF0A0A10, Draw.argb(border, 0xA0));
             Draw.item(g, Draw.abilityIcon(c.id(), i), x + 9, y + 9, 1f);
-            String name = (ult ? "<bold>" + Draw.gradient(c.color(), c.color2(), "★ " + c.abilityNames().get(4)) + "</bold>"
+            String name = (ult ? "<bold>" + Draw.gradient(c.color(), c.color2(), "★ " + c.abilityNames().get(5)) + "</bold>"
                     : (unlocked ? "<white><bold>" : "<gray>") + c.abilityNames().get(i - 1));
             Draw.text(g, name, x + 34, y + 5);
             String meta = "<dark_gray>[</dark_gray><yellow>" + Hud.keyLabel(i) + "</yellow><dark_gray>]</dark_gray> ";
@@ -311,7 +314,7 @@ public final class MenuScreen extends Screen {
             boolean current = lvl == s.level();
             boolean picked = lvl == roadLevel;
             int unlockIdx = -1;
-            for (int u = 0; u < 4; u++) if (s.unlock()[u] == lvl) unlockIdx = u + 1;
+            for (int u = 0; u < 5; u++) if (s.unlock()[u] == lvl) unlockIdx = u + 1;
             boolean hover = Draw.inside(mx, my, x, y, listW, 16);
             int fill = picked ? Draw.argb(c.color(), 0x50) : hover ? 0x30FFFFFF : 0x60000000;
             Draw.panel(g, x, y, listW, 16, fill);
@@ -341,7 +344,7 @@ public final class MenuScreen extends Screen {
         Draw.text(g, "<bold>" + Draw.gradient(c.color(), c.color2(), "Level " + roadLevel) + "</bold>"
                 + (roadLevel <= s.level() ? " <#69F0AE>✔ reached</#69F0AE>" : " <gray>locked</gray>"), dx + 5, yy);
         yy += 12;
-        for (int u = 0; u < 4; u++) {
+        for (int u = 0; u < 5; u++) {
             if (s.unlock()[u] == roadLevel) {
                 yy += Draw.wrapped(g, "<yellow>✦ New ability:</yellow> <white>" + c.abilityNames().get(u), dx + 5, yy, dw - 10, Draw.TEXT) + 2;
             }
@@ -394,9 +397,11 @@ public final class MenuScreen extends Screen {
         yy += Draw.wrapped(g, "<gray><italic>" + info.tagline(), dx, yy, dw, Draw.MUTED) + 4;
         Draw.text(g, "<bold><white>Abilities", dx, yy);
         yy += 11;
-        for (int i = 1; i <= 5; i++) {
+        int shown = ClientState.abilityCount(info);
+        for (int i = 1; i <= 6; i++) {
+            if (i == 5 && shown < 5) continue;
             Draw.item(g, Draw.abilityIcon(info.id(), i), dx, yy - 2, 0.6f);
-            String n = i == 5 ? "<gold>★ " + info.abilityNames().get(4) + "</gold> <dark_gray>(ultimate)" : "<white>" + info.abilityNames().get(i - 1);
+            String n = i == 6 ? "<gold>★ " + info.abilityNames().get(5) + "</gold> <dark_gray>(ultimate)" : "<white>" + info.abilityNames().get(i - 1);
             yy += Draw.wrapped(g, n, dx + 12, yy, dw - 12, Draw.TEXT) + 1;
         }
         yy += 4;
@@ -555,10 +560,13 @@ public final class MenuScreen extends Screen {
         int x = cx + 6, y = y0 + 4, w = cw - 16;
         int c1 = c == null ? 0x00E5FF : c.color();
         y = section(g, "Ability keys", c1, x, y);
-        for (int i = 1; i <= 5; i++) {
-            String name = c == null ? "Ability " + i : c.abilityNames().get(i - 1);
-            String note = i == 5 ? "Ultimate. Charges by hitting players" : ClientState.unlocked(i) ? "Ability " + i : "Ability " + i + " (locked)";
-            y = keyRow(g, x, y, w, fullKey(i), name, note, i == 5 ? 0xFFD54F : c1);
+        int have = ClientState.abilityCount(c);
+        for (int i = 1; i <= 6; i++) {
+            if (i == 5 && have < 5) continue;
+            boolean ult = i == 6;
+            String name = c == null ? (ult ? "Ultimate" : "Ability " + i) : c.abilityNames().get(i - 1);
+            String note = ult ? "Ultimate. Charges by hitting players" : ClientState.unlocked(i) ? "Ability " + i : "Ability " + i + " (locked)";
+            y = keyRow(g, x, y, w, fullKey(i), name, note, ult ? 0xFFD54F : c1);
         }
         y = section(g, "Menu and movement", 0x69F0AE, x + 0, y + 4);
         y = keyRow(g, x, y, w, AbpsClient.menuKey.getTranslatedKeyMessage().getString(), "Open this menu", "Press it again or Esc to close", 0x69F0AE);
@@ -768,7 +776,7 @@ public final class MenuScreen extends Screen {
             Draw.scaled(g, "<bold>" + Draw.gradient(c.color(), c.color2(), "Upgrade to level " + (s.level() + 1) + "?") + "</bold>", x + w / 2f, yy, 1.25f, true);
             yy += 18;
             yy += Draw.wrapped(g, "<gray>Price: </gray>" + s.upgradeCost(), x + 10, yy, w - 20, Draw.MUTED) + 2;
-            for (int u = 0; u < 4; u++) {
+            for (int u = 0; u < 5; u++) {
                 if (s.unlock()[u] == s.level() + 1) {
                     Draw.text(g, "<yellow>✦ Unlocks " + c.abilityNames().get(u), x + 10, yy);
                     yy += 11;

@@ -388,7 +388,7 @@ public final class Necromancer extends AttributeClass {
         Fx.sound(level, c, SoundEvents.WARDEN_SONIC_BOOM, 0.8f, 0.6f);
         Fx.sound(level, c, SoundEvents.EVOKER_PREPARE_SUMMON, 1f, 0.6f);
         Fx.shakeNear(level, c, 14, 10, 0.7f);
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

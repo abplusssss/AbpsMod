@@ -77,7 +77,7 @@ public final class Commands {
         add(new Entry("Top", "[attribute]", "Shows the highest level players.", "attr", "leaderboard", "lb"));
         add(new Entry("RollAttribute", "", "Reroll your attribute for a price.", "attr", "reroll", "roll"));
         add(new Entry("Cooldowns", "", "Shows your ability cooldowns.", "attr", "cd"));
-        add(new Entry("Cast", "<1-5>", "Uses an ability from chat. 5 is your ultimate.", "attr", "ability"));
+        add(new Entry("Cast", "<1-6>", "Uses an ability from chat. 6 is your ultimate (5 for attributes with only 4 abilities).", "attr", "ability"));
         add(new Entry("Ult", "", "Uses your ultimate when it is charged.", "attr", "ultimate"));
         add(new Entry("Hud", "", "Turns the cooldown display on or off.", "attr"));
         // Teleports
@@ -180,8 +180,8 @@ public final class Commands {
             for (AttributeClass c : Classes.all()) options.add(c.name());
         } else if (token.contains("1-25")) {
             for (int i = 1; i <= AbpsMod.config().maxLevel; i++) options.add(String.valueOf(i));
-        } else if (token.contains("1-5")) {
-            options.addAll(List.of("1", "2", "3", "4", "5"));
+        } else if (token.contains("1-6")) {
+            options.addAll(List.of("1", "2", "3", "4", "5", "6"));
         } else if (token.contains("name") && ctx.getSource().getPlayer() != null) {
             options.addAll(service().data(ctx.getSource().getPlayer()).homes.keySet());
         }
@@ -285,11 +285,15 @@ public final class Commands {
             case "Cast" -> {
                 ServerPlayer p = needPlayer(s);
                 if (p == null) return;
-                if (args.length < 1 || !args[0].matches("[1-5]")) {
-                    Service.send(s, "<red>Use: !Cast 1, 2, 3, 4 or 5 (5 is your ultimate)");
+                if (args.length < 1 || !args[0].matches("[1-6]")) {
+                    Service.send(s, "<red>Use: !Cast 1 to 5, or 6 for your ultimate");
                     return;
                 }
-                sv.cast(p, Integer.parseInt(args[0]));
+                int slot = Integer.parseInt(args[0]);
+                AttributeClass mine = sv.cls(sv.data(p));
+                // Attributes with only 4 abilities keep working with the old "!Cast 5" for the ultimate
+                if (slot == 5 && mine != null && mine.abilityCount() < 5) slot = AttributeClass.ULTIMATE;
+                sv.cast(p, slot);
             }
             case "Ult" -> {
                 ServerPlayer p = needPlayer(s);
@@ -518,10 +522,12 @@ public final class Commands {
         ServerPlayer p = s.getPlayer();
         if (p != null) {
             Service.raw(s, " <light_purple><bold>Ability keys");
-            for (int i = 1; i <= 5; i++) {
-                Service.raw(s, "  <yellow>" + service().keyName(p, i) + " <dark_gray>- <gray>" + (i == 5 ? "Ultimate (charge it by hurting players)"
-                        : "Ability " + i + ", unlocks at level " + AbpsMod.config().unlockLevel(i)));
+            AttributeClass mine = service().cls(service().data(p));
+            int count = mine == null ? 4 : mine.abilityCount();
+            for (int i = 1; i <= count; i++) {
+                Service.raw(s, "  <yellow>" + service().keyName(p, i) + " <dark_gray>- <gray>Ability " + i + ", unlocks at level " + AbpsMod.config().unlockLevel(i));
             }
+            Service.raw(s, "  <yellow>" + service().keyName(p, AttributeClass.ULTIMATE) + " <dark_gray>- <gray>Ultimate (charge it by hurting players)");
         }
         Service.raw(s, Service.LINE);
     }
@@ -554,7 +560,7 @@ public final class Commands {
         }
         Service.raw(s, Service.LINE);
         Service.raw(s, " " + c.gradient("<bold>Level Road</bold>") + " <gray>- " + c.name());
-        for (int i = 2; i <= 4; i++) {
+        for (int i = 2; i <= c.abilityCount(); i++) {
             int lvl = AbpsMod.config().unlockLevel(i);
             Service.raw(s, "  " + (d.level >= lvl ? "<green>✔" : "<red>✖") + " <gray>Level " + lvl + ": <yellow>" + c.abilityName(i));
         }
@@ -605,7 +611,7 @@ public final class Commands {
             return;
         }
         service().send(p, "<gold>Cooldowns" + (d.noCooldown ? " <red>(no cooldown mode is on)" : ""));
-        for (int i = 1; i <= AttributeClass.ABILITIES; i++) {
+        for (int i = 1; i <= c.abilityCount(); i++) {
             String state;
             if (!service().unlocked(d, i)) state = "<dark_gray>Locked (level " + AbpsMod.config().unlockLevel(i) + ")";
             else {

@@ -32,8 +32,9 @@ import java.util.function.IntConsumer;
  */
 public abstract class AttributeClass {
 
-    public static final int ABILITIES = 4;
-    public static final int ULTIMATE = 5;
+    /** The most normal abilities any attribute can have. Most have 4, see {@link #abilityCount()}. */
+    public static final int ABILITIES = 5;
+    public static final int ULTIMATE = 6;
 
     /** Why the last ability didn't go off. Used by debug mode. */
     public String lastFail;
@@ -66,7 +67,7 @@ public abstract class AttributeClass {
 
     public abstract String abilityDesc(int idx, int level);
 
-    /** Cooldown in seconds at level 1, for abilities 1-4. */
+    /** Cooldown in seconds at level 1, for abilities 1-5. */
     public abstract double baseCooldown(int idx);
 
     // ---- Upgrade recipe theme ----
@@ -106,7 +107,8 @@ public abstract class AttributeClass {
             case 2 -> ability2(p, d);
             case 3 -> ability3(p, d);
             case 4 -> ability4(p, d);
-            case 5 -> ultimate(p, d);
+            case 5 -> abilityCount() >= 5 && ability5(p, d);
+            case 6 -> ultimate(p, d);
             default -> false;
         };
     }
@@ -118,6 +120,16 @@ public abstract class AttributeClass {
     protected abstract boolean ability3(ServerPlayer p, PlayerData d);
 
     protected abstract boolean ability4(ServerPlayer p, PlayerData d);
+
+    /** How many normal abilities this attribute has (4 or 5). The ultimate is always extra. */
+    public int abilityCount() {
+        return 4;
+    }
+
+    /** Only used by attributes that return 5 from {@link #abilityCount()}. */
+    protected boolean ability5(ServerPlayer p, PlayerData d) {
+        return false;
+    }
 
     /** The charged ultimate. Filled up by dealing damage to players. */
     protected abstract boolean ultimate(ServerPlayer p, PlayerData d);

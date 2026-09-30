@@ -308,7 +308,7 @@ public final class Assassin extends AttributeClass {
             Fx.sound(level, pick, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 1.2f + step * 0.1f);
         });
         Fx.sound(level, p, SoundEvents.ILLUSIONER_CAST_SPELL, 1f, 1.2f);
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

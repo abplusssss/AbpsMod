@@ -66,8 +66,16 @@ public final class ClientState {
         return Math.max(0, sync.ultLockLeft() - (System.currentTimeMillis() - syncAt));
     }
 
+    /** Slot number of the ultimate. Normal abilities are 1 to 5. */
+    public static final int ULTIMATE = 6;
+
+    /** How many normal abilities a class has, 4 or 5. The catalog leaves slot 5 empty for classes without one. */
+    public static int abilityCount(Net.ClassInfo c) {
+        return c != null && c.abilityNames().size() > 4 && !c.abilityNames().get(4).isEmpty() ? 5 : 4;
+    }
+
     public static boolean unlocked(int idx) {
-        if (idx == 5) return true;
+        if (idx == ULTIMATE) return true;
         return sync != null && sync.level() >= sync.unlock()[idx - 1];
     }
 

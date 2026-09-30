@@ -16,7 +16,8 @@ import net.minecraft.client.player.LocalPlayer;
 public final class AbpsClient implements ClientModInitializer {
 
     public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(AbpsMod.id("keys"));
-    public static final KeyMapping[] ABILITY_KEYS = new KeyMapping[5];
+    /** Abilities 1 to 5, then the ultimate. */
+    public static final KeyMapping[] ABILITY_KEYS = new KeyMapping[6];
     public static KeyMapping menuKey;
 
     private static boolean jumpWasDown;
@@ -25,9 +26,9 @@ public final class AbpsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientPrefs.load();
-        int[] defaults = {InputConstants.KEY_R, InputConstants.KEY_C, InputConstants.KEY_V, InputConstants.KEY_G, InputConstants.KEY_Z};
-        String[] names = {"ability1", "ability2", "ability3", "ability4", "ultimate"};
-        for (int i = 0; i < 5; i++) {
+        int[] defaults = {InputConstants.KEY_R, InputConstants.KEY_C, InputConstants.KEY_V, InputConstants.KEY_G, InputConstants.KEY_X, InputConstants.KEY_Z};
+        String[] names = {"ability1", "ability2", "ability3", "ability4", "ability5", "ultimate"};
+        for (int i = 0; i < 6; i++) {
             ABILITY_KEYS[i] = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod." + names[i], defaults[i], CATEGORY));
         }
         menuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod.menu", InputConstants.KEY_M, CATEGORY));
@@ -114,7 +115,7 @@ public final class AbpsClient implements ClientModInitializer {
         while (menuKey.consumeClick()) {
             if (mc.gui.screen() == null) mc.gui.setScreen(new MenuScreen("overview"));
         }
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
             while (ABILITY_KEYS[i].consumeClick()) {
                 if (connected()) cast(i + 1);
                 else player.sendSystemMessage(dev.abps.util.Text.mm("<red>This server doesn't run AbpsMod.</red>"));

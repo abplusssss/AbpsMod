@@ -96,8 +96,9 @@ public final class SelfTest {
         if (!mobs.isEmpty() && !c.id().equals("miner")) {
             mobs.getFirst().hurtServer(level, fake.damageSources().playerAttack(fake), 2f);
         }
-        for (int i = 1; i <= 5; i++) {
-            if (i == 5) d.ultCharge = 1;
+        for (int i = 1; i <= 6; i++) {
+            if (i == 5 && c.abilityCount() < 5) continue;
+            if (i == 6) d.ultCharge = 1;
             fake.snapTo(base.getX() + 0.5, base.getY(), base.getZ() + 0.5, 0, 0);
             try {
                 boolean worked = c.useAbility(i, fake, d);

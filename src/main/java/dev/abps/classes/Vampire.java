@@ -305,7 +305,7 @@ public final class Vampire extends AttributeClass {
             if (step % 2 == 0) Fx.sound(level, p, SoundEvents.WARDEN_HEARTBEAT, 1f, 1.3f);
         });
         Fx.burst(level, ParticleTypes.SCULK_SOUL, p.position().add(0, 1, 0), 20, 0.5, 0.2);
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

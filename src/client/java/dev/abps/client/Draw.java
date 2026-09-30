@@ -157,6 +157,7 @@ public final class Draw {
 
     /** An item icon for each ability, by class and ability number (1-5). */
     public static String abilityIcon(String classId, int idx) {
+        // Five icons for most classes (four abilities and the ultimate), six for classes with a fifth ability
         String[] icons = switch (classId) {
             case "miner" -> new String[]{"diamond_pickaxe", "spyglass", "iron_pickaxe", "gold_ingot", "pointed_dripstone"};
             case "vampire" -> new String[]{"fermented_spider_eye", "iron_chain", "redstone", "crying_obsidian", "nether_wart"};
@@ -168,9 +169,10 @@ public final class Draw {
             case "druid" -> new String[]{"golden_apple", "sweet_berries", "bone", "oak_log", "flowering_azalea"};
             case "windwalker" -> new String[]{"feather", "wind_charge", "rabbit_foot", "breeze_rod", "lightning_rod"};
             case "necromancer" -> new String[]{"zombie_head", "soul_lantern", "bone", "wither_skeleton_skull", "echo_shard"};
-            case "shark" -> new String[]{"trident", "prismarine_crystals", "heart_of_the_sea", "nautilus_shell", "conduit"};
+            case "shark" -> new String[]{"trident", "prismarine_crystals", "heart_of_the_sea", "nautilus_shell", "conduit", "nether_star"};
             default -> new String[]{"barrier", "barrier", "barrier", "barrier", "nether_star"};
         };
-        return "minecraft:" + icons[Math.max(0, Math.min(4, idx - 1))];
+        int slot = idx >= 6 ? icons.length - 1 : Math.max(0, Math.min(icons.length - 2, idx - 1));
+        return "minecraft:" + icons[slot];
     }
 }

@@ -285,7 +285,7 @@ public final class Windwalker extends AttributeClass {
             t.igniteForSeconds(2);
             Fx.line(level, ParticleTypes.ELECTRIC_SPARK, p.position().add(0, 1, 0), t.position().add(0, 1, 0), 0.4);
         });
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

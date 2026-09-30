@@ -31,8 +31,8 @@ public final class PlayerData {
     public long savedAt;
 
     // ---- Runtime only ----
-    public transient long[] cooldownEnd = new long[5];
-    public transient boolean[] readyNotified = new boolean[5];
+    public transient long[] cooldownEnd = new long[7];
+    public transient boolean[] readyNotified = new boolean[7];
     public transient Map<String, Long> buffs = new HashMap<>();
     public transient UUID lastHit;
     public transient long lastHitTime;
@@ -83,8 +83,8 @@ public final class PlayerData {
 
     /** Gson skips transient fields, so fill them in after loading. */
     public void initRuntime() {
-        if (cooldownEnd == null) cooldownEnd = new long[5];
-        if (readyNotified == null) readyNotified = new boolean[5];
+        if (cooldownEnd == null) cooldownEnd = new long[7];
+        if (readyNotified == null) readyNotified = new boolean[7];
         if (buffs == null) buffs = new HashMap<>();
         if (displays == null) displays = new ArrayList<>();
         if (minions == null) minions = new LinkedHashMap<>();

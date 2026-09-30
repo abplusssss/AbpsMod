@@ -305,7 +305,7 @@ public final class Archer extends AttributeClass {
             Fx.sound(level, p, SoundEvents.WARDEN_SONIC_BOOM, 1f, 1.4f);
             Fx.shakeNear(level, eye, 10, 6, 0.6f);
         });
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

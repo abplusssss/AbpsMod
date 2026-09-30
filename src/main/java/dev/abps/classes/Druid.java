@@ -369,7 +369,7 @@ public final class Druid extends AttributeClass {
                 e.addEffect(new MobEffectInstance(MobEffects.POISON, 40, 0));
             }
         });
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 

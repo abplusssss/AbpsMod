@@ -59,6 +59,8 @@ public final class Shark extends AttributeClass {
     private double breachDamage(int lvl) { return lerp(lvl, 12, 18); }
     private double cannonDamage(int lvl) { return lerp(lvl, 12, 18); }
     private double tsunamiDamage(int lvl) { return lerp(lvl, 18, 28); }
+    private double leviathanDamage(int lvl) { return lerp(lvl, 45, 70); }
+    private double leviathanTime(int lvl) { return lerp(lvl, 10, 14); }
 
     private static boolean wet(ServerPlayer p) {
         return p.isInWaterOrRain();
@@ -87,13 +89,19 @@ public final class Shark extends AttributeClass {
     }
 
     @Override
+    public int abilityCount() {
+        return 5;
+    }
+
+    @Override
     public String abilityName(int idx) {
         return switch (idx) {
             case 1 -> "Riptide";
             case 2 -> "Hydro Cannon";
             case 3 -> "Maelstrom";
             case 4 -> "Apex Breach";
-            default -> "Tsunami";
+            case 5 -> "Tsunami";
+            default -> "Leviathan's Wrath";
         };
     }
 
@@ -109,8 +117,11 @@ public final class Shark extends AttributeClass {
             case 4 -> "Leap out of the water, then crash down as a giant set of jaws snaps shut. The shockwave hits everything within 10 blocks for "
                     + num(breachDamage(lvl)) + " damage (+50% to enemies in water), launches and slows them, and starts a Frenzy: Strength, Speed, Haste and "
                     + pct(frenzySteal(lvl)) + " lifesteal for " + num(frenzyTime(lvl)) + "s. Kills add 2s.";
-            default -> "Summon a tsunami. A wall of water rises in front of you and thunders 32 blocks forward, hitting everything for "
+            case 5 -> "Summon a tsunami. A wall of water rises in front of you and thunders 32 blocks forward, hitting everything for "
                     + num(tsunamiDamage(lvl)) + " damage and carrying it along before it crashes.";
+            default -> "The Leviathan wakes. For 2s the sea drags every enemy within 22 blocks toward you as giant fins circle, then colossal jaws erupt "
+                    + "and snap shut for " + num(leviathanDamage(lvl)) + " damage (+50% in water), and three tidal waves roll out. You grow huge and enter a Frenzy for "
+                    + num(leviathanTime(lvl)) + "s.";
         };
     }
 
@@ -120,7 +131,8 @@ public final class Shark extends AttributeClass {
             case 1 -> 12;
             case 2 -> 22;
             case 3 -> 45;
-            default -> 50;
+            case 4 -> 50;
+            default -> 70;
         };
     }
 
@@ -142,6 +154,11 @@ public final class Shark extends AttributeClass {
         // Vanilla mines 5x slower when not standing on something. Sharks don't care.
         Mods.toggle(p, under && !p.onGround(), Attributes.BLOCK_BREAK_SPEED, "shark_float", 4, Mods.MULT);
         Mods.toggle(p, !wet(p), Attributes.MOVEMENT_SPEED, "shark_dry", -0.15, Mods.MULT);
+
+        // Leviathan form: much bigger while the ultimate lasts
+        boolean giant = d.buff("leviathan");
+        Mods.toggle(p, giant, Attributes.SCALE, "shark_giant", 0.6, Mods.MULT);
+        Mods.toggle(p, giant, Attributes.ENTITY_INTERACTION_RANGE, "shark_giant", 1.5, Mods.ADD);
 
         // Ocean renewal
         if (inWater && d.tickCount % 12 == 0 && p.getHealth() < maxHp(p)) heal(p, 1);
@@ -462,9 +479,9 @@ public final class Shark extends AttributeClass {
         startFrenzy(p, d, frenzyTime(d.level));
     }
 
-    // ---- Ultimate: Tsunami ----
+    // ---- Ability 5: Tsunami ----
     @Override
-    protected boolean ultimate(ServerPlayer p, PlayerData d) {
+    protected boolean ability5(ServerPlayer p, PlayerData d) {
         ServerLevel level = level(p);
         Vec3 look = p.getLookAngle();
         Vec3 dir = new Vec3(look.x, 0, look.z);
@@ -473,40 +490,45 @@ public final class Shark extends AttributeClass {
             return false;
         }
         Vec3 fwd = dir.normalize();
-        Vec3 lateral = new Vec3(-fwd.z, 0, fwd.x);
         Vec3 origin = p.position().add(fwd.scale(3));
-        double dmg = tsunamiDamage(d.level);
-        int cols = 17;
-        double half = cols / 2.0;
-        int steps = 32; // one step every 2 ticks, one block per step
-        Set<UUID> struck = new HashSet<>();
-        Vfx.Wave wave = new Vfx.Wave(level, origin, fwd, cols, 6.5, net.minecraft.world.level.block.Blocks.STAINED_GLASS.lightBlue().defaultBlockState(),
-                Vfx.WHITE, rgb());
         Fx.sound(level, p, SoundEvents.TRIDENT_THUNDER, 1.5f, 0.6f);
         Fx.sound(level, p, SoundEvents.WARDEN_EMERGE, 1.2f, 1.4f);
         Fx.sound(level, p, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, 1.6f, 0.5f);
         Fx.screen(p, Fx.TINT, rgb(), 30, 0.2f);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, 80, 2));
-        // A ground line and a rumble telegraph where the wave will run
-        Vfx.beam(level, origin.add(0, 0.1, 0), origin.add(fwd.scale(steps)).add(0, 0.1, 0), 0.12f, Vfx.tint(rgb2()), 24, rgb2());
+        // A ground line telegraphs where the wave will run
+        Vfx.beam(level, origin.add(0, 0.1, 0), origin.add(fwd.scale(32)).add(0, 0.1, 0), 0.12f, Vfx.tint(rgb2()), 24, rgb2());
         used(p, 5);
+        runWave(p, level, origin, fwd, 17, 6.5, 32, tsunamiDamage(d.level));
+        return true;
+    }
+
+    /**
+     * Sends a wall of water from origin along fwd, one block every two ticks. Everything inside it is hit once
+     * and carried along on the front of it. Used by Tsunami and by the Leviathan's tidal waves.
+     */
+    private void runWave(ServerPlayer p, ServerLevel level, Vec3 origin, Vec3 fwd, int cols, double height, int steps, double dmg) {
+        Vec3 lateral = new Vec3(-fwd.z, 0, fwd.x);
+        double half = cols / 2.0;
+        Set<UUID> struck = new HashSet<>();
+        Vfx.Wave wave = new Vfx.Wave(level, origin, fwd, cols, height,
+                net.minecraft.world.level.block.Blocks.STAINED_GLASS.lightBlue().defaultBlockState(), Vfx.WHITE, rgb());
         Tasks.repeat(steps + 6, 2, step -> {
             if (p.isRemoved()) {
                 wave.collapse();
                 return;
             }
             if (step >= steps) {
-                if (step == steps) finishTsunami(level, wave, origin.add(fwd.scale(steps)), fwd, half);
+                if (step == steps) finishWave(level, wave, origin.add(fwd.scale(steps)), height);
                 return;
             }
             Vec3 center = origin.add(fwd.scale(step));
-            double growth = Math.min(1.0, (step + 2) / 6.0);
-            wave.update(center, growth, step);
-            // Whoever is inside the wall gets hit once, then carried along on the front of it
-            for (LivingEntity e : Targets.enemiesNear(p, center.add(0, 2, 0), half + 3)) {
+            wave.update(center, Math.min(1.0, (step + 2) / 6.0), step);
+            // Whoever is inside the wall gets hit once, then carried along
+            for (LivingEntity e : Targets.enemiesNear(p, center.add(0, height / 3, 0), half + 3)) {
                 Vec3 rel = e.position().subtract(center);
                 double f = rel.dot(fwd), l = rel.dot(lateral);
-                if (Math.abs(f) > 3.2 || Math.abs(l) > half + 0.6 || rel.y < -2 || rel.y > 7) continue;
+                if (Math.abs(f) > 3.2 || Math.abs(l) > half + 0.6 || rel.y < -2 || rel.y > height + 0.5) continue;
                 if (struck.add(e.getUUID())) {
                     Targets.damage(e, dmg, p);
                     e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1));
@@ -516,30 +538,95 @@ public final class Shark extends AttributeClass {
                 Targets.velocity(e, fwd.scale(1.1).add(0, 0.28, 0));
             }
             if (step % 3 == 0) {
-                Vfx.burst(level, center.add(fwd.scale(1.2)).add(0, 3, 0).add(lateral.scale((rand() - 0.5) * cols)), Vfx.WHITE, 8, 0.2, 0.2f, 14, rgb2());
+                Vfx.burst(level, center.add(fwd.scale(1.2)).add(0, height / 2, 0).add(lateral.scale((rand() - 0.5) * cols)), Vfx.WHITE, 8, 0.2, 0.2f, 14, rgb2());
                 Fx.sound(level, center, SoundEvents.GENERIC_SPLASH, 1.5f, 0.5f);
             }
             if (step % 4 == 0) Fx.shakeNear(level, center, 16, 4, 0.5f);
-            Fx.burst(level, ParticleTypes.SPLASH, center.add(0, 2, 0), 30, half * 0.5, 1.5, 0.5, 0.1);
+            Fx.burst(level, ParticleTypes.SPLASH, center.add(0, height / 3, 0), 24, half * 0.5, 1.2, 0.5, 0.1);
         });
-        return true;
     }
 
-    /** The wave hits the end of its run and comes crashing down. */
-    private void finishTsunami(ServerLevel level, Vfx.Wave wave, Vec3 at, Vec3 fwd, double half) {
+    /** The wave reaches the end of its run and comes crashing down. */
+    private void finishWave(ServerLevel level, Vfx.Wave wave, Vec3 at, double height) {
         wave.collapse();
-        Vfx.groundRing(level, at, 1, 12, 44, Vfx.tint(rgb2()), 0.25f, 14, rgb2());
-        Vfx.groundRing(level, at, 1, 8, 32, Vfx.WHITE, 0.2f, 12, rgb());
-        Vfx.burst(level, at.add(0, 2, 0), Vfx.WHITE, 46, 0.3, 0.26f, 24, rgb2());
-        Fx.sound(level, at, SoundEvents.WARDEN_SONIC_BOOM, 1.4f, 0.6f);
+        Vfx.groundRing(level, at, 1, height * 1.8, 40, Vfx.tint(rgb2()), 0.25f, 14, rgb2());
+        Vfx.groundRing(level, at, 1, height * 1.2, 30, Vfx.WHITE, 0.2f, 12, rgb());
+        Vfx.burst(level, at.add(0, 2, 0), Vfx.WHITE, 40, 0.3, 0.26f, 24, rgb2());
+        Fx.sound(level, at, SoundEvents.WARDEN_SONIC_BOOM, 1.2f, 0.6f);
         Fx.sound(level, at, SoundEvents.GENERIC_SPLASH, 2f, 0.4f);
-        Fx.shakeNear(level, at, 20, 12, 0.9f);
+        Fx.shakeNear(level, at, 20, 10, 0.8f);
+    }
+
+    // ---- Ultimate: Leviathan's Wrath ----
+    @Override
+    protected boolean ultimate(ServerPlayer p, PlayerData d) {
+        ServerLevel level = level(p);
+        Vec3 center = p.position();
+        double dmg = leviathanDamage(d.level);
+        int gather = 40; // ticks the sea spends dragging everything in
+        Fx.sound(level, center, SoundEvents.WARDEN_EMERGE, 2f, 0.5f);
+        Fx.sound(level, center, SoundEvents.ELDER_GUARDIAN_CURSE, 1.5f, 0.6f);
+        Fx.screen(p, Fx.TINT, 0x01579B, gather + 20, 0.3f);
+        Fx.shakeNear(level, center, 30, gather, 0.5f);
+        used(p, ULTIMATE);
+
+        // Phase 1: fins circle and the water drags everything toward the middle
+        Vfx.fins(level, center.add(0, 0.1, 0), 10, 5, net.minecraft.world.level.block.Blocks.CONCRETE.blue().defaultBlockState(), gather + 12, 0.35, 0x0288D1);
+        Vfx.vortex(level, center, 15, 34, Vfx.tint(rgb2()), 0.24f, gather + 12, 0.9, rgb2());
+        Vfx.vortex(level, center, 10, 16, Vfx.WHITE, 0.16f, gather + 12, -0.7, rgb());
+        Tasks.repeat(gather / 5, 5, i -> {
+            if (p.isRemoved()) return;
+            Vfx.groundRing(level, center, 22, 2, 40, Vfx.tint(rgb()), 0.16f, 12, rgb());
+            for (LivingEntity e : Targets.enemiesNear(p, center, 22)) {
+                Vec3 to = center.subtract(e.position());
+                Vec3 flat = new Vec3(to.x, 0, to.z);
+                if (flat.lengthSqr() < 1) continue;
+                Targets.velocity(e, flat.normalize().scale(0.45).add(0, 0.08, 0));
+            }
+            Fx.sound(level, center, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT, 1.5f, 0.5f);
+        });
+
+        // Phase 2: the jaws erupt and snap shut
+        Tasks.later(gather, () -> {
+            if (p.isRemoved()) return;
+            Vfx.jaws(level, center, 14, 28, 10, Vfx.WHITE, rgb());
+            Vfx.jaws(level, center, 7.5, 16, 6.5, Vfx.WHITE, rgb2());
+            Vfx.pillar(level, center, 2.5, 16, Vfx.tint(rgb2()), 4, 8, 12, rgb2());
+            Vfx.groundRing(level, center, 2, 16, 50, Vfx.tint(rgb()), 0.3f, 14, rgb());
+            Fx.sound(level, center, SoundEvents.WARDEN_SONIC_BOOM, 2f, 0.5f);
+            Fx.sound(level, center, SoundEvents.GENERIC_SPLASH, 2f, 0.3f);
+            Fx.shakeNear(level, center, 30, 16, 1f);
+            for (LivingEntity e : Targets.enemiesNear(p, center, 14)) {
+                Targets.damage(e, e.isInWater() ? dmg * 1.5 : dmg, p);
+                Targets.velocity(e, new Vec3(e.getDeltaMovement().x, 1.3, e.getDeltaMovement().z));
+                e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 80, 2));
+            }
+        });
+
+        // Phase 3: three tidal waves roll out from the wreckage
+        Tasks.later(gather + 14, () -> {
+            if (p.isRemoved()) return;
+            for (int i = 0; i < 3; i++) {
+                double a = Math.PI * 2 * i / 3 + p.getYRot() * Math.PI / 180;
+                Vec3 dir = new Vec3(Math.cos(a), 0, Math.sin(a));
+                runWave(p, level, center.add(dir.scale(3)), dir, 13, 5, 16, dmg * 0.4);
+            }
+        });
+
+        // The shark grows huge and goes into a frenzy
+        int ticks = (int) (leviathanTime(d.level) * 20);
+        d.setBuff("leviathan", (long) (leviathanTime(d.level) * 1000));
+        p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
+        startFrenzy(p, d, leviathanTime(d.level));
+        return true;
     }
 
     @Override
     public void cleanup(ServerPlayer p, PlayerData d) {
         Mods.remove(p, Attributes.BLOCK_BREAK_SPEED, "shark_float");
         Mods.remove(p, Attributes.MOVEMENT_SPEED, "shark_dry");
+        Mods.remove(p, Attributes.SCALE, "shark_giant");
+        Mods.remove(p, Attributes.ENTITY_INTERACTION_RANGE, "shark_giant");
     }
 
     @Override

@@ -11,7 +11,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 public final class Hud implements HudElement {
 
     public static final int WIDTH = 132;
-    private static final String[] KEY_FALLBACK = {"R", "C", "V", "G", "Z"};
+    private static final String[] KEY_FALLBACK = {"R", "C", "V", "G", "X", "Z"};
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, DeltaTracker delta) {
@@ -75,9 +75,12 @@ public final class Hud implements HudElement {
 
         // Ability slots
         int slotY = y + 23;
-        for (int i = 1; i <= 4; i++) {
-            int sx = x + 5 + (i - 1) * 31;
-            slot(g, s, c, i, sx, slotY, 28);
+        int count = ClientState.abilityCount(c);
+        int size = count >= 5 ? 23 : 28;
+        int step = count >= 5 ? 25 : 31;
+        for (int i = 1; i <= count; i++) {
+            int sx = x + 5 + (i - 1) * step;
+            slot(g, s, c, i, sx, slotY, size);
         }
 
         // Ultimate bar
@@ -124,7 +127,7 @@ public final class Hud implements HudElement {
         float charge = Math.min(1f, s.ultCharge());
         long lock = ClientState.ultLockLeft();
         boolean ready = charge >= 1f && lock <= 0;
-        String name = c.abilityNames().size() >= 5 ? c.abilityNames().get(4) : "Ultimate";
+        String name = c.abilityNames().size() >= 6 ? c.abilityNames().get(5) : "Ultimate";
 
         if (ready) {
             float p = Draw.pulse(1.2f);
@@ -141,7 +144,7 @@ public final class Hud implements HudElement {
 
         String label;
         if (lock > 0) label = "<gray>Ultimate recharging</gray> <white>" + Text.time(lock) + "</white>";
-        else if (ready) label = "<bold>" + Draw.gradient(c.color(), c.color2(), "★ " + name.toUpperCase()) + "</bold> <white>[" + keyLabel(5) + "]</white>";
+        else if (ready) label = "<bold>" + Draw.gradient(c.color(), c.color2(), "★ " + name.toUpperCase()) + "</bold> <white>[" + keyLabel(ClientState.ULTIMATE) + "]</white>";
         else label = "<gray>" + name + "</gray> <white>" + Math.round(charge * 100) + "%</white>";
         Draw.scaled(g, label, x + w / 2f, y + 10, 0.75f, true);
     }

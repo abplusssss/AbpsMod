@@ -417,7 +417,7 @@ public final class Miner extends AttributeClass {
             Fx.shakeNear(level, top, 8, 3, 0.5f);
         });
         Fx.burst(level, ParticleTypes.EXPLOSION, start, 2, 0.3, 0);
-        used(p, 5);
+        used(p, ULTIMATE);
         return true;
     }
 
