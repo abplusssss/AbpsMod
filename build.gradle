@@ -48,6 +48,14 @@ loom {
 			if (project.hasProperty("selftest")) vmArg "-Dabps.selftest=true"
 		}
 		client {
+			if (project.hasProperty("uitest")) {
+				vmArg "-Dabps.uitest=true"
+				programArgs "--username", "AbpsTester", "--quickPlayMultiplayer", "localhost:25599"
+			}
+			if (project.hasProperty("fxtest")) {
+				vmArg "-Dabps.fxtest=" + project.property("fxtest")
+				programArgs "--username", "AbpsTester", "--quickPlayMultiplayer", "localhost:25599"
+			}
 			if (project.hasProperty("clienttest")) {
 				vmArg "-Dabps.clienttest=true"
 				programArgs "--username", "AbpsTester", "--quickPlayMultiplayer", "localhost:25599"

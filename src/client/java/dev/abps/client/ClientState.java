@@ -20,6 +20,10 @@ public final class ClientState {
     public static long syncAt;
     public static final Map<String, Net.ClassInfo> catalog = new LinkedHashMap<>();
     public static Net.BoardPayload board;
+    public static Net.ShopListPayload shopList;
+    public static Net.ShopPayload shop;
+    public static Net.TravelPayload travel;
+    public static Net.ProfilePayload profile;
     public static final Set<UUID> vanished = new HashSet<>();
 
     // Screen effects
@@ -41,6 +45,10 @@ public final class ClientState {
         sync = null;
         catalog.clear();
         board = null;
+        shopList = null;
+        shop = null;
+        travel = null;
+        profile = null;
         vanished.clear();
         banners.clear();
         shakeTicks = tintTicks = flashTicks = 0;

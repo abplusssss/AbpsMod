@@ -92,6 +92,11 @@ public final class Commands {
         add(new Entry("TpCancel", "", "Cancels requests you sent.", "tp", "tpc", "tpcancel"));
         add(new Entry("Spawn", "", "Teleports you to spawn.", "tp", "hub", "lobby"));
         add(new Entry("Back", "", "Goes back to where you last teleported or died.", "tp", "return"));
+        // Shops, rewards and profile
+        add(new Entry("Shop", "", "Opens the player shops.", "extra", "shops", "market", "pshop", "playershops"));
+        add(new Entry("Daily", "", "Claims your daily reward.", "extra", "reward", "claim", "dailyreward"));
+        add(new Entry("Profile", "", "Shows your kills, deaths, playtime and streak.", "extra", "mystats", "pstats", "playerstats"));
+        add(new Entry("Travel", "", "Opens your homes and teleports in the menu.", "extra", "warps", "tpmenu"));
         // Admin and testing
         add(new Entry("GiveAttribute", "@player <attribute>", "Sets a player's attribute.", "admin", "setattribute"));
         add(new Entry("GiveUpgrade", "@player <1-25>", "Sets a player's level.", "admin", "setlevel"));
@@ -238,6 +243,14 @@ public final class Commands {
         }
     }
 
+    /** Opens a menu tab for players with the mod, or tells others what to use instead. */
+    private static void openTab(CommandSourceStack s, String tab, String withoutMod) {
+        ServerPlayer p = needPlayer(s);
+        if (p == null) return;
+        if (Service.hasMod(p)) ServerPlayNetworking.send(p, new Net.OpenMenuPayload(tab));
+        else Service.raw(s, withoutMod);
+    }
+
     private static ServerPlayer needPlayer(CommandSourceStack s) {
         ServerPlayer p = s.getPlayer();
         if (p == null) Service.send(s, "<red>Only players can use this.");
@@ -312,6 +325,22 @@ public final class Commands {
             case "SetHome" -> {
                 ServerPlayer p = needPlayer(s);
                 if (p != null) Teleports.setHome(p, args.length > 0 ? args[0] : "home");
+            }
+            case "Shop" -> openTab(s, "shops", "<gray>Shops need <gold>AbpsMod</gold> installed on your game.");
+            case "Travel" -> openTab(s, "travel", "<gray>Use <yellow>!Home</yellow>, <yellow>!Spawn</yellow> and <yellow>!TPR</yellow> without the mod.");
+            case "Daily" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) dev.abps.Profiles.claimDaily(p);
+            }
+            case "Profile" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                if (Service.hasMod(p)) ServerPlayNetworking.send(p, new Net.OpenMenuPayload("profile"));
+                else {
+                    var d = sv.data(p);
+                    Service.raw(s, "<gold><bold>" + p.getName().getString() + "</bold> <gray>Kills <white>" + d.kills + "</white> Deaths <white>" + d.deaths
+                            + "</white> Best streak <white>" + d.bestStreak + "</white> Mobs <white>" + d.mobKills + "</white> Played <white>" + (d.playSeconds / 3600) + "h");
+                }
             }
             case "Home" -> {
                 ServerPlayer p = needPlayer(s);
@@ -513,7 +542,7 @@ public final class Commands {
         boolean admin = isAdmin(s);
         Service.raw(s, Service.LINE);
         Service.raw(s, " <gradient:#FFD54F:#FF8F00><bold>AbpsMod Commands</bold></gradient> <dark_gray>(click one to fill it in)");
-        String[][] groups = {{"attr", "<gold><bold>Attributes"}, {"tp", "<aqua><bold>Teleports"}, {"admin", "<red><bold>Admin / Testing"}};
+        String[][] groups = {{"attr", "<gold><bold>Attributes"}, {"tp", "<aqua><bold>Teleports"}, {"extra", "<green><bold>Shops and Rewards"}, {"admin", "<red><bold>Admin / Testing"}};
         for (String[] g : groups) {
             if (g[0].equals("admin") && !admin) continue;
             Service.raw(s, " " + g[1]);

@@ -326,7 +326,194 @@ public final class Net {
         }
     }
 
+    // =================== Shops, travel, profile ===================
+
+    /** One shop in the shop list. */
+    public record ShopCard(java.util.UUID owner, String ownerName, String name, net.minecraft.world.item.ItemStack icon, int listings,
+                           List<net.minecraft.world.item.ItemStack> preview, int sales, boolean online) {
+    }
+
+    /** Every shop on the server, and whether you can open one. */
+    public record ShopListPayload(List<ShopCard> shops, boolean hasShop, String createCost, boolean canCreate, boolean enabled)
+            implements CustomPacketPayload {
+        public static final Type<ShopListPayload> TYPE = newType("shop_list");
+        public static final StreamCodec<RegistryFriendlyByteBuf, ShopListPayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeVarInt(p.shops.size());
+                    for (ShopCard c : p.shops) {
+                        buf.writeUUID(c.owner);
+                        buf.writeUtf(c.ownerName);
+                        buf.writeUtf(c.name);
+                        net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, c.icon);
+                        buf.writeVarInt(c.listings);
+                        net.minecraft.world.item.ItemStack.OPTIONAL_LIST_STREAM_CODEC.encode(buf, c.preview);
+                        buf.writeVarInt(c.sales);
+                        buf.writeBoolean(c.online);
+                    }
+                    buf.writeBoolean(p.hasShop);
+                    buf.writeUtf(p.createCost);
+                    buf.writeBoolean(p.canCreate);
+                    buf.writeBoolean(p.enabled);
+                },
+                buf -> {
+                    int n = buf.readVarInt();
+                    List<ShopCard> list = new ArrayList<>(n);
+                    for (int i = 0; i < n; i++) {
+                        list.add(new ShopCard(buf.readUUID(), buf.readUtf(), buf.readUtf(), net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf),
+                                buf.readVarInt(), net.minecraft.world.item.ItemStack.OPTIONAL_LIST_STREAM_CODEC.decode(buf), buf.readVarInt(), buf.readBoolean()));
+                    }
+                    return new ShopListPayload(list, buf.readBoolean(), buf.readUtf(), buf.readBoolean(), buf.readBoolean());
+                });
+
+        @Override
+        public Type<ShopListPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * One thing a shop trades. selling: the owner sells item to players. Otherwise the owner buys it from players.
+     * item is shown at the bundle size; price is how many of priceItem one bundle costs.
+     */
+    public record ShopListing(int id, boolean selling, net.minecraft.world.item.ItemStack item, int bundle,
+                              net.minecraft.world.item.ItemStack priceItem, int price, int stock, int funds) {
+    }
+
+    /** The inside of one shop. earnings and collected are only filled in for the owner. */
+    public record ShopPayload(java.util.UUID owner, String ownerName, String name, net.minecraft.world.item.ItemStack icon, boolean mine,
+                              List<ShopListing> listings, List<net.minecraft.world.item.ItemStack> earnings, List<Integer> earningCounts,
+                              int collected, int sales, int maxListings) implements CustomPacketPayload {
+        public static final Type<ShopPayload> TYPE = newType("shop");
+        public static final StreamCodec<RegistryFriendlyByteBuf, ShopPayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeUUID(p.owner);
+                    buf.writeUtf(p.ownerName);
+                    buf.writeUtf(p.name);
+                    net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, p.icon);
+                    buf.writeBoolean(p.mine);
+                    buf.writeVarInt(p.listings.size());
+                    for (ShopListing l : p.listings) {
+                        buf.writeVarInt(l.id);
+                        buf.writeBoolean(l.selling);
+                        net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, l.item);
+                        buf.writeVarInt(l.bundle);
+                        net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, l.priceItem);
+                        buf.writeVarInt(l.price);
+                        buf.writeVarInt(l.stock);
+                        buf.writeVarInt(l.funds);
+                    }
+                    net.minecraft.world.item.ItemStack.OPTIONAL_LIST_STREAM_CODEC.encode(buf, p.earnings);
+                    buf.writeVarInt(p.earningCounts.size());
+                    for (int c : p.earningCounts) buf.writeVarInt(c);
+                    buf.writeVarInt(p.collected);
+                    buf.writeVarInt(p.sales);
+                    buf.writeVarInt(p.maxListings);
+                },
+                buf -> {
+                    java.util.UUID owner = buf.readUUID();
+                    String ownerName = buf.readUtf(), name = buf.readUtf();
+                    net.minecraft.world.item.ItemStack icon = net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf);
+                    boolean mine = buf.readBoolean();
+                    int n = buf.readVarInt();
+                    List<ShopListing> list = new ArrayList<>(n);
+                    for (int i = 0; i < n; i++) {
+                        list.add(new ShopListing(buf.readVarInt(), buf.readBoolean(), net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf),
+                                buf.readVarInt(), net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf), buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
+                    }
+                    List<net.minecraft.world.item.ItemStack> earnings = net.minecraft.world.item.ItemStack.OPTIONAL_LIST_STREAM_CODEC.decode(buf);
+                    int m = buf.readVarInt();
+                    List<Integer> counts = new ArrayList<>(m);
+                    for (int i = 0; i < m; i++) counts.add(buf.readVarInt());
+                    return new ShopPayload(owner, ownerName, name, icon, mine, list, earnings, counts, buf.readVarInt(), buf.readVarInt(), buf.readVarInt());
+                });
+
+        @Override
+        public Type<ShopPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** A saved home, for the Travel tab. */
+    public record HomeInfo(String name, String dimension, int x, int y, int z) {
+    }
+
+    /** Everything the Travel tab shows: homes, spawn, back, who is online and who asked to teleport. */
+    public record TravelPayload(List<HomeInfo> homes, int maxHomes, boolean hasBack, List<String> online, List<String> requests,
+                                long combatLeft, long cooldownLeft) implements CustomPacketPayload {
+        public static final Type<TravelPayload> TYPE = newType("travel");
+        public static final StreamCodec<RegistryFriendlyByteBuf, TravelPayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeVarInt(p.homes.size());
+                    for (HomeInfo h : p.homes) {
+                        buf.writeUtf(h.name);
+                        buf.writeUtf(h.dimension);
+                        buf.writeVarInt(h.x);
+                        buf.writeVarInt(h.y);
+                        buf.writeVarInt(h.z);
+                    }
+                    buf.writeVarInt(p.maxHomes);
+                    buf.writeBoolean(p.hasBack);
+                    writeStrings(buf, p.online);
+                    writeStrings(buf, p.requests);
+                    buf.writeVarLong(p.combatLeft);
+                    buf.writeVarLong(p.cooldownLeft);
+                },
+                buf -> {
+                    int n = buf.readVarInt();
+                    List<HomeInfo> homes = new ArrayList<>(n);
+                    for (int i = 0; i < n; i++) homes.add(new HomeInfo(buf.readUtf(), buf.readUtf(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt()));
+                    return new TravelPayload(homes, buf.readVarInt(), buf.readBoolean(), readStrings(buf), readStrings(buf), buf.readVarLong(), buf.readVarLong());
+                });
+
+        @Override
+        public Type<TravelPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * The Profile tab: fight stats, playtime and the daily reward streak. Stats are sent as label/value pairs so new
+     * ones can be added on the server without changing the client.
+     */
+    public record ProfilePayload(String name, List<String> labels, List<String> values, int streak, boolean canClaim,
+                                 long nextClaimIn, List<List<net.minecraft.world.item.ItemStack>> rewards, boolean dailyEnabled)
+            implements CustomPacketPayload {
+        public static final Type<ProfilePayload> TYPE = newType("profile");
+        public static final StreamCodec<RegistryFriendlyByteBuf, ProfilePayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeUtf(p.name);
+                    writeStrings(buf, p.labels);
+                    writeStrings(buf, p.values);
+                    buf.writeVarInt(p.streak);
+                    buf.writeBoolean(p.canClaim);
+                    buf.writeVarLong(p.nextClaimIn);
+                    buf.writeVarInt(p.rewards.size());
+                    for (List<net.minecraft.world.item.ItemStack> r : p.rewards) net.minecraft.world.item.ItemStack.OPTIONAL_LIST_STREAM_CODEC.encode(buf, r);
+                    buf.writeBoolean(p.dailyEnabled);
+                },
+                buf -> {
+                    String name = buf.readUtf();
+                    List<String> labels = readStrings(buf), values = readStrings(buf);
+                    int streak = buf.readVarInt();
+                    boolean canClaim = buf.readBoolean();
+                    long next = buf.readVarLong();
+                    int n = buf.readVarInt();
+                    List<List<net.minecraft.world.item.ItemStack>> rewards = new ArrayList<>(n);
+                    for (int i = 0; i < n; i++) rewards.add(net.minecraft.world.item.ItemStack.OPTIONAL_LIST_STREAM_CODEC.decode(buf));
+                    return new ProfilePayload(name, labels, values, streak, canClaim, next, rewards, buf.readBoolean());
+                });
+
+        @Override
+        public Type<ProfilePayload> type() {
+            return TYPE;
+        }
+    }
+
     public static void register() {
+        PayloadTypeRegistry.clientboundPlay().registerLarge(ShopListPayload.TYPE, ShopListPayload.CODEC, 1024 * 1024);
+        PayloadTypeRegistry.clientboundPlay().registerLarge(ShopPayload.TYPE, ShopPayload.CODEC, 1024 * 1024);
+        PayloadTypeRegistry.clientboundPlay().register(TravelPayload.TYPE, TravelPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ProfilePayload.TYPE, ProfilePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VfxPayload.TYPE, VfxPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VanishPayload.TYPE, VanishPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(CastPayload.TYPE, CastPayload.CODEC);

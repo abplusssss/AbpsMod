@@ -54,6 +54,7 @@ public final class SelfTest {
         Tasks.schedule(0, 60, all.size() + 1, step -> {
             if (step == all.size()) {
                 testCommands(server);
+                testShops(level);
                 finish(server);
                 return;
             }
@@ -133,6 +134,80 @@ public final class SelfTest {
                 problems++;
                 report.add("command " + c + ": CRASH " + e);
             }
+        }
+    }
+
+    /** Two fake players open a shop, list things, trade both ways, collect and close. Checks every count. */
+    private static void testShops(ServerLevel level) {
+        try {
+            FakePlayer owner = FakePlayer.get(level, new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "ShopOwner"));
+            FakePlayer buyer = FakePlayer.get(level, new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "ShopBuyer"));
+            owner.getInventory().clearContent();
+            buyer.getInventory().clearContent();
+            var shops = AbpsMod.shops();
+            java.util.function.BiConsumer<String, Boolean> check = (what, ok) -> {
+                if (!ok) problems++;
+                report.add("shop " + what + ": " + (ok ? "OK" : "FAILED"));
+            };
+            var diamond = new ItemStack(Items.DIAMOND);
+            var iron = new ItemStack(Items.IRON_INGOT);
+            var cobble = new ItemStack(Items.COBBLESTONE);
+
+            // Can't open without the fee
+            shops.handle(owner, "create|Test");
+            check.accept("no fee, no shop", !shops.hasShop(owner.getUUID()));
+            owner.getInventory().add(new ItemStack(Items.NETHERITE_INGOT));
+            owner.getInventory().add(new ItemStack(Items.DIAMOND, 3));
+            owner.getInventory().add(new ItemStack(Items.IRON_INGOT, 64));
+            shops.handle(owner, "create|Test Shop");
+            check.accept("create takes the fee", shops.hasShop(owner.getUUID()) && dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(diamond)) == 0
+                    && dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(new ItemStack(Items.NETHERITE_INGOT))) == 0);
+
+            // Sell 40 iron at 2 diamonds each
+            int ironSlot = owner.getInventory().findSlotMatchingItem(iron);
+            shops.handle(owner, "add|" + ironSlot + "|1|1|minecraft:diamond|2|40");
+            check.accept("stocking takes the items", dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(iron)) == 24);
+
+            // The buyer buys 10 for 20 diamonds
+            buyer.getInventory().add(new ItemStack(Items.DIAMOND, 30));
+            shops.handle(buyer, "trade|" + owner.getUUID() + "|1|10");
+            check.accept("buying moves items and money", dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(iron)) == 10
+                    && dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(diamond)) == 10);
+            // Trying to buy more than they can pay for does nothing
+            shops.handle(buyer, "trade|" + owner.getUUID() + "|1|50");
+            check.accept("can't overspend", dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(diamond)) == 10
+                    && dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(iron)) == 10);
+            // A made up listing or a negative amount does nothing
+            shops.handle(buyer, "trade|" + owner.getUUID() + "|99|1");
+            shops.handle(buyer, "trade|" + owner.getUUID() + "|1|-5");
+            shops.handle(buyer, "trade|garbage");
+            check.accept("bad requests are ignored", dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(iron)) == 10);
+
+            // Buy cobblestone: 1 diamond per 16, paid up for 5 trades
+            owner.getInventory().add(new ItemStack(Items.COBBLESTONE));
+            owner.getInventory().add(new ItemStack(Items.DIAMOND, 10));
+            int cobbleSlot = owner.getInventory().findSlotMatchingItem(cobble);
+            shops.handle(owner, "add|" + cobbleSlot + "|0|16|minecraft:diamond|1|5");
+            check.accept("funding takes the money", dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(diamond)) == 5);
+            buyer.getInventory().add(new ItemStack(Items.COBBLESTONE, 64));
+            shops.handle(buyer, "trade|" + owner.getUUID() + "|2|3");
+            check.accept("selling to a shop pays", dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(diamond)) == 13
+                    && dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(cobble)) == 16);
+            shops.handle(buyer, "trade|" + owner.getUUID() + "|2|3");
+            check.accept("shop can't pay more than it has", dev.abps.util.Inv.count(buyer, dev.abps.util.Inv.same(cobble)) == 16);
+
+            // The owner collects 20 diamonds earned and 48 cobblestone bought, then closes and gets the rest back
+            shops.handle(owner, "collect");
+            check.accept("collect", dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(diamond)) == 25
+                    && dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(cobble)) == 49);
+            shops.handle(owner, "close");
+            check.accept("closing returns stock and money", !shops.hasShop(owner.getUUID())
+                    && dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(iron)) == 54
+                    && dev.abps.util.Inv.count(owner, dev.abps.util.Inv.same(diamond)) == 27);
+        } catch (Exception e) {
+            problems++;
+            report.add("shop test: CRASH " + e);
+            AbpsMod.LOGGER.error("Shop self test crash", e);
         }
     }
 

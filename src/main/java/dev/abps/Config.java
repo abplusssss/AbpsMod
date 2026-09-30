@@ -85,6 +85,33 @@ public final class Config {
     /** Minutes a player can't join after leaving while in combat. 0 turns it off. */
     public int combatLogBanMinutes = 10;
 
+    // ---- Player shops ----
+    public boolean shopsEnabled = true;
+    /** What it costs to open a shop. */
+    public int shopCreateXpLevels = 0;
+    public java.util.Map<String, Integer> shopCreateItems = new java.util.LinkedHashMap<>(java.util.Map.of(
+            "minecraft:netherite_ingot", 1, "minecraft:diamond", 3));
+    /** Most listings one shop can have. */
+    public int shopMaxListings = 27;
+    /** The item new listings are priced in unless the owner picks another. */
+    public String shopDefaultCurrency = "minecraft:diamond";
+
+    // ---- Daily rewards ----
+    public boolean dailyRewardsEnabled = true;
+    /** One reward per day of a 7 day streak. Missing a day starts the streak over. Each is a list of item id to count. */
+    public java.util.List<java.util.Map<String, Integer>> dailyRewards = new java.util.ArrayList<>(java.util.List.of(
+            java.util.Map.of("minecraft:iron_ingot", 16),
+            java.util.Map.of("minecraft:gold_ingot", 12),
+            java.util.Map.of("minecraft:diamond", 3),
+            java.util.Map.of("minecraft:emerald", 16),
+            java.util.Map.of("minecraft:diamond", 5, "minecraft:experience_bottle", 8),
+            java.util.Map.of("minecraft:golden_apple", 1, "minecraft:diamond", 4),
+            java.util.Map.of("minecraft:netherite_scrap", 1, "minecraft:diamond", 8)));
+
+    public Cost shopCreateCost() {
+        return new Cost(shopCreateXpLevels, shopCreateItems);
+    }
+
     // ---- Loading ----
     private transient Path file;
 

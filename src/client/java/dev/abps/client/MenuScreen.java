@@ -24,6 +24,9 @@ public final class MenuScreen extends Screen {
         ROAD("Level Road", "minecraft:experience_bottle"),
         CLASSES("Attributes", "minecraft:book"),
         TOP("Top Players", "minecraft:totem_of_undying"),
+        SHOPS("Shops", "minecraft:emerald"),
+        TRAVEL("Travel", "minecraft:ender_pearl"),
+        PROFILE("Profile", "minecraft:name_tag"),
         KEYBINDS("Keybinds", "minecraft:tripwire_hook"),
         SETTINGS("Settings", "minecraft:comparator"),
         ADMIN("Admin", "minecraft:command_block"); // only shown to operators
@@ -73,6 +76,9 @@ public final class MenuScreen extends Screen {
             case "settings" -> this.tab = Tab.SETTINGS;
             case "keybinds", "keys" -> this.tab = Tab.KEYBINDS;
             case "admin" -> this.tab = Tab.ADMIN;
+            case "shops", "shop" -> this.tab = Tab.SHOPS;
+            case "travel" -> this.tab = Tab.TRAVEL;
+            case "profile" -> this.tab = Tab.PROFILE;
             case "confirm_upgrade" -> confirm = "upgrade";
             case "confirm_reroll" -> confirm = "reroll";
             default -> {
@@ -80,6 +86,7 @@ public final class MenuScreen extends Screen {
         }
         if (ClientState.catalog.isEmpty()) AbpsClient.send("catalog", "");
         if (this.tab == Tab.TOP) AbpsClient.send("board", "");
+        request(this.tab);
     }
 
     @Override
@@ -150,30 +157,34 @@ public final class MenuScreen extends Screen {
         // Tabs down the left side
         int ty = py + 30;
         boolean isAdmin = s != null && s.admin();
+        int tabCount = Tab.values().length - (isAdmin ? 0 : 1);
+        int step = Math.max(17, Math.min(25, (ph - 36) / tabCount)), tabH = step - 3;
         if (tab == Tab.ADMIN && !isAdmin) tab = Tab.OVERVIEW; // lost operator status while the menu was open
         for (Tab t : Tab.values()) {
             if (t == Tab.ADMIN && !isAdmin) continue;
             boolean active = t == tab;
-            boolean hover = Draw.inside(mx, my, px + 6, ty, 84, 22);
+            boolean hover = Draw.inside(mx, my, px + 6, ty, 84, tabH);
             if (active) {
-                Draw.panel(g, px + 6, ty, 84, 22, Draw.argb(c1, 0x50));
-                g.fill(px + 6, ty + 3, px + 8, ty + 19, Draw.opaque(c1));
+                Draw.panel(g, px + 6, ty, 84, tabH, Draw.argb(c1, 0x50));
+                g.fill(px + 6, ty + 3, px + 8, ty + tabH - 3, Draw.opaque(c1));
             } else if (hover) {
-                Draw.panel(g, px + 6, ty, 84, 22, 0x30FFFFFF);
+                Draw.panel(g, px + 6, ty, 84, tabH, 0x30FFFFFF);
             }
             String icon = t == Tab.OVERVIEW && c != null ? c.icon() : t.icon;
-            Draw.item(g, icon, px + 11, ty + 3, 1f);
-            Draw.text(g, (active ? "<white>" : "<gray>") + t.label, px + 30, ty + 7);
+            float iconScale = tabH >= 20 ? 1f : 0.8f;
+            Draw.item(g, icon, px + 11, ty + (tabH - 16 * iconScale) / 2f, iconScale);
+            Draw.text(g, (active ? "<white>" : "<gray>") + t.label, px + 30, ty + (tabH - 8) / 2);
             final Tab target = t;
-            buttons.add(new Btn(px + 6, ty, 84, 22, () -> switchTab(target)));
-            ty += 25;
+            buttons.add(new Btn(px + 6, ty, 84, tabH, () -> switchTab(target)));
+            ty += step;
         }
         g.fill(px + 93, py + 30, px + 94, py + ph - 8, Draw.LINE);
 
         // Content
         if (s == null || !AbpsClient.connected()) {
             Draw.centered(g, "<gray>This server doesn't run AbpsMod, or it's still loading.", cx + cw / 2, cy + ch / 2 - 4);
-        } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN && tab != Tab.KEYBINDS) {
+        } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN && tab != Tab.KEYBINDS
+                && tab != Tab.SHOPS && tab != Tab.TRAVEL && tab != Tab.PROFILE) {
             Draw.centered(g, "<gray>Loading your attribute...", cx + cw / 2, cy + ch / 2 - 4);
         } else {
             g.enableScissor(cx, cy, cx + cw, cy + ch);
@@ -189,6 +200,9 @@ public final class MenuScreen extends Screen {
                 case SETTINGS -> settings(g, mmx, mmy, s, top);
                 case KEYBINDS -> keybinds(g, c, top);
                 case ADMIN -> admin(g, mmx, mmy, s, top);
+                case SHOPS -> shops(g, mmx, mmy, top);
+                case TRAVEL -> travel(g, mmx, mmy, top);
+                case PROFILE -> profile(g, mmx, mmy, top);
             };
             g.disableScissor();
             // Scroll bar
@@ -215,6 +229,7 @@ public final class MenuScreen extends Screen {
         tab = t;
         scroll = 0;
         if (t == Tab.TOP) AbpsClient.send("board", boardFilter);
+        request(t);
     }
 
     private int overview(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c, int y0) {
@@ -523,6 +538,7 @@ public final class MenuScreen extends Screen {
             qx += 46;
         }
         y += 22;
+        y = toggle(g, mx, my, x, y, "Clear view (fade effects in front of your eyes)", prefs.clearView, () -> prefs.clearView = !prefs.clearView);
         y = toggle(g, mx, my, x, y, "Screen shake", prefs.screenShake, () -> prefs.screenShake = !prefs.screenShake);
         y = toggle(g, mx, my, x, y, "Screen tints and flashes", prefs.screenTint, () -> prefs.screenTint = !prefs.screenTint);
         y = section(g, "Chat panel", 0x69F0AE, x, y + 4);
@@ -808,12 +824,238 @@ public final class MenuScreen extends Screen {
         button(g, mx, my, x + 20 + bw, by, bw, 18, "Cancel", 0x777781, true, () -> confirm = "");
     }
 
+    // ================= Shops, Travel and Profile tabs =================
+
+    private final TextInput shopName = new TextInput(24, false);
+    private final TextInput homeName = new TextInput(16, false);
+    private java.util.UUID waitingShop;
+
+    /** Asks the server for whatever a tab shows. */
+    private void request(Tab t) {
+        switch (t) {
+            case SHOPS -> AbpsClient.send("shop", "list");
+            case TRAVEL -> AbpsClient.send("travel", "list");
+            case PROFILE -> AbpsClient.send("profile", "");
+            default -> {
+            }
+        }
+    }
+
+    /** True if the player just clicked this shop in the list, so its contents should open the shop screen. */
+    public boolean waitingForShop(java.util.UUID owner) {
+        return owner.equals(waitingShop);
+    }
+
+    private static String itemCount(net.minecraft.world.item.ItemStack stack, int count) {
+        return count + " " + stack.getHoverName().getString();
+    }
+
+    private int shops(GuiGraphicsExtractor g, int mx, int my, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        Net.ShopListPayload list = ClientState.shopList;
+        if (list == null) {
+            Draw.centered(g, "<gray>Loading shops...", cx + cw / 2, y + 20);
+            return 40;
+        }
+        if (!list.enabled()) {
+            Draw.centered(g, "<gray>Shops are turned off on this server.", cx + cw / 2, y + 20);
+            return 40;
+        }
+        // Your own shop, or a way to open one
+        Draw.framed(g, x, y, w, 44, 0xE0101018, 0xFF2E7D5B);
+        java.util.UUID me = Minecraft.getInstance().player == null ? null : Minecraft.getInstance().player.getUUID();
+        if (list.hasShop()) {
+            Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Your shop is open</gradient></bold>", x + 8, y + 7);
+            Draw.text(g, "<gray>Stock it and collect earnings.", x + 8, y + 19);
+            button(g, mx, my, x + w - 96, y + 12, 88, 20, "<white><bold>Manage shop", 0x69F0AE, true, () -> {
+                waitingShop = me;
+                AbpsClient.send("shop", "open|" + me);
+            });
+        } else {
+            Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Open your own shop</gradient></bold> <dark_gray>costs</dark_gray> " + list.createCost(), x + 8, y + 6);
+            shopName.draw(g, x + 8, y + 19, w - 112, 18, 0x69F0AE, "Shop name (optional)");
+            button(g, mx, my, x + w - 98, y + 19, 90, 18, "<white><bold>Open shop", 0x69F0AE, list.canCreate(), () -> {
+                AbpsClient.send("shop", "create|" + shopName.text().trim());
+                waitingShop = me;
+            });
+        }
+        y += 52;
+
+        y = section(g, "Player shops (" + list.shops().size() + ")", 0x69F0AE, x, y);
+        if (list.shops().isEmpty()) {
+            Draw.centered(g, "<gray>No shops yet. Be the first!", cx + cw / 2, y + 8);
+            return y - y0 + 30;
+        }
+        for (Net.ShopCard card : list.shops()) {
+            boolean hover = Draw.inside(mx, my, x, y, w, 32);
+            Draw.framed(g, x, y, w, 32, hover ? 0xF0181824 : 0xE0101016, hover ? 0xFF69F0AE : 0xFF2A2A34);
+            g.item(card.icon(), x + 6, y + 8);
+            Draw.text(g, "<white><bold>" + card.name(), x + 28, y + 6);
+            String dot = card.online() ? "<#69F0AE>●</#69F0AE>" : "<dark_gray>●</dark_gray>";
+            Draw.text(g, dot + " <gray>" + card.ownerName() + "  <dark_gray>" + card.listings() + " listings · " + card.sales() + " sales", x + 28, y + 18);
+            int ix = x + w - 8 - card.preview().size() * 18;
+            for (net.minecraft.world.item.ItemStack st : card.preview()) {
+                g.item(st, ix, y + 8);
+                ix += 18;
+            }
+            final java.util.UUID owner = card.owner();
+            buttons.add(new Btn(x, y, w, 32, () -> {
+                waitingShop = owner;
+                AbpsClient.send("shop", "open|" + owner);
+            }));
+            y += 35;
+        }
+        return y - y0 + 6;
+    }
+
+    private int travel(GuiGraphicsExtractor g, int mx, int my, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        Net.TravelPayload t = ClientState.travel;
+        if (t == null) {
+            Draw.centered(g, "<gray>Loading...", cx + cw / 2, y + 20);
+            return 40;
+        }
+        if (t.combatLeft() > 0) {
+            Draw.panel(g, x, y, w, 14, Draw.argb(0xFF1744, 0x50));
+            Draw.centered(g, "<#FF5252>⚔ In combat for " + Text.time(t.combatLeft()) + ". You can't teleport yet.", cx + cw / 2, y + 3);
+            y += 18;
+        } else if (t.cooldownLeft() > 0) {
+            Draw.centered(g, "<gray>You can teleport again in " + Text.time(t.cooldownLeft()) + ".", cx + cw / 2, y + 2);
+            y += 14;
+        }
+
+        // Quick travel
+        int bw = (w - 6) / 2;
+        button(g, mx, my, x, y, bw, 20, "<white><bold>⌂ Spawn", 0x00E5FF, true, () -> AbpsClient.send("travel", "spawn"));
+        button(g, mx, my, x + bw + 6, y, bw, 20, "<white><bold>↺ Back", 0x7C4DFF, t.hasBack(), () -> AbpsClient.send("travel", "back"));
+        y += 28;
+
+        // Homes
+        y = section(g, "Homes (" + t.homes().size() + "/" + t.maxHomes() + ")", 0x00E5FF, x, y);
+        for (Net.HomeInfo h : t.homes()) {
+            Draw.framed(g, x, y, w, 22, 0xE0101016, 0xFF2A2A34);
+            Draw.item(g, "minecraft:red_bed", x + 4, y + 3, 1f);
+            Draw.text(g, "<white><bold>" + h.name() + "</bold> <dark_gray>" + h.dimension() + " " + h.x() + ", " + h.y() + ", " + h.z(), x + 24, y + 7);
+            final String name = h.name();
+            button(g, mx, my, x + w - 78, y + 3, 44, 16, "<white>Go", 0x00E5FF, true, () -> AbpsClient.send("travel", "home|" + name));
+            button(g, mx, my, x + w - 30, y + 3, 26, 16, "<#FF5252>✕", 0xFF5252, true, () -> AbpsClient.send("travel", "delhome|" + name));
+            y += 25;
+        }
+        if (t.homes().isEmpty()) {
+            Draw.text(g, "<gray>No homes yet. Name one below and set it where you stand.", x, y + 2);
+            y += 14;
+        }
+        boolean full = t.homes().size() >= t.maxHomes();
+        homeName.draw(g, x, y + 2, w - 108, 18, 0x00E5FF, "home name");
+        button(g, mx, my, x + w - 102, y + 2, 102, 18, full ? "Homes full" : "<white><bold>+ Set home here", 0x00E5FF, !full, () -> {
+            AbpsClient.send("travel", "sethome|" + (homeName.text().isBlank() ? "home" : homeName.text().trim()));
+            homeName.set("");
+        });
+        y += 28;
+
+        // Requests waiting for an answer
+        if (!t.requests().isEmpty()) {
+            y = section(g, "Teleport requests", 0xFFD54F, x, y);
+            for (String r : t.requests()) {
+                String name = r.contains(" (") ? r.substring(0, r.indexOf(" (")) : r;
+                Draw.framed(g, x, y, w, 22, 0xE0181410, 0xFF5A4A20);
+                Draw.text(g, "<white>" + r + " <gray>wants to teleport", x + 6, y + 7);
+                button(g, mx, my, x + w - 116, y + 3, 56, 16, "<#69F0AE>Accept", 0x69F0AE, true, () -> AbpsClient.send("travel", "accept|" + name));
+                button(g, mx, my, x + w - 56, y + 3, 52, 16, "<#FF5252>Deny", 0xFF5252, true, () -> AbpsClient.send("travel", "deny|" + name));
+                y += 25;
+            }
+        }
+
+        // Everyone online
+        y = section(g, "Players online (" + t.online().size() + ")", 0x7C4DFF, x, y);
+        if (t.online().isEmpty()) {
+            Draw.text(g, "<gray>Nobody else is online.", x, y + 2);
+            y += 14;
+        }
+        for (String name : t.online()) {
+            Draw.framed(g, x, y, w, 20, 0xE0101016, 0xFF2A2A34);
+            Draw.text(g, "<white>" + name, x + 6, y + 6);
+            button(g, mx, my, x + w - 124, y + 2, 60, 16, "<white>Go to", 0x7C4DFF, true, () -> AbpsClient.send("travel", "tpr|" + name));
+            button(g, mx, my, x + w - 62, y + 2, 58, 16, "<white>Bring", 0x7C4DFF, true, () -> AbpsClient.send("travel", "tphere|" + name));
+            y += 22;
+        }
+        return y - y0 + 6;
+    }
+
+    private int profile(GuiGraphicsExtractor g, int mx, int my, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        Net.ProfilePayload pr = ClientState.profile;
+        if (pr == null) {
+            Draw.centered(g, "<gray>Loading...", cx + cw / 2, y + 20);
+            return 40;
+        }
+        Net.ClassInfo c = ClientState.myClass();
+        int c1 = c == null ? 0x7C4DFF : c.color(), c2 = c == null ? 0x00E5FF : c.color2();
+        Draw.scaled(g, "<bold>" + Draw.gradient(c1, c2, pr.name()) + "</bold>", x, y, 1.6f, false);
+        if (c != null && ClientState.sync != null) Draw.text(g, "<gray>" + c.name() + " · Level " + ClientState.sync.level(), x, y + 16);
+        y += 30;
+
+        // Daily rewards: a week of cards
+        if (pr.dailyEnabled() && !pr.rewards().isEmpty()) {
+            y = section(g, "Daily rewards", 0xFFD54F, x, y);
+            int days = pr.rewards().size();
+            int nextDay = pr.canClaim() ? pr.streak() % days + 1 : 0;
+            int dayW = (w - 3 * (days - 1)) / days;
+            for (int k = 0; k < days; k++) {
+                int day = k + 1, dx = x + k * (dayW + 3);
+                boolean claimed = pr.canClaim() ? day < nextDay : day <= pr.streak();
+                boolean today = day == nextDay;
+                int border = today ? Draw.opaque(Text.lerp(0xFFD54F, 0xFFFFFF, Draw.pulse(1f) * 0.5f)) : claimed ? 0xFF2E7D5B : 0xFF2A2A34;
+                Draw.framed(g, dx, y, dayW, 48, today ? 0xF0201808 : 0xE0101016, border);
+                Draw.centered(g, (today ? "<gold><bold>" : claimed ? "<#69F0AE>" : "<gray>") + "Day " + day, dx + dayW / 2, y + 4);
+                List<net.minecraft.world.item.ItemStack> items = pr.rewards().get(k);
+                int iw = Math.min(2, items.size()) * 17;
+                int ix = dx + (dayW - iw) / 2;
+                for (int q = 0; q < Math.min(2, items.size()); q++) {
+                    net.minecraft.world.item.ItemStack st = items.get(q);
+                    g.item(st, ix, y + 16);
+                    g.itemDecorations(Draw.font(), st, ix, y + 16);
+                    ix += 17;
+                }
+                if (claimed) Draw.centered(g, "<#69F0AE>✔", dx + dayW / 2, y + 36);
+                if (Draw.inside(mx, my, dx, y, dayW, 48) && !items.isEmpty()) {
+                    StringBuilder tip = new StringBuilder("<gold>Day " + day + "</gold>");
+                    for (net.minecraft.world.item.ItemStack st : items) tip.append("\n<white>").append(itemCount(st, st.getCount()));
+                    g.setTooltipForNextFrame(Draw.font().split(Text.mm(tip.toString()), 200), mx, my);
+                }
+            }
+            y += 54;
+            if (pr.canClaim()) {
+                button(g, mx, my, x + w / 2 - 70, y, 140, 20, "<white><bold>Claim day " + nextDay + " reward", 0xFFB300, true,
+                        () -> AbpsClient.send("daily", ""));
+            } else {
+                long left = pr.nextClaimIn() / 60000;
+                String when = left >= 60 ? (left / 60) + "h " + (left % 60) + "m" : Math.max(1, left) + "m";
+                Draw.wrapped(g, "<gray>Next reward in <white>" + when + "</white>. Miss a day and the streak starts over.", x, y + 2, w, Draw.MUTED);
+            }
+            y += 28;
+        }
+        // Stat cards, three to a row
+        int cols = 3, gap = 4, cardW = (w - gap * (cols - 1)) / cols;
+        for (int k = 0; k < pr.labels().size(); k++) {
+            int cxp = x + (k % cols) * (cardW + gap), cyp = y + (k / cols) * 34;
+            Draw.framed(g, cxp, cyp, cardW, 30, 0xE0101016, Draw.argb(Text.lerp(c1, c2, k / (float) pr.labels().size()), 0x90));
+            Draw.scaled(g, "<gray>" + pr.labels().get(k), cxp + 6, cyp + 5, 0.75f, false);
+            Draw.text(g, "<white><bold>" + pr.values().get(k), cxp + 6, cyp + 16);
+        }
+        y += ((pr.labels().size() + cols - 1) / cols) * 34 + 6;
+
+        return y - y0 + 6;
+    }
+
     // ================= Input =================
 
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
-        dev.abps.AbpsMod.LOGGER.info("[Abps menu] click at {},{} button {} with {} buttons registered, popup='{}'",
+        dev.abps.AbpsMod.LOGGER.debug("[Abps menu] click at {},{} button {} with {} buttons registered, popup='{}'",
                 (int) e.x(), (int) e.y(), e.button(), buttons.size(), confirm);
+        boolean typed = shopName.click(e.x(), e.y()) | homeName.click(e.x(), e.y());
+        if (typed) return true;
         if (e.button() == 0 || e.button() == 1) { // left or right click, so swapped mouse buttons still work
             for (Btn b : List.copyOf(buttons)) {
                 if (Draw.inside(e.x(), e.y(), b.x, b.y, b.w, b.h)) {
@@ -861,7 +1103,14 @@ public final class MenuScreen extends Screen {
     }
 
     @Override
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent e) {
+        if (shopName.charTyped(e) || homeName.charTyped(e)) return true;
+        return super.charTyped(e);
+    }
+
+    @Override
     public boolean keyPressed(KeyEvent e) {
+        if (shopName.keyPressed(e) || homeName.keyPressed(e)) return true;
         if (AbpsClient.menuKey.matches(e) || Minecraft.getInstance().options.keyInventory.matches(e)) {
             onClose();
             return true;

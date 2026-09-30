@@ -30,6 +30,14 @@ public final class PlayerData {
     public Loc back;
     public long savedAt;
 
+    // ---- Profile stats and daily rewards ----
+    public int kills, deaths, mobKills, ultsUsed, killStreak, bestStreak;
+    public double damageDealt, damageTaken;
+    public long playSeconds;
+    /** The day (days since 1970, UTC) the daily reward was last claimed, and how far into the 7 day streak it was. */
+    public long lastDaily = -1;
+    public int dailyStreak;
+
     // ---- Runtime only ----
     public transient long[] cooldownEnd = new long[7];
     public transient boolean[] readyNotified = new boolean[7];

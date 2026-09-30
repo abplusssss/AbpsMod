@@ -70,6 +70,12 @@ public final class ServerEvents {
                 return;
             }
             AbpsMod.service().handleJoin(p);
+            // After the welcome, so these land below it in chat
+            dev.abps.util.Tasks.later(60, () -> {
+                if (p.hasDisconnected()) return;
+                AbpsMod.shops().onJoin(p);
+                dev.abps.Profiles.onJoin(p);
+            });
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             if (!AbpsMod.running()) return;
@@ -181,6 +187,7 @@ public final class ServerEvents {
             PlayerData d = data(p);
             DamageHooks.tickTap(p, d);
             Teleports.tick(p, d);
+            if (ticks % 20 == 0) d.playSeconds++;
             if (!slow) continue;
             AttributeClass c = s.cls(d);
             if (c == null) {
@@ -209,8 +216,10 @@ public final class ServerEvents {
         Service s = AbpsMod.service();
         var src = source.getEntity();
 
+        if (victim instanceof ServerPlayer vp && src != vp) data(vp).damageTaken += taken;
         if (src instanceof ServerPlayer p && p != victim) {
             PlayerData d = data(p);
+            d.damageDealt += taken;
             d.lastHit = victim.getUUID();
             d.lastHitTime = System.currentTimeMillis();
             Hit hit = DamageHooks.hitOf(p, source);
@@ -242,9 +251,22 @@ public final class ServerEvents {
     private static void afterDeath(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
         if (!AbpsMod.running()) return;
         Targets.forgetMinion(entity.getUUID());
-        if (entity instanceof ServerPlayer dead) data(dead).back = Teleports.here(dead);
+        if (entity instanceof ServerPlayer dead) {
+            PlayerData dd = data(dead);
+            dd.back = Teleports.here(dead);
+            dd.deaths++;
+            dd.killStreak = 0;
+        }
         var src = source.getEntity();
         if (src instanceof ServerPlayer killer && killer != entity) {
+            PlayerData kd = data(killer);
+            if (entity instanceof ServerPlayer) {
+                kd.kills++;
+                kd.killStreak++;
+                kd.bestStreak = Math.max(kd.bestStreak, kd.killStreak);
+            } else if (!(entity instanceof net.minecraft.world.entity.player.Player)) {
+                kd.mobKills++;
+            }
             AttributeClass c = cls(killer);
             if (c != null) c.onKill(killer, data(killer), entity);
             return;
@@ -305,6 +327,10 @@ public final class ServerEvents {
             }
             case "home" -> Teleports.home(p, arg.isEmpty() ? null : arg);
             case "spawn" -> Teleports.spawn(p);
+            case "shop" -> AbpsMod.shops().handle(p, arg);
+            case "travel" -> dev.abps.Profiles.travel(p, arg);
+            case "profile" -> dev.abps.Profiles.sendProfile(p);
+            case "daily" -> dev.abps.Profiles.claimDaily(p);
             default -> {
             }
         }

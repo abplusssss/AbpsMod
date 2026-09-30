@@ -313,6 +313,20 @@ public final class Teleports {
         s().send(from, any ? "<gray>Your teleport requests were cancelled." : "<red>You have no requests to cancel.");
     }
 
+    /** Names of players with a live request to this player, newest last. For the Travel tab. */
+    public static List<String> requestsFor(UUID target) {
+        List<String> names = new ArrayList<>();
+        List<Request> list = pending.get(target);
+        if (list == null) return names;
+        long now = System.currentTimeMillis();
+        for (Request r : list) {
+            if (r.expires() < now) continue;
+            ServerPlayer from = AbpsMod.server().getPlayerList().getPlayer(r.from());
+            if (from != null) names.add(from.getName().getString() + (r.here() ? " (to them)" : ""));
+        }
+        return names;
+    }
+
     public static void forget(UUID id) {
         pending.remove(id);
         for (List<Request> list : pending.values()) list.removeIf(r -> r.from().equals(id));

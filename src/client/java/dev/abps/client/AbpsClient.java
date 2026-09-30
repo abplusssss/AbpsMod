@@ -49,6 +49,8 @@ public final class AbpsClient implements ClientModInitializer {
             dev.abps.client.fx.FxSystem.clear();
         });
         ClientSelfTest.init();
+        dev.abps.client.fx.FxPreview.init();
+        UiPreview.init();
     }
 
     /** The server knows about the mod once it sees these channels. */
@@ -74,6 +76,14 @@ public final class AbpsClient implements ClientModInitializer {
             for (Net.ClassInfo c : p.classes()) ClientState.catalog.put(c.id(), c);
         });
         ClientPlayNetworking.registerGlobalReceiver(Net.BoardPayload.TYPE, (p, ctx) -> ClientState.board = p);
+        ClientPlayNetworking.registerGlobalReceiver(Net.ShopListPayload.TYPE, (p, ctx) -> ClientState.shopList = p);
+        ClientPlayNetworking.registerGlobalReceiver(Net.ShopPayload.TYPE, (p, ctx) -> {
+            ClientState.shop = p;
+            // Opening a shop from the list: switch to the shop screen when its contents arrive
+            if (ctx.client().gui.screen() instanceof MenuScreen m && m.waitingForShop(p.owner())) ctx.client().gui.setScreen(new ShopScreen());
+        });
+        ClientPlayNetworking.registerGlobalReceiver(Net.TravelPayload.TYPE, (p, ctx) -> ClientState.travel = p);
+        ClientPlayNetworking.registerGlobalReceiver(Net.ProfilePayload.TYPE, (p, ctx) -> ClientState.profile = p);
         ClientPlayNetworking.registerGlobalReceiver(Net.VanishPayload.TYPE, (p, ctx) -> {
             ClientState.vanished.clear();
             ClientState.vanished.addAll(p.ids());

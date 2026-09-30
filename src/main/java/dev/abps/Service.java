@@ -528,6 +528,7 @@ public final class Service {
         d.ultCharge = 0;
         d.ultReadyNotified = false;
         d.ultLockUntil = System.currentTimeMillis() + cfg().ultimateLockoutSeconds * 1000L;
+        d.ultsUsed++;
         d.abilitiesUsed++;
         banner(p, c.gradient("<bold>" + c.abilityName(AttributeClass.ULTIMATE).toUpperCase() + "</bold>"), "<gray>Ultimate", c.rgb(), 30);
         Fx.screen(p, Fx.FLASH, c.rgb(), 10, 0.35f);

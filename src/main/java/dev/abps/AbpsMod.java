@@ -20,6 +20,7 @@ public class AbpsMod implements ModInitializer {
 	private static MinecraftServer server;
 	private static DataStore data;
 	private static ServerState state;
+	private static dev.abps.shop.Shops shops;
 	private static Service service;
 
 	@Override
@@ -43,12 +44,14 @@ public class AbpsMod implements ModInitializer {
 		server = s;
 		data = new DataStore(s);
 		state = new ServerState(data.root());
+		shops = new dev.abps.shop.Shops(s, data.root());
 		service = new Service(s);
 		SelfTest.maybeRun(s);
 	}
 
 	public static void stop() {
 		if (state != null) state.saveNow();
+		if (shops != null) shops.shutdown();
 		if (data != null) data.shutdown();
 		server = null;
 	}
@@ -71,6 +74,10 @@ public class AbpsMod implements ModInitializer {
 
 	public static DataStore data() {
 		return data;
+	}
+
+	public static dev.abps.shop.Shops shops() {
+		return shops;
 	}
 
 	public static ServerState state() {
