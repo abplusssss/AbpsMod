@@ -52,13 +52,14 @@ public final class FakeBlocks {
         d.addTag("abps_fx");
         // Centered on the spot, growing up from the ground
         d.setTransformation(new Transformation(new Vector3f(-startScale.x / 2, 0, -startScale.z / 2), new Quaternionf(), startScale, new Quaternionf()));
+        Vfx.track(d); // new effects must survive the "delete leftovers" check when they spawn
         level.addFreshEntity(d);
         Tasks.later(1, () -> {
             d.setTransformationInterpolationDelay(0);
             d.setTransformationInterpolationDuration(growTicks);
             d.setTransformation(new Transformation(new Vector3f(-endScale.x / 2, 0, -endScale.z / 2), new Quaternionf(), endScale, new Quaternionf()));
         });
-        Tasks.later(lifeTicks, d::discard);
+        Tasks.later(lifeTicks, () -> Vfx.discard(d));
         return d;
     }
 }

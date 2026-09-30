@@ -108,7 +108,8 @@ public final class Teleports {
         ServerLevel level = (ServerLevel) p.level();
         if (d.teleportTicksLeft % 4 == 0) {
             double a = d.teleportTicksLeft * 0.4;
-            level.sendParticles(ParticleTypes.PORTAL, p.getX() + Math.cos(a) * 0.8, p.getY() + 1, p.getZ() + Math.sin(a) * 0.8, 6, 0.1, 0.4, 0.1, 0.1);
+            dev.abps.util.Vfx.helix(level, p.position().add(Math.cos(a) * 0.9, 0, Math.sin(a) * 0.9), 0.5, 2.0, 1.2, 8,
+                    dev.abps.util.Vfx.tint(0xAB47BC), 0.11f, 10, 0xAB47BC);
         }
         if (d.teleportTicksLeft % 20 == 0 && d.teleportTicksLeft > 0) {
             s().actionBar(p, "<aqua>Teleporting in " + (d.teleportTicksLeft / 20) + "s. <gray>Don't move.");
@@ -126,6 +127,18 @@ public final class Teleports {
         s().actionBar(p, message);
     }
 
+    /** You collapse into a point as you leave. */
+    private static void implodeFx(ServerLevel level, Vec3 at) {
+        dev.abps.util.Vfx.sphere(level, at, 2.2, 0.2, 16, dev.abps.util.Vfx.tint(0xAB47BC), 0.16f, 10, 0xAB47BC);
+        dev.abps.util.Vfx.flash(level, at, 1.2f, dev.abps.util.Vfx.tint(0xE1BEE7), 8, 0xE1BEE7);
+    }
+
+    /** ...and burst back out where you arrive. */
+    private static void burstFx(ServerLevel level, Vec3 at) {
+        dev.abps.util.Vfx.sphere(level, at, 0.2, 2.4, 16, dev.abps.util.Vfx.tint(0xAB47BC), 0.16f, 12, 0xAB47BC);
+        dev.abps.util.Vfx.groundRing(level, at.add(0, -1, 0), 0.4, 2.4, 16, dev.abps.util.Vfx.tint(0xE1BEE7), 0.1f, 10, 0xE1BEE7);
+    }
+
     private static void finish(ServerPlayer p, PlayerData d, Loc dest, String label) {
         if (p.isRemoved()) return;
         if (d.inCombat()) {
@@ -136,9 +149,9 @@ public final class Teleports {
         if (level == null) return;
         d.back = here(p);
         ServerLevel from = (ServerLevel) p.level();
-        from.sendParticles(ParticleTypes.REVERSE_PORTAL, p.getX(), p.getY() + 1, p.getZ(), 30, 0.3, 0.6, 0.3, 0.05);
+        implodeFx(from, new Vec3(p.getX(), p.getY() + 1, p.getZ()));
         p.teleportTo(level, dest.x(), dest.y(), dest.z(), Set.of(), dest.yaw(), dest.pitch(), false);
-        level.sendParticles(ParticleTypes.REVERSE_PORTAL, dest.x(), dest.y() + 1, dest.z(), 30, 0.3, 0.6, 0.3, 0.05);
+        burstFx(level, new Vec3(dest.x(), dest.y() + 1, dest.z()));
         Fx.sound(level, new Vec3(dest.x(), dest.y(), dest.z()), SoundEvents.ENDERMAN_TELEPORT, 0.8f, 1.2f);
         d.teleportReadyAt = System.currentTimeMillis() + cfg().teleportCooldownSeconds * 1000L;
         s().actionBar(p, "<green>Teleported to " + label + ".");

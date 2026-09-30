@@ -549,8 +549,8 @@ public final class Service {
             double a = d.tickCount * 0.35;
             for (int i = 0; i < 3; i++) {
                 double ang = a + i * (Math.PI * 2 / 3);
-                level(p).sendParticles(Fx.dust(i % 2 == 0 ? c.rgb() : c.rgb2(), 0.9f),
-                        p.getX() + Math.cos(ang) * 0.7, p.getY() + 0.15, p.getZ() + Math.sin(ang) * 0.7, 1, 0, 0, 0, 0);
+                Fx.burst(level(p), Fx.dust(i % 2 == 0 ? c.rgb() : c.rgb2(), 0.9f),
+                        new Vec3(p.getX() + Math.cos(ang) * 0.7, p.getY() + 0.15, p.getZ() + Math.sin(ang) * 0.7), 1, 0, 0, 0, 0);
             }
         }
         if (hasMod(p)) {

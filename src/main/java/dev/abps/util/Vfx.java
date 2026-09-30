@@ -1,6 +1,10 @@
 package dev.abps.util;
 
 import com.mojang.math.Transformation;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
@@ -14,6 +18,9 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -36,7 +43,31 @@ public final class Vfx {
 
     public static final BlockState WHITE = BLOCKS[0];
 
+    /**
+     * Every effect entity that is alive right now. ENTITY_LOAD also fires for brand new spawns, so the "delete stray
+     * effect entities after a restart" check in ServerEvents needs this to tell new effects from leftovers.
+     */
+    private static final Set<UUID> LIVE = ConcurrentHashMap.newKeySet();
+    /** Most effect entities allowed at once. Past this new ones are dropped instead of lagging the server. */
+    private static final int CAP = 650;
+
     private Vfx() {
+    }
+
+    public static boolean isLive(Entity e) {
+        return LIVE.contains(e.getUUID());
+    }
+
+    /** Marks an effect entity made somewhere else (like FakeBlocks) as alive. Call before adding it to the world. */
+    public static void track(Entity e) {
+        LIVE.add(e.getUUID());
+    }
+
+    /** Removes an effect entity and forgets it. */
+    public static void discard(Entity e) {
+        if (e == null) return;
+        LIVE.remove(e.getUUID());
+        e.discard();
     }
 
     /** The concrete block closest to a color. */
@@ -71,6 +102,7 @@ public final class Vfx {
     }
 
     private static Display.BlockDisplay make(ServerLevel level, Vec3 at, BlockState state, Transformation start, int glowRgb) {
+        if (LIVE.size() >= CAP) return null;
         Display.BlockDisplay d = new Display.BlockDisplay(EntityTypes.BLOCK_DISPLAY, level);
         d.setPos(at.x, at.y, at.z);
         d.setBlockState(state);
@@ -82,12 +114,14 @@ public final class Vfx {
             d.setGlowColorOverride(glowRgb & 0xFFFFFF);
         }
         d.setTransformation(start);
+        LIVE.add(d.getUUID());
         level.addFreshEntity(d);
         return d;
     }
 
     /** Moves a display to a new transformation smoothly over duration ticks, starting after delay ticks. */
     private static void animate(Display.BlockDisplay d, int delay, int duration, Transformation to) {
+        if (d == null) return;
         Tasks.later(delay + 1, () -> {
             if (d.isRemoved()) return;
             d.setTransformationInterpolationDelay(0);
@@ -97,7 +131,8 @@ public final class Vfx {
     }
 
     private static void remove(Display.BlockDisplay d, int afterTicks) {
-        Tasks.later(afterTicks + 2, d::discard);
+        if (d == null) return;
+        Tasks.later(afterTicks + 2, () -> discard(d));
     }
 
     private static Quaternionf randomRotation() {
@@ -247,6 +282,7 @@ public final class Vfx {
         for (int i = 0; i < count; i++) {
             Quaternionf rot = randomRotation();
             Display.BlockDisplay d = make(level, c, state, centered(new Vector3f(), rot, new Vector3f(size)), glowRgb);
+            if (d == null) continue;
             d.setPosRotInterpolationDuration(2);
             parts.add(d);
         }
@@ -261,7 +297,7 @@ public final class Vfx {
                 parts.get(i).setPos(p.x + Math.cos(a) * radius, p.y + height + bob, p.z + Math.sin(a) * radius);
             }
         });
-        Tasks.later(ticks + 2, () -> parts.forEach(Display::discard));
+        Tasks.later(ticks + 2, () -> parts.forEach(Vfx::discard));
     }
 
     /** Shards circling a fixed point, for things like whirlpools. Height rises the further out you go. */
@@ -270,6 +306,7 @@ public final class Vfx {
         List<Display.BlockDisplay> parts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), randomRotation(), new Vector3f(size)), glowRgb);
+            if (d == null) continue;
             d.setPosRotInterpolationDuration(2);
             parts.add(d);
         }
@@ -283,7 +320,7 @@ public final class Vfx {
                 parts.get(i).setPos(center.x + Math.cos(a) * r, center.y + 0.1 + frac * 2.4, center.z + Math.sin(a) * r);
             }
         });
-        Tasks.later(ticks + 2, () -> parts.forEach(Display::discard));
+        Tasks.later(ticks + 2, () -> parts.forEach(Vfx::discard));
     }
 
     /** Flat triangular fins that circle a point at the water surface, like sharks circling prey. */
@@ -291,6 +328,7 @@ public final class Vfx {
         List<Display.BlockDisplay> parts = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             Display.BlockDisplay d = make(level, center, state, centered(new Vector3f(), new Quaternionf(), new Vector3f(0.08f, 0.02f, 0.02f)), glowRgb);
+            if (d == null) continue;
             d.setPosRotInterpolationDuration(2);
             parts.add(d);
         }
@@ -313,13 +351,144 @@ public final class Vfx {
                 d.setTransformationInterpolationDuration(2);
             }
         });
-        Tasks.later(ticks + 2, () -> parts.forEach(Display::discard));
+        Tasks.later(ticks + 2, () -> parts.forEach(Vfx::discard));
     }
 
     /** A slanted slab that reads as a dorsal fin. */
     private static Transformation fin(float length, float height, Quaternionf yaw) {
         Quaternionf lean = new Quaternionf(yaw).rotateZ(-0.55f);
         return based(new Vector3f(), lean, new Vector3f(length * 0.35f, height, 0.06f));
+    }
+
+    // ---------------- More effects ----------------
+
+    /** A quick bright flash: a few crossed slabs that swell and vanish. */
+    public static void flash(ServerLevel level, Vec3 at, float size, BlockState state, int life, int glowRgb) {
+        int grow = Math.max(2, life / 3);
+        for (int i = 0; i < 3; i++) {
+            Quaternionf rot = new Quaternionf().rotateXYZ(i * 1.05f, i * 0.6f, i * 0.9f);
+            Display.BlockDisplay d = make(level, at, state, centered(new Vector3f(), rot, new Vector3f(size * 0.15f)), glowRgb);
+            animate(d, 0, grow, centered(new Vector3f(), rot, new Vector3f(size, size * 0.12f, size)));
+            animate(d, grow, life, centered(new Vector3f(), new Quaternionf(rot).rotateY(1.2f), new Vector3f(0.01f)));
+            remove(d, grow + life);
+        }
+    }
+
+    /** Shards spread evenly over a sphere that swells from r0 to r1 while they shrink. */
+    public static void sphere(ServerLevel level, Vec3 center, double r0, double r1, int count, BlockState state, float size, int life, int glowRgb) {
+        double golden = Math.PI * (3 - Math.sqrt(5));
+        for (int i = 0; i < count; i++) {
+            double y = 1 - (i + 0.5) * 2.0 / count;
+            double rr = Math.sqrt(Math.max(0, 1 - y * y));
+            double a = golden * i;
+            Vector3f dir = new Vector3f((float) (Math.cos(a) * rr), (float) y, (float) (Math.sin(a) * rr));
+            Quaternionf rot = randomRotation();
+            Vec3 p0 = center.add(dir.x * r0, dir.y * r0, dir.z * r0);
+            Display.BlockDisplay d = make(level, p0, state, centered(new Vector3f(), rot, new Vector3f(size)), glowRgb);
+            animate(d, 0, life, centered(new Vector3f(dir).mul((float) (r1 - r0)), rot, new Vector3f(size * 0.1f)));
+            remove(d, life);
+        }
+    }
+
+    /** A spiral that draws itself upward from base, then fades. */
+    public static void helix(ServerLevel level, Vec3 base, double radius, double height, double turns, int pieces, BlockState state,
+                             float size, int life, int glowRgb) {
+        for (int i = 0; i < pieces; i++) {
+            double t = (double) i / Math.max(1, pieces - 1);
+            double a = t * turns * Math.PI * 2;
+            Vec3 at = base.add(Math.cos(a) * radius, t * height, Math.sin(a) * radius);
+            Tasks.later((int) (t * 8), () -> shard(level, at, state, size, new Vec3(0, 0.01, 0), 0, life, glowRgb));
+        }
+    }
+
+    /** Leaves a fading streak behind an entity for a while. */
+    public static void trail(ServerLevel level, Entity e, int ticks, BlockState state, float size, int glowRgb) {
+        Tasks.repeat(ticks, 1, step -> {
+            if (e.isRemoved()) return;
+            shard(level, e.position().add(0, e.getBbHeight() * 0.5, 0), state, size, Vec3.ZERO, 0, 8, glowRgb);
+        });
+    }
+
+    // ---------------- Stand-ins for vanilla particles ----------------
+
+    /** How a vanilla particle is drawn here: as a small full-bright block. */
+    private record Look(BlockState block, float size) {
+    }
+
+    private static Look look(ParticleOptions p) {
+        if (p instanceof BlockParticleOption b) return new Look(b.getState(), 1f);
+        if (p instanceof DustParticleOptions dust) {
+            Vector3f c = dust.getColor();
+            float k = c.x > 1.5f || c.y > 1.5f || c.z > 1.5f ? 1f : 255f;
+            int rgb = ((int) (c.x * k) << 16) | ((int) (c.y * k) << 8) | (int) (c.z * k);
+            return new Look(tint(rgb), Math.max(0.6f, dust.getScale()));
+        }
+        String key = BuiltInRegistries.PARTICLE_TYPE.getKey(p.getType()).getPath();
+        return switch (key) {
+            case "flame", "small_flame" -> new Look(tint(0xFF9800), 1f);
+            case "lava" -> new Look(tint(0xFF5722), 1.2f);
+            case "soul_fire_flame" -> new Look(tint(0x4DD0E1), 1f);
+            case "soul" -> new Look(tint(0x80DEEA), 1f);
+            case "sculk_soul" -> new Look(tint(0x00E5FF), 1f);
+            case "smoke", "large_smoke", "campfire_cosy_smoke", "campfire_signal_smoke" -> new Look(tint(0x757575), 1.1f);
+            case "cloud", "poof" -> new Look(tint(0xECEFF1), 1.1f);
+            case "heart" -> new Look(tint(0xFF4081), 1.2f);
+            case "happy_villager" -> new Look(tint(0x69F0AE), 1f);
+            case "angry_villager" -> new Look(tint(0xFF1744), 1.1f);
+            case "enchanted_hit" -> new Look(tint(0xB39DDB), 0.9f);
+            case "crit" -> new Look(tint(0xFFF59D), 0.9f);
+            case "damage_indicator" -> new Look(tint(0xFF5252), 1f);
+            case "explosion", "explosion_emitter" -> new Look(tint(0xFF6D00), 2.4f);
+            case "splash", "rain", "bubble", "bubble_pop", "fishing", "dolphin", "nautilus", "underwater", "bubble_column_up", "current_down" ->
+                    new Look(tint(0x4DD0E1), 1f);
+            case "electric_spark" -> new Look(tint(0x80D8FF), 1f);
+            case "gust", "gust_emitter_large", "gust_emitter_small" -> new Look(tint(0xE0F7FA), 1.4f);
+            case "wax_on" -> new Look(tint(0xFFD600), 1f);
+            case "wax_off" -> new Look(tint(0xB2FF59), 1f);
+            case "end_rod", "sweep_attack", "glow" -> new Look(tint(0xFFFFFF), 1f);
+            case "falling_spore_blossom" -> new Look(tint(0xA5D6A7), 1f);
+            case "cherry_leaves" -> new Look(tint(0xF8BBD0), 1f);
+            case "portal", "reverse_portal", "witch" -> new Look(tint(0xAB47BC), 1f);
+            case "totem_of_undying" -> new Look(tint(0x76FF03), 1.1f);
+            default -> new Look(tint(0xFFFFFF), 1f);
+        };
+    }
+
+    /** Drop-in for a burst of vanilla particles: a handful of tumbling shards instead. */
+    public static void particles(ServerLevel level, ParticleOptions p, Vec3 at, int count, double sx, double sy, double sz, double speed) {
+        Look look = look(p);
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        int n = count <= 0 ? 1 : Math.min(count, 10);
+        float size = Math.max(0.09f, Math.min(0.34f, 0.11f * look.size + (count > 10 ? 0.04f : 0f)));
+        for (int i = 0; i < n; i++) {
+            Vec3 pos = at.add(r.nextGaussian() * sx * 0.6, r.nextGaussian() * sy * 0.6, r.nextGaussian() * sz * 0.6);
+            Vec3 dir = new Vec3(r.nextGaussian(), r.nextGaussian() * 0.6 + 0.3, r.nextGaussian()).normalize();
+            double sp = Math.max(0.015, speed * 0.7) * (0.5 + r.nextDouble());
+            shard(level, pos, look.block, size, dir.scale(sp), 0.0015, 10 + r.nextInt(8), -1);
+        }
+    }
+
+    public static void particleRing(ServerLevel level, ParticleOptions p, Vec3 center, double radius, int points) {
+        Look look = look(p);
+        ring(level, center.add(0, 0.2, 0), new Vec3(0, 1, 0), radius, radius * 1.12, Math.max(8, Math.min(points, 18)), look.block,
+                0.08f * Math.max(1f, look.size * 0.8f), 6, -1);
+    }
+
+    public static void particleLine(ServerLevel level, ParticleOptions p, Vec3 from, Vec3 to) {
+        Look look = look(p);
+        beam(level, from, to, 0.06f * Math.max(1f, look.size), look.block, 6, -1);
+    }
+
+    public static void particleSpiral(ServerLevel level, ParticleOptions p, Vec3 base, double radius, double height, int points, double turn) {
+        Look look = look(p);
+        int n = Math.min(points, 16);
+        for (int i = 0; i < n; i++) {
+            double t = (double) i / n;
+            double a = turn + t * Math.PI * 6;
+            double r = radius * (0.4 + t * 0.6);
+            Vec3 at = base.add(Math.cos(a) * r, t * height, Math.sin(a) * r);
+            Tasks.later(i / 2, () -> shard(level, at, look.block, 0.13f * Math.max(1f, look.size * 0.7f), new Vec3(0, 0.02, 0), 0, 10, -1));
+        }
     }
 
     /**
@@ -333,6 +502,7 @@ public final class Vfx {
         private final List<Display.BlockDisplay> body = new ArrayList<>();
         private final List<Display.BlockDisplay> crest = new ArrayList<>();
         private final Quaternionf yaw;
+        private final List<Integer> slots = new ArrayList<>();
 
         public Wave(ServerLevel level, Vec3 origin, Vec3 dir, int columns, double height, BlockState bodyState, BlockState crestState, int glowRgb) {
             Vec3 flat = new Vec3(dir.x, 0, dir.z);
@@ -343,29 +513,36 @@ public final class Vfx {
             this.yaw = new Quaternionf().rotationTo(new Vector3f(0, 0, 1), v(this.dir));
             for (int i = 0; i < columns; i++) {
                 Display.BlockDisplay b = make(level, origin, bodyState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 2.4f)), glowRgb);
-                b.setPosRotInterpolationDuration(2);
-                body.add(b);
                 Display.BlockDisplay c = make(level, origin, crestState, based(new Vector3f(), yaw, new Vector3f(1.2f, 0.1f, 1.4f)), -1);
+                if (b == null || c == null) {
+                    discard(b);
+                    discard(c);
+                    continue;
+                }
+                b.setPosRotInterpolationDuration(2);
                 c.setPosRotInterpolationDuration(2);
+                body.add(b);
                 crest.add(c);
+                slots.add(i);
             }
         }
 
         /** Moves the wall so its middle is at center. growth runs 0 to 1 and scales the height, phase makes it ripple. */
         public void update(Vec3 center, double growth, int phase) {
-            for (int i = 0; i < columns; i++) {
+            for (int k = 0; k < body.size(); k++) {
+                int i = slots.get(k);
                 double lo = i - (columns - 1) / 2.0;
                 Vec3 at = center.add(lateral.scale(lo));
                 // Taller in the middle, lower at the edges, and rippling
                 double edge = 1.0 - Math.pow(Math.abs(lo) / (columns / 2.0 + 0.5), 2) * 0.45;
                 double h = Math.max(0.1, height * growth * edge * (0.82 + 0.18 * Math.sin(phase * 0.6 + i * 0.8)));
-                Display.BlockDisplay b = body.get(i);
+                Display.BlockDisplay b = body.get(k);
                 b.setPos(at.x, at.y, at.z);
                 b.setTransformation(based(new Vector3f(), yaw, new Vector3f(1.2f, (float) h, 2.4f)));
                 b.setTransformationInterpolationDelay(0);
                 b.setTransformationInterpolationDuration(2);
 
-                Display.BlockDisplay c = crest.get(i);
+                Display.BlockDisplay c = crest.get(k);
                 Vec3 top = at.add(dir.scale(0.9));
                 c.setPos(top.x, top.y + h - 0.35, top.z);
                 Quaternionf lean = new Quaternionf(yaw).rotateX(0.75f);

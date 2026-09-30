@@ -29,41 +29,27 @@ public final class Fx {
         return new BlockParticleOption(ParticleTypes.BLOCK, state);
     }
 
+    // The burst, ring, line and spiral helpers do not use vanilla particles. They are drawn as custom glowing block
+    // effects (see Vfx) that look the same way the old particle would have: same color, roughly the same shape.
     public static void burst(ServerLevel level, ParticleOptions p, Vec3 at, int count, double spread, double speed) {
-        level.sendParticles(p, at.x, at.y, at.z, count, spread, spread, spread, speed);
+        Vfx.particles(level, p, at, count, spread, spread, spread, speed);
     }
 
     public static void burst(ServerLevel level, ParticleOptions p, Vec3 at, int count, double sx, double sy, double sz, double speed) {
-        level.sendParticles(p, at.x, at.y, at.z, count, sx, sy, sz, speed);
+        Vfx.particles(level, p, at, count, sx, sy, sz, speed);
     }
 
     public static void ring(ServerLevel level, ParticleOptions p, Vec3 center, double radius, int points) {
-        for (int i = 0; i < points; i++) {
-            double a = Math.PI * 2 * i / points;
-            level.sendParticles(p, center.x + Math.cos(a) * radius, center.y + 0.2, center.z + Math.sin(a) * radius, 1, 0, 0, 0, 0);
-        }
+        Vfx.particleRing(level, p, center, radius, points);
     }
 
     public static void line(ServerLevel level, ParticleOptions p, Vec3 from, Vec3 to, double step) {
-        Vec3 dir = to.subtract(from);
-        double len = dir.length();
-        if (len < 0.01) return;
-        dir = dir.normalize().scale(step);
-        Vec3 at = from;
-        for (double walked = 0; walked < len; walked += step) {
-            level.sendParticles(p, at.x, at.y, at.z, 1, 0, 0, 0, 0);
-            at = at.add(dir);
-        }
+        Vfx.particleLine(level, p, from, to);
     }
 
     /** A rising spiral, good for tornados and summons. */
     public static void spiral(ServerLevel level, ParticleOptions p, Vec3 base, double radius, double height, int points, double turn) {
-        for (int i = 0; i < points; i++) {
-            double t = (double) i / points;
-            double a = turn + t * Math.PI * 6;
-            double r = radius * (0.4 + t * 0.6);
-            level.sendParticles(p, base.x + Math.cos(a) * r, base.y + t * height, base.z + Math.sin(a) * r, 1, 0, 0, 0, 0);
-        }
+        Vfx.particleSpiral(level, p, base, radius, height, points, turn);
     }
 
     public static void sound(ServerLevel level, Vec3 at, SoundEvent s, float vol, float pitch) {

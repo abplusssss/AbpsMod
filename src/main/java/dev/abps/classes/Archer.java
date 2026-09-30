@@ -285,7 +285,7 @@ public final class Archer extends AttributeClass {
                 double r = 1.5 - step * 0.07;
                 for (int i = 0; i < 6; i++) {
                     double a = step * 0.5 + i * Math.PI / 3;
-                    level.sendParticles(ParticleTypes.END_ROD, tip.x + Math.cos(a) * r, tip.y + Math.sin(a) * r, tip.z, 1, 0, 0, 0, 0);
+                    Fx.burst(level, ParticleTypes.END_ROD, new Vec3(tip.x + Math.cos(a) * r, tip.y + Math.sin(a) * r, tip.z), 1, 0, 0, 0, 0);
                 }
                 return;
             }

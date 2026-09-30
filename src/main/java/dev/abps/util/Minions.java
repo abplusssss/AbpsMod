@@ -90,7 +90,7 @@ public final class Minions {
 
     public static void crumble(Entity e) {
         if (e.level() instanceof ServerLevel level) {
-            level.sendParticles(ParticleTypes.SOUL, e.getX(), e.getY() + 1, e.getZ(), 10, 0.3, 0.5, 0.3, 0.02);
+            dev.abps.util.Fx.burst(level, ParticleTypes.SOUL, new net.minecraft.world.phys.Vec3(e.getX(), e.getY() + 1, e.getZ()), 10, 0.3, 0.5, 0.3, 0.02);
         }
         Targets.forgetMinion(e.getUUID());
         e.discard();
