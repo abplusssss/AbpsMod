@@ -160,7 +160,7 @@ public final class Shark extends AttributeClass {
         Mods.toggle(p, giant, Attributes.SCALE, "shark_giant", 0.6, Mods.MULT);
         Mods.toggle(p, giant, Attributes.ENTITY_INTERACTION_RANGE, "shark_giant", 1.5, Mods.ADD);
 
-        if (inWater && d.tickCount % 3 == 0) dev.abps.util.Vfx.burst(level(p), p.position().add(0, 1, 0), dev.abps.util.Vfx.tint(rgb2()), 2, 0.4, 0.1f, 14, -1);
+        if (inWater && d.tickCount % 3 == 0) fallbackOnly(() -> dev.abps.util.Vfx.burst(level(p), p.position().add(0, 1, 0), dev.abps.util.Vfx.tint(rgb2()), 2, 0.4, 0.1f, 14, -1));
         // Ocean renewal
         if (inWater && d.tickCount % 12 == 0 && p.getHealth() < maxHp(p)) heal(p, 1);
 

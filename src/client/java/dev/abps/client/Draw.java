@@ -189,9 +189,13 @@ public final class Draw {
             case "tank" -> new String[]{"iron_chestplate", "bell", "shield", "netherite_chestplate", "iron_block"};
             case "assassin" -> new String[]{"glass_bottle", "phantom_membrane", "gunpowder", "ender_pearl", "netherite_sword"};
             case "pyromancer" -> new String[]{"fire_charge", "blaze_powder", "blaze_rod", "magma_block", "lava_bucket"};
-            case "druid" -> new String[]{"golden_apple", "sweet_berries", "bone", "oak_log", "flowering_azalea"};
             case "windwalker" -> new String[]{"feather", "wind_charge", "rabbit_foot", "breeze_rod", "lightning_rod"};
             case "necromancer" -> new String[]{"zombie_head", "soul_lantern", "bone", "wither_skeleton_skull", "echo_shard"};
+            case "cryomancer" -> new String[]{"ice", "packed_ice", "snowball", "powder_snow_bucket", "blue_ice"};
+            case "chronomancer" -> new String[]{"amethyst_shard", "recovery_compass", "end_crystal", "sugar", "clock"};
+            case "paladin" -> new String[]{"golden_sword", "glowstone_dust", "golden_horse_armor", "golden_apple", "beacon"};
+            case "voidwalker" -> new String[]{"ender_pearl", "shulker_shell", "ender_eye", "phantom_membrane", "dragon_egg"};
+            case "samurai" -> new String[]{"iron_sword", "bamboo", "shield", "blaze_powder", "netherite_sword"};
             case "shark" -> new String[]{"trident", "prismarine_crystals", "heart_of_the_sea", "nautilus_shell", "conduit", "nether_star"};
             default -> new String[]{"barrier", "barrier", "barrier", "barrier", "nether_star"};
         };

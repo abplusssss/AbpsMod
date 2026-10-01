@@ -36,6 +36,11 @@ public abstract class AttributeClass {
     public static final int ABILITIES = 5;
     public static final int ULTIMATE = 6;
 
+    /** The entity the ability being cast is aimed at, if it isn't simply the one under the crosshair. Set before used(). */
+    protected LivingEntity castTarget;
+    /** Where the ability being cast lands, if it isn't where the player looks. Set before used(). */
+    protected Vec3 castAim;
+
     /** Why the last ability didn't go off. Used by debug mode. */
     public String lastFail;
 
@@ -102,7 +107,7 @@ public abstract class AttributeClass {
     // ---- Abilities ----
     public boolean useAbility(int idx, ServerPlayer p, PlayerData d) {
         lastFail = null;
-        int outer = Vfx.theme(dev.abps.util.FxKind.theme(id()));
+        int outer = Vfx.theme(dev.abps.util.FxKind.theme(id()) | (authored(idx) ? Vfx.AUTHORED : 0));
         try {
             return switch (idx) {
                 case 1 -> ability1(p, d);
@@ -129,6 +134,44 @@ public abstract class AttributeClass {
     /** How many normal abilities this attribute has (4 or 5). The ultimate is always extra. */
     public int abilityCount() {
         return 4;
+    }
+
+    /**
+     * True when this ability's client effect is fully hand-made (its signature and cues). Players with the mod then
+     * see only that; the server's own effects for the ability are kept for players without the mod.
+     */
+    protected boolean authored(int idx) {
+        return false;
+    }
+
+    /** How long an ability's effect lasts in ticks (a buff, a field, a hold), sent with its signature. 0 if it is instant. */
+    protected int fxTicks(int idx, PlayerData d) {
+        return 0;
+    }
+
+    /**
+     * Asks the client to draw one moment of an ability (see the class's Sig file for what each cue number means).
+     * Returns true when every nearby player who can draw it got it, so the caller can skip its own fallback effect.
+     */
+    protected boolean cue(ServerPlayer p, int cue, Vec3 from, Vec3 to, Entity a, Entity b, int extra) {
+        Vec3 dir = to.subtract(from);
+        if (dir.lengthSqr() < 1.0e-6) dir = p.getLookAngle();
+        int outer = Vfx.theme(dev.abps.util.FxKind.theme(id()));
+        try {
+            return Vfx.cue(level(p), cue, from, dir.normalize(), to, a, b, rgb(), rgb2(), extra);
+        } finally {
+            Vfx.theme(outer);
+        }
+    }
+
+    /** Runs effects that only players without the client mod should get, because the mod draws its own version. */
+    protected static void fallbackOnly(Runnable effects) {
+        int outer = Vfx.theme(Vfx.theme() | Vfx.AUTHORED);
+        try {
+            effects.run();
+        } finally {
+            Vfx.theme(outer);
+        }
     }
 
     /** Only used by attributes that return 5 from {@link #abilityCount()}. */
@@ -182,6 +225,11 @@ public abstract class AttributeClass {
     }
 
     public double hungerMultiplier() {
+        return 1;
+    }
+
+    /** Multiplier for this class's ability cooldowns at a level. Below 1 is faster. */
+    public double cooldownMultiplier(int level) {
         return 1;
     }
 
@@ -340,12 +388,15 @@ public abstract class AttributeClass {
         // Players with the client mod get this ability's own hand-made effect; the plain one below is for everyone else
         Vec3 look = p.getLookAngle();
         double ground = groundAimRange(idx);
-        LivingEntity aimed = ground > 0 ? null : dev.abps.util.Targets.lookTarget(p, 32);
+        LivingEntity aimed = castTarget != null ? castTarget : ground > 0 ? null : dev.abps.util.Targets.lookTarget(p, 32);
+        castTarget = null;
         // Area abilities land on the ground, so their effect is drawn there too, not up in the sky where you looked
-        Vec3 aim = ground > 0 ? dev.abps.util.Targets.groundPoint(p, ground)
+        Vec3 aim = castAim != null ? castAim : ground > 0 ? dev.abps.util.Targets.groundPoint(p, ground)
                 : aimed != null ? aimed.position().add(0, aimed.getBbHeight() * 0.5, 0) : dev.abps.util.Targets.aimPoint(p, 32);
+        castAim = null;
         double[] sd = {at.x, at.y, at.z, look.x, look.y, look.z, aim.x, aim.y, aim.z};
-        int[] si = {dev.abps.util.FxKind.theme(id()), idx, p.getId(), aimed == null ? -1 : aimed.getId(), rgb(), rgb2()};
+        int[] si = {dev.abps.util.FxKind.theme(id()), idx, p.getId(), aimed == null ? -1 : aimed.getId(), rgb(), rgb2(),
+                fxTicks(idx, AbpsMod.data().get(p))};
         if (Vfx.signature(level, at, sd, si)) return;
         boolean ult = idx == ULTIMATE;
         net.minecraft.world.level.block.state.BlockState main = Vfx.tint(rgb()), alt = Vfx.tint(rgb2());

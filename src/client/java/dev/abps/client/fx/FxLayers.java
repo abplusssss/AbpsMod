@@ -24,6 +24,7 @@ public final class FxLayers {
     static {
         RenderPipeline pipeline = RenderPipelines.register(RenderPipeline.builder(RenderPipelines.PARTICLE_SNIPPET)
                 .withLocation(AbpsMod.id("pipeline/additive_particle"))
+                .withFragmentShader(AbpsMod.id("core/fx_additive"))
                 .withColorTargetState(new ColorTargetState(BlendFunction.ADDITIVE))
                 .withDepthStencilState(new DepthStencilState(DepthStencilState.DEFAULT.depthTest(), false))
                 .build());

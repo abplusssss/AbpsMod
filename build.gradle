@@ -54,6 +54,7 @@ loom {
 			}
 			if (project.hasProperty("fxtest")) {
 				vmArg "-Dabps.fxtest=" + project.property("fxtest")
+				if (project.hasProperty("fxvideo")) vmArg "-Dabps.fxvideo=true"
 				programArgs "--username", "AbpsTester", "--quickPlayMultiplayer", "localhost:25599"
 			}
 			if (project.hasProperty("clienttest")) {

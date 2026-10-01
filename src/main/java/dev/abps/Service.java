@@ -133,7 +133,16 @@ public final class Service {
         Mods.clearAll(p);
         if (d.level > cfg().maxLevel) d.level = cfg().maxLevel;
         AttributeClass c = cls(d);
-        if (c == null) {
+        if (c == null && d.classId != null) {
+            // Their attribute was taken out of the game: give them a new one and let them keep their level
+            int keep = Math.max(1, d.level);
+            d.classId = null;
+            Tasks.later(40, () -> {
+                if (p.isRemoved() || cls(data(p)) != null) return;
+                send(p, "<yellow>Your attribute was removed from the game. Here's a free new one, and you keep level " + keep + ".");
+                roll(p, true, keep);
+            });
+        } else if (c == null) {
             d.classId = null;
             if (cfg().rollOnFirstJoin) {
                 Tasks.later(40, () -> {
@@ -209,9 +218,14 @@ public final class Service {
 
     /** Gives a random attribute at level 1. */
     public void roll(ServerPlayer p, boolean animate) {
+        roll(p, animate, 1);
+    }
+
+    /** Rolls a random attribute at this level. */
+    public void roll(ServerPlayer p, boolean animate, int level) {
         PlayerData d = data(p);
         AttributeClass result = randomClass(cfg().rerollNoRepeat ? d.classId : null);
-        setAttribute(p, result, 1);
+        setAttribute(p, result, Math.max(1, Math.min(cfg().maxLevel, level)));
         if (!animate) {
             rollResult(p, result);
             return;
@@ -390,7 +404,7 @@ public final class Service {
     // ================= Abilities =================
     public long cooldownMs(AttributeClass c, int idx, int level) {
         double cut = cfg().cooldownReductionAtMax * cfg().scale(level);
-        return (long) (c.baseCooldown(idx) * 1000 * (1 - cut));
+        return (long) (c.baseCooldown(idx) * 1000 * (1 - cut) * c.cooldownMultiplier(level));
     }
 
     /** Bracketed label used by the styled action bar messages, like 【⏳ COOLDOWN】. */

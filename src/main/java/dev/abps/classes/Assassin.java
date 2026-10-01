@@ -211,8 +211,10 @@ public final class Assassin extends AttributeClass {
         VANISHED.remove(p.getUUID());
         broadcastVanish();
         p.removeEffect(MobEffects.INVISIBILITY);
-        Fx.burst(level(p), ParticleTypes.LARGE_SMOKE, p.position().add(0, 1, 0), 15, 0.3, 0.6, 0.3, 0.02);
-        dev.abps.util.Vfx.sphere(level(p), p.position().add(0, 1, 0), 3, 0.3, 20, dev.abps.util.Vfx.tint(0x4A148C), 0.16f, 12, 0x4A148C);
+        if (!cue(p, 11, p.position(), p.position().add(0, 1, 0), p, null, 0)) {
+            Fx.burst(level(p), ParticleTypes.LARGE_SMOKE, p.position().add(0, 1, 0), 15, 0.3, 0.6, 0.3, 0.02);
+            dev.abps.util.Vfx.sphere(level(p), p.position().add(0, 1, 0), 3, 0.3, 20, dev.abps.util.Vfx.tint(0x4A148C), 0.16f, 12, 0x4A148C);
+        }
         if (message != null) AbpsMod.service().actionBar(p, message);
     }
 
@@ -278,7 +280,10 @@ public final class Assassin extends AttributeClass {
             noTarget(p, 24);
             return false;
         }
+        Vec3 from = p.position();
         blinkBehind(p, t);
+        castTarget = t;
+        castAim = from;
         d.setBuff("shadowstep", 3000);
         p.addEffect(new MobEffectInstance(MobEffects.SPEED, 60, 1));
         Fx.sound(level(p), p, SoundEvents.ENDERMAN_TELEPORT, 1f, 0.8f);
@@ -315,6 +320,7 @@ public final class Assassin extends AttributeClass {
             blinkBehind(p, pick);
             Targets.damage(pick, dmg, p);
             pick.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 30, 1));
+            cue(p, 12, p.position().add(0, 1.2, 0), pick.position().add(0, pick.getBbHeight() * 0.55, 0), p, pick, step);
             Fx.burst(level, ParticleTypes.SWEEP_ATTACK, pick.position().add(0, 1, 0), 3, 0.4, 0);
             Vec3 pc = pick.position().add(0, 1, 0);
             for (int k = 0; k < 3; k++) {
@@ -332,6 +338,16 @@ public final class Assassin extends AttributeClass {
     @Override
     public void cleanup(ServerPlayer p, PlayerData d) {
         unvanish(p, d, null);
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return idx == 1 ? (int) (vanishTime(d.level) * 20) : 0;
     }
 
     @Override

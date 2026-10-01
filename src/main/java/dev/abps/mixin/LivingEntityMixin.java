@@ -23,7 +23,7 @@ public abstract class LivingEntityMixin {
         return DamageHooks.modify((LivingEntity) (Object) this, source, amount);
     }
 
-    /** Effect immunities, like Druid poison. */
+    /** Effect immunities, like Vampire darkness. */
     @Inject(method = "canBeAffected", at = @At("HEAD"), cancellable = true)
     private void abps$immunity(MobEffectInstance effect, CallbackInfoReturnable<Boolean> cir) {
         if (DamageHooks.immune((LivingEntity) (Object) this, effect)) cir.setReturnValue(false);

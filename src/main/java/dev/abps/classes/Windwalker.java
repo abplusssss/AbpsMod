@@ -151,11 +151,12 @@ public final class Windwalker extends AttributeClass {
         p.resetFallDistance();
         d.noFallUntil = now() + 4000;
         ServerLevel level = level(p);
+        Fx.sound(level, p, SoundEvents.BREEZE_JUMP, 0.8f, 1.2f);
+        if (cue(p, 12, p.position(), p.position().add(0, 1, 0), p, null, 0)) return;
         Fx.ring(level, ParticleTypes.CLOUD, p.position(), 0.7, 12);
         Fx.burst(level, ParticleTypes.SMALL_GUST, p.position(), 1, 0, 0);
         dev.abps.util.Vfx.groundRing(level, p.position(), 0.4, 2.4, 16, dev.abps.util.Vfx.tint(0xE0F7FA), 0.09f, 8, 0x29B6F6);
         dev.abps.util.Vfx.sphere(level, p.position().add(0, 0.3, 0), 0.3, 1.8, 12, dev.abps.util.Vfx.tint(0xE0F7FA), 0.12f, 8, 0x29B6F6);
-        Fx.sound(level, p, SoundEvents.BREEZE_JUMP, 0.8f, 1.2f);
     }
 
     @Override
@@ -294,11 +295,27 @@ public final class Windwalker extends AttributeClass {
             }
             Targets.damage(t, dmg, p);
             t.igniteForSeconds(2);
+            cue(p, 11, p.position().add(0, 1, 0), t.position(), p, t, 0);
             Fx.line(level, ParticleTypes.ELECTRIC_SPARK, p.position().add(0, 1, 0), t.position().add(0, 1, 0), 0.4);
             dev.abps.util.Fancy.lightning(level, t.position().add(0, 18, 0), t.position().add(0, 0.5, 0), 0x29B6F6, 0xFFFFFF);
         });
         used(p, ULTIMATE);
         return true;
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 3 -> (int) (tailwindTime(d.level) * 20);
+            case 4 -> 100;
+            case ULTIMATE -> 120;
+            default -> 0;
+        };
     }
 
     @Override

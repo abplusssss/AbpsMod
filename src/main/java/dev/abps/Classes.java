@@ -4,7 +4,11 @@ import dev.abps.classes.Archer;
 import dev.abps.classes.Assassin;
 import dev.abps.classes.AttributeClass;
 import dev.abps.classes.Berserker;
-import dev.abps.classes.Druid;
+import dev.abps.classes.Chronomancer;
+import dev.abps.classes.Cryomancer;
+import dev.abps.classes.Paladin;
+import dev.abps.classes.Samurai;
+import dev.abps.classes.Voidwalker;
 import dev.abps.classes.Miner;
 import dev.abps.classes.Necromancer;
 import dev.abps.classes.Pyromancer;
@@ -35,10 +39,14 @@ public final class Classes {
         add(new Tank());
         add(new Assassin());
         add(new Pyromancer());
-        add(new Druid());
         add(new Windwalker());
         add(new Necromancer());
         add(new Shark());
+        add(new Cryomancer());
+        add(new Chronomancer());
+        add(new Paladin());
+        add(new Voidwalker());
+        add(new Samurai());
     }
 
     private static void add(AttributeClass c) {

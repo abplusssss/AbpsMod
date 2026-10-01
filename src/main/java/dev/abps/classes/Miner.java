@@ -261,6 +261,7 @@ public final class Miner extends AttributeClass {
             return false;
         }
         Vec3 c = Vec3.atCenterOf(center);
+        castAim = c;
         dev.abps.util.Fancy.impact(level, c, 1.8f, rgb(), rgb2());
         dev.abps.util.Vfx.burst(level, c, Blocks.STONE.defaultBlockState(), 14, 0.26, 0.24f, 18, -1);
         dev.abps.util.Vfx.zigzag(level, c.add(0, 2, 0), c.add(0, -2, 0), 4, 0.9, 0.09f, dev.abps.util.Vfx.tint(rgb()), 10, rgb());
@@ -348,6 +349,7 @@ public final class Miner extends AttributeClass {
         BlockPos origin = sy == 0 ? p.blockPosition().above() : p.blockPosition();
         int depth = tunnelDepth(d.level);
         ServerLevel level = level(p);
+        castAim = Vec3.atCenterOf(origin.offset(sx * depth, sy * depth, sz * depth));
         int[] broken = {0};
         final int fx = sx, fy = sy, fz = sz;
         // Dig one slice per tick so it looks like a drill going forward
@@ -447,6 +449,20 @@ public final class Miner extends AttributeClass {
                           net.minecraft.world.phys.Vec3 at, boolean ult) {
         dev.abps.util.Vfx.jaws(level, at, ult ? 6 : 2.6, ult ? 16 : 7, ult ? 3.5 : 1.3, net.minecraft.world.level.block.Blocks.DEEPSLATE.defaultBlockState(), rgb());
         dev.abps.util.Vfx.burst(level, at.add(0, 0.5, 0), net.minecraft.world.level.block.Blocks.COBBLED_DEEPSLATE.defaultBlockState(), ult ? 30 : 12, 0.2, 0.22f, 18, -1);
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 3 -> tunnelDepth(d.level);
+            case 4 -> (int) (rushTime(d.level) * 20);
+            default -> 0;
+        };
     }
 
     @Override

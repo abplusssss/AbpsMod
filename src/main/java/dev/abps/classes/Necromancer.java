@@ -192,7 +192,7 @@ public final class Necromancer extends AttributeClass {
             ServerLevel level = level(p);
             for (UUID id : d.minions.keySet()) {
                 Entity e = level.getEntity(id);
-                if (e != null) Fx.burst(level, ParticleTypes.SOUL_FIRE_FLAME, e.position().add(0, 0.2, 0), 1, 0.2, 0.01);
+                if (e != null) fallbackOnly(() -> Fx.burst(level, ParticleTypes.SOUL_FIRE_FLAME, e.position().add(0, 0.2, 0), 1, 0.2, 0.01));
             }
         }
     }
@@ -200,10 +200,11 @@ public final class Necromancer extends AttributeClass {
     private void explode(ServerPlayer p, Vec3 at, double dmg) {
         ServerLevel level = level(p);
         for (LivingEntity e : Targets.enemiesNear(p, at, 3.5)) Targets.damage(e, dmg, p);
+        Fx.sound(level, at, SoundEvents.GENERIC_EXPLODE, 0.5f, 1.6f);
+        if (cue(p, 11, at, at.add(0, 1, 0), p, null, 0)) return;
         dev.abps.util.Fancy.impact(level, at.add(0, 0.8, 0), 1.2f, 0x64FFDA, 0x311B92);
         Fx.burst(level, ParticleTypes.SOUL_FIRE_FLAME, at.add(0, 0.8, 0), 20, 0.5, 0.06);
         Fx.burst(level, ParticleTypes.EXPLOSION, at.add(0, 0.8, 0), 1, 0, 0);
-        Fx.sound(level, at, SoundEvents.GENERIC_EXPLODE, 0.5f, 1.6f);
     }
 
     /** Gives a minion something to hold. Nothing goes on their heads, so they look like plain undead. */
@@ -280,6 +281,7 @@ public final class Necromancer extends AttributeClass {
             return false;
         }
         float before = t.getHealth();
+        castTarget = t;
         Targets.damage(t, drain(d.level), p);
         t.addEffect(new MobEffectInstance(MobEffects.WITHER, 80, 1));
         heal(p, Math.max(0, before - t.getHealth()));
@@ -317,6 +319,7 @@ public final class Necromancer extends AttributeClass {
         for (UUID id : d.minions.keySet()) {
             if (!(level.getEntity(id) instanceof Mob mob) || !mob.isAlive()) continue;
             mob.setTarget(t);
+            cue(p, 13, mob.getEyePosition(), t.position().add(0, t.getBbHeight() * 0.55, 0), mob, t, 0);
             mob.addEffect(new MobEffectInstance(MobEffects.SPEED, 160, 1));
             mob.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 160, 1));
             Fx.burst(level, ParticleTypes.ANGRY_VILLAGER, mob.getEyePosition().add(0, 0.4, 0), 1, 0, 0);
@@ -324,6 +327,7 @@ public final class Necromancer extends AttributeClass {
             dev.abps.util.Vfx.beam(level, mob.getEyePosition(), t.getEyePosition(), 0.06f, dev.abps.util.Vfx.tint(0x7C4DFF), 10, 0x7C4DFF);
         }
         t.addEffect(new MobEffectInstance(MobEffects.GLOWING, 160, 0));
+        castTarget = t;
         dev.abps.util.Fancy.chains(level, t, 100, 0x7C4DFF, 0x64FFDA);
         Fx.sound(level, p, SoundEvents.WITHER_AMBIENT, 0.6f, 1.6f);
         used(p, 3);
@@ -345,6 +349,7 @@ public final class Necromancer extends AttributeClass {
             fail(p, "The Death Knight couldn't rise here.");
             return false;
         }
+        castAim = at;
         Fx.burst(level, ParticleTypes.SOUL_FIRE_FLAME, at.add(0, 1, 0), 60, 0.6, 1.2, 0.6, 0.05);
         Fx.burst(level, ParticleTypes.EXPLOSION, at, 2, 0.3, 0);
         Fx.sound(level, at, SoundEvents.WITHER_SPAWN, 0.7f, 1.2f);
@@ -368,6 +373,7 @@ public final class Necromancer extends AttributeClass {
         for (LivingEntity e : hit) {
             Targets.damage(e, dmg, p);
             e.addEffect(new MobEffectInstance(MobEffects.WITHER, 60, 0));
+            cue(p, 14, c.add(0, 1, 0), e.position().add(0, e.getBbHeight() * 0.55, 0), p, e, 0);
             Fx.line(level, ParticleTypes.SOUL, c.add(0, 1, 0), e.position().add(0, 1, 0), 0.6);
             if (vexes < 6 && d.minions.size() < MAX_MINIONS) {
                 Mob vex = EntityTypes.VEX.create(level, EntitySpawnReason.MOB_SUMMONED);
@@ -397,6 +403,16 @@ public final class Necromancer extends AttributeClass {
     @Override
     public void cleanup(ServerPlayer p, PlayerData d) {
         Minions.removeAll(p, d);
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return idx == 1 ? zombies(d.level) + skeletons(d.level) : 0;
     }
 
     @Override

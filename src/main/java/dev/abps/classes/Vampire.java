@@ -129,7 +129,7 @@ public final class Vampire extends AttributeClass {
             }
         }
         if (d.buff("bloodmoon") && d.tickCount % 2 == 0) {
-            Fx.burst(level(p), BLOOD, p.position().add(0, 1, 0), 5, 0.4, 0.6, 0.4, 0);
+            fallbackOnly(() -> Fx.burst(level(p), BLOOD, p.position().add(0, 1, 0), 5, 0.4, 0.6, 0.4, 0));
         }
     }
 
@@ -154,7 +154,8 @@ public final class Vampire extends AttributeClass {
         Tasks.schedule(20, 20, 3, step -> {
             if (!t.isAlive() || p.isRemoved()) return;
             Targets.damage(t, 1.0, p);
-            Fx.burst((ServerLevel) t.level(), BLOOD, t.position().add(0, 1, 0), 8, 0.25, 0.4, 0.25, 0);
+            if (!cue(p, 13, p.position(), t.position().add(0, t.getBbHeight() * 0.55, 0), p, t, 0))
+                Fx.burst((ServerLevel) t.level(), BLOOD, t.position().add(0, 1, 0), 8, 0.25, 0.4, 0.25, 0);
         });
     }
 
@@ -167,6 +168,7 @@ public final class Vampire extends AttributeClass {
         if (amount <= 0) return;
         heal(p, amount);
         ServerLevel level = level(p);
+        if (cue(p, 12, p.position(), victim.position().add(0, victim.getBbHeight() * 0.55, 0), p, victim, 0)) return;
         Fx.burst(level, BLOOD, victim.position().add(0, 1, 0), 6, 0.3, 0.4, 0.3, 0);
         // A thin stream of blood flowing back to the vampire
         Fx.line(level, Fx.dust(0xC62828, 0.7f), victim.position().add(0, 1, 0), p.position().add(0, 1, 0), 0.5);
@@ -175,7 +177,8 @@ public final class Vampire extends AttributeClass {
     @Override
     public void onKill(ServerPlayer p, PlayerData d, LivingEntity victim) {
         heal(p, killHeal(d.level));
-        Fx.burst(level(p), BLOOD, p.position().add(0, 1, 0), 15, 0.3, 0.5, 0.3, 0);
+        if (!cue(p, 14, p.position(), p.position().add(0, 1, 0), p, null, 0))
+            Fx.burst(level(p), BLOOD, p.position().add(0, 1, 0), 15, 0.3, 0.5, 0.3, 0);
         if (mastered(d)) p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 160, 0));
     }
 
@@ -207,6 +210,7 @@ public final class Vampire extends AttributeClass {
         t.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 20 * 20, 0));
         t.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 20 * 8, 0));
         if (!(t instanceof ServerPlayer)) t.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20 * 10, 0));
+        castTarget = t;
         ServerLevel level = level(p);
         Fx.spiral(level, BLOOD, t.position(), 0.8, 2.2, 30, 0);
         dev.abps.util.Fancy.chains(level, t, 60, 0xB71C1C, 0x4A148C);
@@ -233,6 +237,7 @@ public final class Vampire extends AttributeClass {
         Targets.root(t, (int) (bindTime(d.level) * 20));
         Targets.damage(t, 6.0, p);
         heal(p, Math.max(0, before - t.getHealth()));
+        castTarget = t;
         ServerLevel level = level(p);
         // Blood chains around the target while it is frozen
         Tasks.repeat((int) (bindTime(d.level) * 4), 5, step -> {
@@ -260,6 +265,8 @@ public final class Vampire extends AttributeClass {
             Targets.damage(t, burstDamage(d.level), p);
             total += Math.max(0, before - t.getHealth());
             bleed(p, t);
+            LivingEntity hit = t;
+            dev.abps.util.Tasks.later(7, () -> cue(p, 15, p.position(), hit.position().add(0, hit.getBbHeight() * 0.55, 0), p, hit, 0));
         }
         heal(p, total * 0.3);
         ServerLevel level = level(p);
@@ -308,6 +315,7 @@ public final class Vampire extends AttributeClass {
                 float before = t.getHealth();
                 Targets.damage(t, drain, p);
                 healed += Math.max(0, before - t.getHealth());
+                cue(p, 11, p.position(), t.position().add(0, t.getBbHeight() * 0.55, 0), p, t, 0);
                 Fx.line(level, BLOOD, t.position().add(0, 1, 0), me, 0.35);
                 dev.abps.util.Fancy.laser(level, t.position().add(0, 1, 0), me, 0.1f, 0xB71C1C, 0x6A0DAD, 8);
                 Fx.burst(level, BLOOD, t.position().add(0, 1, 0), 6, 0.3, 0.4, 0.3, 0);
@@ -330,6 +338,20 @@ public final class Vampire extends AttributeClass {
             dev.abps.util.Vfx.zigzag(level, from, at.add(0, 1.2, 0), 5, 0.5, 0.07f, net.minecraft.world.level.block.Blocks.CONCRETE.red().defaultBlockState(), 14, 0xB71C1C);
         }
         dev.abps.util.Vfx.burst(level, at.add(0, 1, 0), net.minecraft.world.level.block.Blocks.REDSTONE_BLOCK.defaultBlockState(), ult ? 30 : 14, 0.12, 0.12f, 22, 0xB71C1C);
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 2 -> (int) (bindTime(d.level) * 20);
+            case 4 -> (int) (moonTime(d.level) * 20);
+            default -> 0;
+        };
     }
 
     @Override

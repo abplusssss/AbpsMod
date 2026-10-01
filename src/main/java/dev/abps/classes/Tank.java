@@ -117,7 +117,7 @@ public final class Tank extends AttributeClass {
         Mods.toggle(p, giant, Attributes.SCALE, "tank_colossus", 0.6, Mods.MULT);
         Mods.toggle(p, giant, Attributes.ENTITY_INTERACTION_RANGE, "tank_colossus", 1.5, Mods.ADD);
         if (unbreak && d.tickCount % 2 == 0) {
-            Fx.burst(level(p), ParticleTypes.ENCHANTED_HIT, p.position().add(0, 1, 0), 6, 0.4, 0.6, 0.4, 0.05);
+            fallbackOnly(() -> Fx.burst(level(p), ParticleTypes.ENCHANTED_HIT, p.position().add(0, 1, 0), 6, 0.4, 0.6, 0.4, 0.05));
         }
     }
 
@@ -141,7 +141,8 @@ public final class Tank extends AttributeClass {
         if (p.isBlocking() && !d.buff("blockheal")) {
             d.setBuff("blockheal", 1000);
             heal(p, 2);
-            Fx.burst(level(p), ParticleTypes.HEART, p.getEyePosition().add(0, 0.4, 0), 2, 0.2, 0);
+            if (!cue(p, 11, p.position(), p.position().add(0, 1, 0), p, null, 0))
+                Fx.burst(level(p), ParticleTypes.HEART, p.getEyePosition().add(0, 0.4, 0), 2, 0.2, 0);
         }
         // Thorns (the abilityDamage check stops two tanks reflecting forever)
         if (Targets.abilityDamage || !(source.getDirectEntity() instanceof LivingEntity attacker) || attacker == p) return;
@@ -149,6 +150,7 @@ public final class Tank extends AttributeClass {
         double reflect = taken * (d.buff("unbreakable") ? Math.max(0.5, thorns(d.level)) : thorns(d.level));
         if (reflect < 0.5) return;
         Targets.damage(attacker, reflect, p);
+        if (cue(p, 12, p.position().add(0, 1, 0), attacker.position().add(0, attacker.getBbHeight() * 0.55, 0), p, attacker, 0)) return;
         Fx.burst(level(p), ParticleTypes.CRIT, attacker.position().add(0, 1, 0), 6, 0.3, 0.1);
         dev.abps.util.Fancy.impact(level(p), attacker.position().add(0, 1, 0), 0.8f, 0x42A5F5, 0xFFFFFF);
     }
@@ -186,6 +188,7 @@ public final class Tank extends AttributeClass {
             Vec3 pull = new Vec3(c.x - e.getX(), 0, c.z - e.getZ());
             if (pull.lengthSqr() > 0.01) Targets.velocity(e, pull.normalize().scale(0.9).add(0, 0.35, 0));
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 0));
+            cue(p, 13, c.add(0, 1, 0), e.position().add(0, e.getBbHeight() * 0.55, 0), p, e, 0);
             Fx.line(level, Fx.dust(0x42A5F5, 0.8f), e.position().add(0, 1, 0), c.add(0, 1, 0), 0.5);
             dev.abps.util.Fancy.laser(level, e.position().add(0, 1, 0), c.add(0, 1, 0), 0.08f, 0x42A5F5, 0xFFFFFF, 10);
             pulled++;
@@ -221,6 +224,7 @@ public final class Tank extends AttributeClass {
                 Targets.damage(e, dmg, p);
                 Targets.root(e, 40);
                 Targets.velocity(e, fdir.scale(1.2).add(0, 0.35, 0));
+                cue(p, 14, p.position().add(0, 1, 0), e.position().add(0, e.getBbHeight() * 0.55, 0), p, e, 0);
                 Fx.burst(level, ParticleTypes.EXPLOSION, e.position().add(0, 1, 0), 1, 0, 0);
                 dev.abps.util.Fancy.impact(level, e.position().add(0, 1, 0), 2f, 0x42A5F5, 0xFFFFFF);
                 dev.abps.util.Vfx.groundRing(level, e.position(), 0.5, 3.5, 20, dev.abps.util.Vfx.tint(0x90CAF9), 0.16f, 10, 0x42A5F5);
@@ -268,6 +272,7 @@ public final class Tank extends AttributeClass {
                 Targets.damage(e, dmg, p);
                 Targets.pushAway(c, e, 1.0, 0.45);
             }
+            cue(p, 15, c, c.add(0, 1, 0), p, null, step);
             Fx.burst(level, Fx.block(level.getBlockState(BlockPos.containing(c).below())), c, 60, 2.5, 0.1, 2.5, 0.2);
             dev.abps.util.Vfx.groundRing(level, c, 1, 7, 30, dev.abps.util.Vfx.tint(0xB0BEC5), 0.3f, 12, 0x42A5F5);
             dev.abps.util.Vfx.jaws(level, c, 5, 12, 1.8, dev.abps.util.Vfx.tint(0x78909C), 0x42A5F5);
@@ -282,6 +287,21 @@ public final class Tank extends AttributeClass {
     @Override
     public void cleanup(ServerPlayer p, PlayerData d) {
         Mods.remove(p, Attributes.SCALE, "tank_colossus");
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 1 -> (int) (fortifyTime(d.level) * 20);
+            case 4 -> (int) (unbreakableTime(d.level) * 20);
+            case ULTIMATE -> 200;
+            default -> 0;
+        };
     }
 
     @Override

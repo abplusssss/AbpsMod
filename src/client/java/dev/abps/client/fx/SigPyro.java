@@ -1,168 +1,166 @@
 package dev.abps.client.fx;
 
+import dev.abps.client.fx.Brush.Paint;
 import dev.abps.client.fx.Signatures.Ctx;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+
+import java.util.function.Supplier;
 
 import static dev.abps.client.fx.FxKit.*;
 import static dev.abps.client.fx.Signatures.*;
 
-/** Pyromancer: fire in every form. Flames, embers, smoke, scorched ground and a falling star. Gold into red. */
+/** Pyromancer: orange fire light with a gold core, real flames, embers and dark smoke. */
 final class SigPyro {
 
     private SigPyro() {
     }
 
+    static final int ORANGE = 0xFF7A1A, GOLD = 0xFFD24A, RED = 0xFF3D00;
+    static final Paint FIRE = Paint.light(ORANGE, 1.3f);
+    static final Paint HOT = Paint.light(GOLD, 1.1f);
+    static final Paint CHAR = Paint.ink(0x1A0800, 0xFF6A00);
+
+    static final int CUE_IMPACT = 11, CUE_TRAIL = 12, CUE_POP = 13, CUE_NOVA = 14;
+
     static void play(Ctx c) {
         switch (c.slot) {
-            case 1 -> fireball(c);
-            case 2 -> nova(c);
-            case 3 -> blazeDash(c);
+            case 1 -> {
+                Brush.glow(c.hand(), 0.9f, 6, GOLD);
+                Brush.shock(c.hand(), c.look, 0.1, 1.0, 0.08f, 7, HOT);
+            }
+            case 3 -> dash(c);
             case 4 -> meteor(c);
             case 6 -> inferno(c);
+            case CUE_IMPACT -> blast(c.pos, 1f);
+            case CUE_TRAIL -> trail(c);
+            case CUE_POP -> blast(c.pos.add(0, 0.5, 0), 0.8f);
+            case CUE_NOVA -> nova(c);
             default -> {
             }
         }
     }
 
-    private static void flame(Vec3 at, float s0, float s1, int life, int col, Vec3 v) {
-        sp("flame", at).size(s0, s1).life(life).colors(lighten(col, 0.8f), mix(col, 0x8A1000, 0.6f)).vel(v).drag(0.94f).flicker(0.35f).startRoll((float) (gauss() * 0.12)).envelope(0.05f, 0.5f, 0.95f);
-    }
-
-    private static void fireball(Ctx c) {
-        Vec3 h = c.hand();
-        bloom(h.add(c.look.scale(0.4)), 1.3f, 8, c.c1);
-        sp("rays", h.add(c.look.scale(0.5))).size(0.4f, 1.8f).life(8).colors(WHITE, c.c1).spin(0.1f).envelope(0.05f, 0.3f, 0.9f);
-        ringFlat(h.add(c.look.scale(0.6)), c.look, 0.2, 1.5, 8, c.c1, "shockwave");
-        // A cone of flame thrown from the hand
-        for (int k = 0; k < n(14); k++) {
-            Vec3 d = c.look.add(gauss() * 0.16, gauss() * 0.16, gauss() * 0.16).normalize();
-            flame(h.add(d.scale(0.4)), 0.5f + (float) rnd() * 0.4f, 0.2f, 12 + (int) (rnd() * 6), c.c1, d.scale(0.25 + rnd() * 0.2));
+    /** A few real flames licking up from a point. */
+    static void flames(Vec3 at, double spread, int count, float size) {
+        for (int k = 0; k < n(count); k++) {
+            sp("flame", at.add(gauss() * spread, rnd() * spread * 0.5, gauss() * spread)).size(size, size * 0.4f).life(10 + (int) (rnd() * 8))
+                    .vel(gauss() * 0.01, 0.04 + rnd() * 0.04, gauss() * 0.01).colors(GOLD, RED).envelope(0.1f, 0.5f, 1f);
         }
-        for (int k = 0; k < n(16); k++) c.skin.mote(h, c.look.scale(0.3 + rnd() * 0.3).add(gauss() * 0.1, gauss() * 0.1, gauss() * 0.1), 0.12f, 20, c.c1, 0f);
-        gather(c, h, 2.4, 4, 3, c.c1);
     }
 
+    static void smoke(Vec3 at, double spread, int count) {
+        Brush.mist(at, spread, count, 0x2A2420, 0.55f, 1.2f, 30);
+    }
+
+    /** A fire explosion: a flash, a burst ring facing you, flames, embers and smoke. */
+    static void blast(Vec3 at, float s) {
+        Brush.glow(at, 2.0f * s, 10, ORANGE);
+        Brush.shock(at, Brush.camera().subtract(at).normalize(), 0.3, 2.6 * s, 0.2f * s, 11, FIRE);
+        Brush.rays(at, 10, 2.2 * s, 0.1f * s, 9, HOT);
+        flames(at, 0.6 * s, 10, 0.5f * s);
+        Brush.embers(at, 18, 0.3 * s, ORANGE);
+        smoke(at.add(0, 0.3, 0), 0.6 * s, 6);
+    }
+
+    /** The fireball in flight: a hot head and a streak of fire behind it, for as long as it exists. */
+    private static void trail(Ctx c) {
+        int id = c.casterId;
+        during(0, 80, t -> {
+            Entity e = Minecraft.getInstance().level == null ? null : Minecraft.getInstance().level.getEntity(id);
+            if (e == null || e.isRemoved()) return;
+            Vec3 p = e.position().add(0, e.getBbHeight() * 0.5, 0);
+            Vec3 v = e.getDeltaMovement();
+            sp("glow", p).size(0.6f, 0.4f).life(3).colors(WHITE, ORANGE).envelope(0.05f, 0.4f, 1f);
+            flames(p, 0.1, 1, 0.35f);
+            if (v.lengthSqr() > 0.01 && t % 2 == 0) {
+                FIRE.on(Brush.lineCam(p.subtract(v.normalize().scale(1.8)), p)).width(0.22f).time(7, 2).hold(0f).tailChase(1f).sparks(1).segments(10).play();
+            }
+            if (t % 3 == 0) smoke(p, 0.1, 1);
+        });
+    }
+
+    /** Flame Nova: a ring of fire rolls out 7 blocks, a burning circle and a dome of flame light. */
     private static void nova(Ctx c) {
-        Vec3 p = c.live();
-        double reach = 7;
-        bloom(p.add(0, 1, 0), 3.0f, 10, c.c1);
-        sp("rays", p.add(0, 1, 0)).size(1.0f, 5.5f).life(12).colors(WHITE, c.c1).spin(0.05f).envelope(0.05f, 0.3f, 0.9f);
-        // Three rings of fire, each faster than the last, and a dome of embers over the top
-        for (int k = 0; k < 3; k++) {
-            int delay = k * 2;
-            at(delay, () -> c.skin.ring(p.add(0, 0.15, 0), new Vec3(0, 1, 0), 0.5, reach * (1.0 + delay * 0.03), 14, c.c1));
+        Vec3 g = c.pos.add(0, 0.08, 0);
+        Brush.glow(g.add(0, 1, 0), 2.4f, 12, ORANGE);
+        Brush.shock(g, Brush.UP, 0.5, 7.5, 0.4f, 14, FIRE);
+        Brush.shock(g.add(0, 0.3, 0), Brush.UP, 0.3, 6.5, 0.16f, 11, HOT);
+        Brush.dome(g.add(0, 1, 0), 0.5, 3.5, 0.14f, 12, FIRE);
+        Brush.circle(c.pos, 7, 26, 7, CHAR, FIRE);
+        Brush.raysUp(g, 10, 2.8, 0.1f, 10, HOT);
+        for (int k = 0; k < 16; k++) {
+            double a = k * Math.PI / 8;
+            Vec3 p = g.add(Math.cos(a) * 4, 0, Math.sin(a) * 4);
+            at(3, () -> flames(p, 0.4, 3, 0.7f));
         }
-        ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.3, reach + 1, 12, WHITE, "shockwave");
-        c.skin.ground(p, 4.5f, c.c1, 60);
-        for (int k = 0; k < n(50); k++) {
-            Vec3 d = rndDir();
-            Vec3 v = new Vec3(d.x, Math.abs(d.y) * 0.8 + 0.1, d.z).normalize().scale(0.22 + rnd() * 0.25);
-            c.skin.mote(p.add(0, 0.8, 0), v, 0.2f, 28, c.c1, 0.1f);
-        }
-        for (int k = 0; k < n(14); k++) {
-            double a = rnd() * Math.PI * 2, r = rnd() * 3;
-            flame(p.add(Math.cos(a) * r, 0.2, Math.sin(a) * r), 1.2f, 0.4f, 16, c.c1, new Vec3(Math.cos(a) * 0.12, 0.14, Math.sin(a) * 0.12));
-        }
-        during(0, 12, t -> c.skin.column(p, 1.2, 5 * ease((t + 1) / 5.0), c.c1, t));
+        Brush.embers(g.add(0, 1, 0), 24, 0.35, ORANGE);
     }
 
-    private static void blazeDash(Ctx c) {
-        Vec3 p = c.live();
-        Vec3 back = c.flat().scale(-1);
-        bloom(p.add(0, 1, 0), 1.6f, 8, c.c1);
-        // The path the dash burned into the ground, still burning, with a wall of heat at the start
-        for (int k = 0; k < 12; k++) {
-            Vec3 at = p.add(back.scale(0.8 + k * 0.85));
-            int delay = k / 2;
-            at(delay, () -> {
-                for (int q = 0; q < 3; q++) {
-                    flame(at.add(gauss() * 0.4, 0.05, gauss() * 0.4), 0.7f, 0.2f, 20 + (int) (rnd() * 12), c.c1, new Vec3(0, 0.06 + rnd() * 0.05, 0));
-                }
-                sp("glow", at.add(0, 0.3, 0)).size(1.1f, 0.5f).life(16).colors(lighten(c.c1, 0.5f), c.c2).envelope(0.1f, 0.5f, 0.7f);
-                if (rnd() < 0.6) c.skin.body(at.add(0, 0.5, 0), new Vec3(0, 0.05, 0), 1.0f, 22, c.c1, 0.5f);
-                c.skin.mote(at.add(0, 0.3, 0), new Vec3(gauss() * 0.05, 0.1 + rnd() * 0.1, gauss() * 0.05), 0.12f, 24, c.c1, 0f);
-            });
-        }
-        for (int k = 0; k < n(12); k++) {
-            Vec3 d = c.flat().add(gauss() * 0.3, gauss() * 0.15, gauss() * 0.3).normalize();
-            flame(p.add(0, 1, 0), 0.6f, 0.2f, 12, c.c1, d.scale(-0.35 - rnd() * 0.2));
-        }
-        ringFlat(p.add(0, 1, 0), c.flat(), 0.3, 2.4, 9, c.c1, "shockwave");
+    /** Blaze Dash: you leave a ribbon of fire behind, with rings blowing off it. */
+    private static void dash(Ctx c) {
+        Entity e = c.caster();
+        Supplier<Vec3> feet = () -> e == null || e.isRemoved() ? c.pos : e.position();
+        during(0, 12, t -> {
+            Vec3 p = feet.get().add(0, 0.9, 0);
+            Vec3 v = e == null ? c.look : e.getDeltaMovement();
+            if (v.lengthSqr() < 0.02) return;
+            Vec3 d = v.normalize();
+            FIRE.on(Brush.lineCam(p.subtract(d.scale(2.2)), p)).width(0.32f).time(9, 2).hold(0.1f).tailChase(1f).sparks(2).segments(12).play();
+            if (t % 3 == 0) Brush.ring(p, d, 0.9, 0.08f, 8, 2, HOT);
+            flames(p.add(0, -0.6, 0), 0.3, 2, 0.6f);
+        });
     }
 
+    /** Meteor: a warning circle burns into the ground while a blazing rock falls on it, then a huge blast. */
     private static void meteor(Ctx c) {
         Vec3 g = c.aim;
-        Vec3 from = g.add(9, 46, -7);
-        int flight = 28;
-        // Warning: the mark burns into the ground and grows brighter as the rock falls
-        sp("sigil", g.add(0, 0.05, 0)).size(6.5f, 6.5f).life(flight + 10).colors(lighten(c.c1, 0.3f), c.c2).facing(0, 1, 0).spin(0.04f).envelope(0.15f, 0.8f, 0.85f);
-        ringFlat(g.add(0, 0.1, 0), new Vec3(0, 1, 0), 6.5, 6.6, flight, c.c2, "ring");
-        during(0, flight, t -> {
-            double f = ease(Math.pow((t + 1) / (double) flight, 1.6));
-            Vec3 pos = from.lerp(g, f);
-            Vec3 dir = g.subtract(from).normalize();
-            // The rock: a dark core in a shroud of flame, dragging a long burning tail
-            sp("glow", pos).size(3.2f, 2.4f).life(3).colors(lighten(c.c1, 0.6f), c.c1).envelope(0.1f, 0.5f, 0.95f);
-            sp("glow", pos).size(1.7f, 1.3f).life(3).colors(WHITE, lighten(c.c1, 0.7f));
-            sp("debris", pos).size(1.3f, 1.3f).life(3).colors(0x3A2A20, 0x201810).spin(0.2f).startRoll((float) (rnd() * 6.28)).bright();
-            for (int k = 0; k < n(5); k++) {
-                Vec3 off = new Vec3(gauss() * 0.9, gauss() * 0.9, gauss() * 0.9);
-                flame(pos.add(off), 1.5f, 0.6f, 9, c.c1, dir.scale(-0.4).add(off.scale(0.03)));
-            }
-            for (int k = 0; k < n(3); k++) c.skin.body(pos.subtract(dir.scale(1 + rnd() * 3)), dir.scale(-0.05), 1.8f, 22, c.c1, 0.6f);
-            c.skin.mote(pos.subtract(dir.scale(rnd() * 2)), dir.scale(-0.2).add(gauss() * 0.06, gauss() * 0.06, gauss() * 0.06), 0.18f, 22, c.c1, 0f);
+        int fall = Math.max(10, c.ticks);
+        Brush.circle(g, 6, fall + 10, 8, CHAR, FIRE);
+        Vec3 start = g.add(c.flat().scale(-6)).add(0, 22, 0);
+        during(0, fall, t -> {
+            double f = (t + 1) / (double) fall;
+            Vec3 p = start.lerp(g.add(0, 0.8, 0), f * f);
+            Vec3 next = start.lerp(g.add(0, 0.8, 0), Math.min(1, (f + 0.05) * (f + 0.05)));
+            Vec3 d = next.subtract(p).lengthSqr() < 1e-6 ? new Vec3(0, -1, 0) : next.subtract(p).normalize();
+            sp("glow", p).size(1.6f, 1.2f).life(3).colors(WHITE, ORANGE).envelope(0.05f, 0.5f, 1f);
+            FIRE.on(Brush.lineCam(p.subtract(d.scale(5)), p)).width(0.9f).time(6, 2).hold(0f).tailChase(1f).sparks(2).segments(14).play();
+            CHAR.on(Brush.lineCam(p.subtract(d.scale(3.5)), p)).width(0.45f).time(6, 2).hold(0f).tailChase(1f).sparks(0).segments(10).play();
+            flames(p, 0.5, 2, 0.9f);
+            if (t % 2 == 0) smoke(p.subtract(d.scale(2)), 0.6, 2);
         });
-        // Impact
-        at(flight, () -> {
-            bloom(g.add(0, 1, 0), 6.0f, 14, c.c1);
-            sp("rays", g.add(0, 1.5, 0)).size(2.0f, 11f).life(16).colors(WHITE, c.c1).spin(0.04f).envelope(0.05f, 0.3f, 0.95f);
-            ringFlat(g.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, 13, 18, c.c1, "shockwave");
-            ringFlat(g.add(0, 0.14, 0), new Vec3(0, 1, 0), 0.4, 9, 15, WHITE, "shockwave");
-            c.skin.ring(g.add(0, 0.18, 0), new Vec3(0, 1, 0), 0.4, 7.5, 16, c.c1);
-            c.skin.ground(g, 7f, c.c1, 100);
-            for (int k = 0; k < n(60); k++) {
-                Vec3 d = rndDir();
-                Vec3 v = new Vec3(d.x, Math.abs(d.y) * 0.9 + 0.2, d.z).normalize().scale(0.25 + rnd() * 0.5);
-                c.skin.mote(g.add(0, 0.6, 0), v, 0.24f, 34, c.c1, 0.4f);
-            }
-            for (int k = 0; k < n(24); k++) {
-                double a = rnd() * Math.PI * 2, r = rnd() * 5;
-                flame(g.add(Math.cos(a) * r, 0.2, Math.sin(a) * r), 1.6f, 0.5f, 22 + (int) (rnd() * 10), c.c1, new Vec3(Math.cos(a) * 0.1, 0.16 + rnd() * 0.1, Math.sin(a) * 0.1));
-            }
-            // The mushroom of smoke climbing off the crater
-            during(0, 30, t -> {
-                for (int k = 0; k < n(3); k++) {
-                    double h = 1 + t * 0.35 + rnd() * 2;
-                    double spread = 1.2 + Math.min(3.5, h * 0.5);
-                    double a = rnd() * Math.PI * 2;
-                    c.skin.body(g.add(Math.cos(a) * spread * rnd(), h, Math.sin(a) * spread * rnd()), new Vec3(0, 0.06, 0), 2.2f, 30, c.c1, 0.8f);
-                }
-                if (t < 12) c.skin.column(g, 2.0, 8 * ease((t + 1) / 5.0), c.c1, t);
-            });
+        at(fall, () -> {
+            Vec3 h = g.add(0, 0.08, 0);
+            blast(h.add(0, 1, 0), 2.2f);
+            Brush.shock(h, Brush.UP, 1, 8, 0.6f, 16, FIRE);
+            Brush.shock(h.add(0, 0.3, 0), Brush.UP, 0.5, 6, 0.2f, 13, HOT);
+            Brush.pillar(g, 1.6, 12, 22, 4, FIRE);
+            SigBerserker.cracks(h, 6, 10);
+            SigMiner.debris(h.add(0, 0.5, 0), 20, 0.45);
+            smoke(h.add(0, 1, 0), 2.5, 16);
         });
     }
 
+    /** Inferno: a ring of fire around you, spirals of flame climbing you and pulses rolling out every second. */
     private static void inferno(Ctx c) {
-        Vec3 p = c.live();
-        bloom(p.add(0, 1, 0), 4.0f, 12, c.c1);
-        sp("rays", p.add(0, 1.2, 0)).size(1.5f, 8f).life(16).colors(WHITE, c.c1).spin(0.04f).envelope(0.05f, 0.3f, 0.9f);
-        ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, 10, 16, c.c1, "shockwave");
-        sp("sigil", p.add(0, 0.05, 0)).size(8.5f, 8.5f).life(125).colors(lighten(c.c1, 0.3f), c.c2).facing(0, 1, 0).spin(0.04f).flicker(0.15f).envelope(0.1f, 0.85f, 0.9f);
-        // The whole six seconds: a spinning column of fire around the caster, a ring of flame at the edge, embers spiralling up
-        during(0, 124, t -> {
-            Vec3 b = c.live();
-            for (int k = 0; k < n(3); k++) {
-                double h = rnd() * 9, a = t * 0.35 + h * 0.8 + k * 2.1, r = 1.8 + h * 0.18;
-                flame(b.add(Math.cos(a) * r, h, Math.sin(a) * r), 1.5f, 0.6f, 9, c.c1, new Vec3(-Math.sin(a) * 0.16, 0.12, Math.cos(a) * 0.16));
+        Entity e = c.caster();
+        Supplier<Vec3> feet = () -> e == null || e.isRemoved() ? c.pos : e.position();
+        int life = Math.max(60, c.ticks);
+        Brush.glow(c.chest(), 2.6f, 12, ORANGE);
+        Brush.pillar(c.pos, 1.0, 7, 20, 4, FIRE);
+        during(0, life, t -> {
+            Vec3 b = feet.get();
+            if (t % 8 == 0) Brush.helix(() -> feet.get(), 1.3, 3.2, 1.5, 0.16f, 14, t * 0.8, t % 16 == 0 ? FIRE : HOT);
+            if (t % 20 == 0) {
+                Brush.shock(b.add(0, 0.08, 0), Brush.UP, 0.6, 8, 0.25f, 14, FIRE);
+                Brush.ring(b.add(0, 0.08, 0), Brush.UP, 8, 0.16f, 22, 0.8, HOT);
             }
-            c.skin.column(b, 1.4, 8, c.c1, t);
-            for (int k = 0; k < n(2); k++) {
-                double a = rnd() * Math.PI * 2;
-                flame(b.add(Math.cos(a) * 8, 0.1, Math.sin(a) * 8), 1.1f, 0.4f, 12, c.c1, new Vec3(0, 0.09 + rnd() * 0.05, 0));
+            if (t % 2 == 0) {
+                double a = rnd() * Math.PI * 2, r = 1 + rnd() * 7;
+                flames(b.add(Math.cos(a) * r, 0.1, Math.sin(a) * r), 0.2, 1, 0.8f);
             }
-            if (t % 10 == 0) c.skin.ring(b.add(0, 0.15, 0), new Vec3(0, 1, 0), 1.0, 8.5, 14, c.c1);
-            if (t % 3 == 0) c.skin.mote(b.add(gauss() * 6, 0.2, gauss() * 6), new Vec3(gauss() * 0.04, 0.22 + rnd() * 0.15, gauss() * 0.04), 0.16f, 34, c.c1, 0f);
-            if (t % 4 == 0) c.skin.body(b.add(gauss() * 1.5, 8.5 + rnd() * 2, gauss() * 1.5), new Vec3(0, 0.05, 0), 2.4f, 30, c.c1, 0.7f);
+            if (t % 6 == 0) Brush.embers(b.add(0, 1, 0), 3, 0.2, ORANGE);
         });
     }
 }

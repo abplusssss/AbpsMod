@@ -1,196 +1,160 @@
 package dev.abps.client.fx;
 
+import dev.abps.client.fx.Brush.Paint;
 import dev.abps.client.fx.Signatures.Ctx;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.function.Supplier;
+
 import static dev.abps.client.fx.FxKit.*;
 import static dev.abps.client.fx.Signatures.*;
 
-/** Archer: arrows made of light, target reticles, ropes and a piercing beam. Green and teal. */
+/** Archer: clean green and teal light. Streaks, reticles and one enormous beam. */
 final class SigArcher {
 
     private SigArcher() {
     }
 
+    static final int GREEN = 0x9CEB5C, TEAL = 0x1DE9B6, ROPE = 0xE6DCD2;
+    static final Paint LEAF = Paint.light(GREEN, 1.2f);
+    static final Paint SEA = Paint.light(TEAL, 1.2f);
+    static final Paint CORE = Paint.light(0xF0FFF8, 1.0f);
+
+    static final int CUE_GRAPPLE = 11, CUE_BEAM = 12;
+
     static void play(Ctx c) {
         switch (c.slot) {
             case 1 -> volley(c);
             case 2 -> mark(c);
-            case 3 -> grapple(c);
+            case 3 -> Brush.shock(c.hand(), c.look, 0.1, 0.9, 0.06f, 8, CORE);
             case 4 -> storm(c);
-            case 6 -> skyPiercer(c);
+            case 6 -> charge(c);
+            case CUE_GRAPPLE -> grapple(c);
+            case CUE_BEAM -> beam(c.pos, c.aim);
             default -> {
             }
         }
     }
 
-    /** An arrow of light that leaves a fading streak behind it. */
-    private static void arrow(Vec3 from, Vec3 dir, double speed, int life, int col, float size) {
-        sp("arrow", from).size(size, size).life(life).colors(WHITE, col).vel(dir.scale(speed)).drag(1f).axial().envelope(0.02f, 0.85f, 1f)
-                .motion((p, age) -> sp("streak", p.px(), p.py(), p.pz()).size(size * 1.7f, size * 0.2f).life(7).colors(col, darken(col, 0.5f))
-                        .vel(dir.scale(0.001)).axial().drag(1f).envelope(0.05f, 0.3f, 0.7f));
-    }
-
-    private static void volley(Ctx c) {
-        Vec3 hand = c.hand();
-        bloom(hand, 0.8f, 7, c.c1);
-        ringFlat(hand.add(c.look.scale(0.4)), c.look, 0.2, 1.4, 9, c.c2, "ring");
-        ringFlat(hand.add(c.look.scale(0.9)), c.look, 0.1, 1.0, 8, WHITE, "ring");
-        int arrows = 9;
-        for (int k = 0; k < arrows; k++) {
-            double yaw = (k - (arrows - 1) / 2.0) * 0.1;
-            Vec3 dir = rotY(c.look, yaw).add(0, (k % 2 == 0 ? 0.02 : -0.02), 0).normalize();
-            arrow(hand.add(dir.scale(0.5)), dir, 1.7, 15, k % 3 == 0 ? c.c2 : c.c1, 0.9f);
-        }
-        for (int k = 0; k < n(12); k++) c.skin.mote(hand, c.look.scale(0.25).add(rndDir().scale(0.12)), 0.12f, 12, c.c1, 0f);
-    }
-
-    private static void mark(Ctx c) {
-        Vec3 f = c.focus();
-        Vec3 toward = c.eye().subtract(f);
-        toward = toward.lengthSqr() < 1.0e-4 ? c.look.scale(-1) : toward.normalize();
-        Vec3 n = toward;
+    /** A crosshair: a ring with four ticks pointing in, around a point, facing the camera. */
+    static void reticle(Supplier<Vec3> at, double r, int life) {
+        Vec3 p0 = at.get();
+        Vec3 n = Brush.camera().subtract(p0).normalize();
         Vec3[] uv = axes(n);
-        beamLine(c.hand(), f, 0.03f, 4, c.c2);
-        during(0, 12, t -> {
-            double r = 3.4 - 2.4 * ease(t / 11.0);
-            ringFlat(f, n, r, r * 0.95, 2, c.c1, "ring");
-            ringFlat(f, n, r * 0.55, r * 0.5, 2, c.c2, "ring");
-            for (int k = 0; k < 4; k++) {
-                double a = t * 0.32 + k * Math.PI / 2;
-                Vec3 pos = f.add(uv[0].scale(Math.cos(a) * r)).add(uv[1].scale(Math.sin(a) * r));
-                Vec3 inward = f.subtract(pos).normalize();
-                sp("streak", pos).size(0.7f, 0.3f).life(3).colors(WHITE, c.c1).vel(inward.scale(0.001)).axial().drag(1f);
-            }
-        });
-        at(12, () -> {
-            bloom(f, 1.5f, 10, c.c1);
-            ringFlat(f, n, 0.4, 3.0, 10, WHITE, "shockwave");
-            sp("rays", f).size(0.6f, 2.6f).life(10).colors(WHITE, c.c1).startRoll((float) rnd() * 3f).spin(0.05f).envelope(0.05f, 0.3f, 0.9f);
-            for (int k = 0; k < 4; k++) {
-                double a = k * Math.PI / 2 + Math.PI / 4;
-                Vec3 d = uv[0].scale(Math.cos(a)).add(uv[1].scale(Math.sin(a)));
-                sp("streak", f.add(d.scale(0.6))).size(1.5f, 0.3f).life(9).colors(WHITE, c.c2).vel(d.scale(0.18)).axial().drag(0.9f);
-            }
-        });
-        // A small arrow spinning over the marked target's head while the mark lasts
-        Entity tgt = c.target();
-        if (tgt != null) {
-            FxSystem.add(new FxSystem.Emitter() {
-                int age;
-
-                @Override
-                public boolean tick(net.minecraft.client.multiplayer.ClientLevel level) {
-                    if (tgt.isRemoved()) return false;
-                    Vec3 p = tgt.position().add(0, tgt.getBbHeight() + 0.7 + Math.sin(age * 0.25) * 0.1, 0);
-                    sp("arrow", p).size(0.45f, 0.45f).life(3).colors(WHITE, c.c1).axis(0, -1, 0).envelope(0.1f, 0.5f, 0.9f);
-                    if (age % 2 == 0) sp("ring", p.add(0, -0.3, 0)).size(0.4f, 0.4f).life(3).colors(c.c1, c.c2).facing(0, 1, 0).envelope(0.1f, 0.5f, 0.8f);
-                    age++;
-                    return age < 240;
-                }
-            });
+        SEA.on((s, time, out) -> {
+            double a = s * Math.PI * 2 + time * 3;
+            Vec3 radial = uv[0].scale(Math.cos(a)).add(uv[1].scale(Math.sin(a)));
+            out[0] = at.get().add(radial.scale(r));
+            out[1] = uv[0].scale(-Math.sin(a)).add(uv[1].scale(Math.cos(a)));
+            out[2] = radial;
+        }).width(0.07f).time(life, 4).hold(0.8f).tailChase(0.2f).sparks(0).segments(24).play();
+        for (int k = 0; k < 4; k++) {
+            double a = k * Math.PI / 2 + Math.PI / 4;
+            Vec3 d = uv[0].scale(Math.cos(a)).add(uv[1].scale(Math.sin(a)));
+            LEAF.on(Ribbon.curve((s, t) -> at.get().add(d.scale(r * (1.5 - s * 0.6))), (s, t) -> Brush.faceCam(at.get(), d)))
+                    .width(0.06f).time(life, 3).hold(0.8f).tailChase(0f).sparks(0).segments(6).play();
         }
     }
 
-    private static void grapple(Ctx c) {
-        Vec3 hand = c.hand();
-        Vec3 tip = c.aim;
-        double len = tip.distanceTo(hand);
-        Vec3 dir = tip.subtract(hand).normalize();
-        bloom(hand, 0.6f, 6, c.c1);
-        int flight = Math.max(2, (int) Math.ceil(len / 2.4));
-        during(0, flight, t -> {
-            Vec3 head = hand.add(dir.scale(Math.min(len, (t + 1) * 2.4)));
-            sp("arrow", head).size(0.8f, 0.8f).life(3).colors(WHITE, c.c1).vel(dir.scale(0.001)).axial().drag(1f);
-            sp("glow", head).size(0.5f, 0.15f).life(4).colors(WHITE, c.c2);
+    /** Volley: a fan of green streaks leaves the bow, one for each arrow. */
+    private static void volley(Ctx c) {
+        int count = Math.max(3, c.ticks);
+        Vec3 from = c.hand();
+        Brush.shock(from, c.look, 0.1, 1.2, 0.08f, 8, CORE);
+        for (int i = 0; i < count; i++) {
+            Vec3 dir = rotY(c.look, Math.toRadians((i - (count - 1) / 2.0) * 5));
+            Vec3 to = from.add(dir.scale(18));
+            Brush.comet(from, to, 4, 0.1f, i % 2 == 0 ? LEAF : SEA, null);
+        }
+        Brush.sparks(from, 6, 0.3, GREEN);
+    }
+
+    /** Mark: a thin line of light to the target, then a turning reticle that stays on it for the whole mark. */
+    private static void mark(Ctx c) {
+        Entity t = c.target();
+        Supplier<Vec3> head = () -> t == null || t.isRemoved() ? c.focus().add(0, 1.2, 0) : t.position().add(0, t.getBbHeight() + 0.6, 0);
+        Supplier<Vec3> mid = () -> t == null || t.isRemoved() ? c.focus() : t.position().add(0, t.getBbHeight() * 0.5, 0);
+        Brush.comet(c.hand(), mid.get(), 4, 0.06f, CORE, () -> {
+            Brush.glow(mid.get(), 1f, 8, TEAL);
+            Brush.shock(mid.get(), Brush.camera().subtract(mid.get()).normalize(), 0.2, 1.6, 0.1f, 10, SEA);
         });
-        // The rope: a chain of beads with a sag that pulls tight
-        during(flight, 22, t -> {
-            double slack = Math.max(0, 1.0 - t / 12.0) * Math.min(3.0, len * 0.08);
-            Vec3 h = c.hand();
-            int beads = (int) Math.min(40, Math.max(6, len * 1.2));
-            for (int k = 0; k <= beads; k++) {
-                double f = k / (double) beads;
-                Vec3 pos = h.lerp(tip, f).add(0, -Math.sin(f * Math.PI) * slack, 0);
-                sp("glow", pos).size(0.13f, 0.08f).life(2).colors(WHITE, c.c1);
-                if (k % 4 == 0) sp("spark", pos).size(0.22f, 0.05f).life(3).colors(WHITE, c.c2).spin(0.2f);
-            }
-            if (t > 3) c.skin.along(c.chest(), dir, 0.35f, c.c1);
-        });
-        at(flight, () -> {
-            bloom(tip, 1.1f, 9, c.c1);
-            ringFlat(tip, dir.scale(-1), 0.2, 1.8, 9, c.c2, "shockwave");
-            for (int k = 0; k < n(14); k++) {
-                Vec3 d = rndDir().scale(0.2 + rnd() * 0.15);
-                sp("debris", tip).size(0.1f, 0.06f).life(18).colors(0xA09070, 0x706040).vel(d.x, Math.abs(d.y) + 0.1, d.z).grav(0.6f).spin(0.2f).bright().envelope(0.02f, 0.7f, 1f);
-            }
+        int life = Math.max(60, c.ticks);
+        for (int k = 0; k * 40 < life; k++) at(4 + k * 40, () -> reticle(mid, 0.9, 44));
+        during(4, life, s -> {
+            if (s % 20 == 0) Brush.ring(head.get(), Brush.UP, 0.3, 0.05f, 22, 3, LEAF);
         });
     }
 
+    /** Arrow Storm: a green circle on the ground and streaks of light pouring down into it. */
     private static void storm(Ctx c) {
         Vec3 g = c.aim;
-        // The circle on the ground
-        sp("sigil", g.add(0, 0.05, 0)).size(5.2f, 5.2f).life(90).colors(lighten(c.c1, 0.3f), c.c1).facing(0, 1, 0).spin(0.03f).envelope(0.1f, 0.75f, 0.9f);
-        ringFlat(g.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, 6.5, 12, c.c2, "shockwave");
-        gather(c, c.hand(), 8, 8, 3, c.c1);
-        // A shaft of light where the arrows will come from
-        during(3, 10, t -> {
-            double h = 26 * ease((t + 1) / 8.0);
-            for (double y = 0; y < h; y += 1.4) sp("glow", g.add(0, y, 0)).size(0.7f, 0.3f).life(3).colors(WHITE, c.c1).envelope(0.1f, 0.4f, 0.55f);
-        });
-        during(6, 80, t -> {
-            for (int k = 0; k < n(4); k++) {
-                double a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 5.0;
-                Vec3 from = g.add(Math.cos(a) * r, 22 + rnd() * 6, Math.sin(a) * r);
-                arrow(from, new Vec3(0.05, -1, 0.02).normalize(), 1.35, 20, k % 2 == 0 ? c.c1 : c.c2, 0.85f);
-            }
-            if (t % 5 == 0) ringFlat(g.add(0, 0.1, 0), new Vec3(0, 1, 0), 4.5, 4.9, 6, c.c1, "ring");
-            if (t % 2 == 0) {
-                double a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 5.0;
-                bloom(g.add(Math.cos(a) * r, 0.2, Math.sin(a) * r), 0.5f, 5, c.c1);
+        int life = Math.max(20, c.ticks);
+        Brush.circle(g, 4.5, life + 10, 8, LEAF, SEA);
+        during(0, life, t -> {
+            if (t % 2 != 0) return;
+            for (int k = 0; k < 3; k++) {
+                double a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 4.5;
+                Vec3 land = g.add(Math.cos(a) * r, 0.05, Math.sin(a) * r);
+                Vec3 top = land.add(0, 12, 0);
+                Brush.comet(top, land, 4, 0.08f, k == 0 ? CORE : LEAF, () -> {
+                    Brush.ring(land, Brush.UP, 0.5, 0.05f, 8, 1, SEA);
+                    Brush.sparks(land.add(0, 0.1, 0), 2, 0.2, GREEN);
+                });
             }
         });
     }
 
-    private static void skyPiercer(Ctx c) {
-        // One second of gathering into a glowing orb at the hand
-        gather(c, c.hand(), 7, 20, 4, c.c1);
-        during(0, 21, t -> {
-            Vec3 h = c.hand();
-            float s = 0.2f + t * 0.05f;
-            sp("glow", h).size(s * 2f, s * 1.3f).life(2).colors(lighten(c.c1, 0.5f), c.c1).envelope(0.1f, 0.5f, 0.9f);
-            sp("glow", h).size(s, s * 0.7f).life(2).colors(WHITE, WHITE);
-            sp("rays", h).size(s * 1.6f, s * 2f).life(2).colors(WHITE, c.c1).startRoll(t * 0.2f).envelope(0.1f, 0.5f, 0.8f);
+    /** Sky Piercer, charging: light gathers in rings that close on a point in front of the bow. */
+    private static void charge(Ctx c) {
+        Entity e = c.caster();
+        Supplier<Vec3> tip = () -> {
+            if (e == null || e.isRemoved()) return c.hand();
+            return e.getEyePosition().add(e.getLookAngle().scale(1.3));
+        };
+        int life = Math.max(10, c.ticks);
+        during(0, life, t -> {
+            Vec3 p = tip.get();
+            if (t % 4 == 0) {
+                Vec3 n = e == null ? c.look : e.getLookAngle();
+                Brush.ring(p, n, 1.6 - t * 0.06, 0.07f, 6, 2, t % 8 == 0 ? SEA : LEAF);
+            }
+            if (t % 3 == 0) Brush.converge(p, 1.6, 2, 6, 0.04f, CORE);
+            sp("glow", p).size(0.2f + t * 0.025f, 0.2f + t * 0.03f).life(3).colors(WHITE, TEAL).envelope(0.1f, 0.5f, 0.9f);
         });
-        Vec3 dir = c.look;
-        at(21, () -> {
-            Vec3 h = c.hand();
-            Vec3 end = h.add(dir.scale(60));
-            bloom(h, 2.4f, 12, c.c1);
-            ringFlat(h.add(dir.scale(0.5)), dir, 0.3, 4.0, 12, WHITE, "shockwave");
-            during(0, 16, t -> {
-                Vec3 a = c.hand();
-                Vec3 b = a.add(dir.scale(60));
-                if (t % 2 == 0) {
-                    beamLine(a, b, 0.42f * (1f - t / 24f), 4, c.c1);
-                    beamLine(a, b, 0.16f, 3, WHITE);
-                }
-                Vec3[] uv = axes(dir);
-                for (int k = 0; k < 48; k++) {
-                    double f = k * 1.25 + (t * 1.7 % 1.25);
-                    double ang = f * 0.75 - t * 0.9;
-                    Vec3 pos = a.add(dir.scale(f)).add(uv[0].scale(Math.cos(ang) * 0.85)).add(uv[1].scale(Math.sin(ang) * 0.85));
-                    sp("streak", pos).size(0.9f, 0.2f).life(3).colors(WHITE, c.c2).vel(dir.scale(0.001)).axial().drag(1f).envelope(0.1f, 0.4f, 0.8f);
-                }
-                if (t % 3 == 0) {
-                    for (int k = 1; k < 10; k++) ringFlat(a.add(dir.scale(k * 6.0 + t)), dir, 0.3, 2.2, 6, c.c1, "ring");
-                }
-                if (t == 0) {
-                    bloom(b, 3.0f, 12, c.c1);
-                    sp("rays", b).size(1f, 6f).life(12).colors(WHITE, c.c1).spin(0.03f).envelope(0.05f, 0.3f, 0.9f);
-                }
-            });
+    }
+
+    /** Sky Piercer, firing: an enormous beam with rings riding along it and a blast where it ends. */
+    static void beam(Vec3 from, Vec3 to) {
+        Vec3 d = to.subtract(from);
+        double len = d.length();
+        if (len < 0.5) return;
+        Vec3 dir = d.scale(1 / len);
+        SEA.on(Brush.lineCam(from, to)).width(0.9f).time(18, 2).hold(0.4f).tailChase(0.5f).sparks(0).play();
+        CORE.on(Brush.lineCam(from, to)).width(0.35f).time(16, 2).hold(0.4f).tailChase(0.5f).sparks(0).play();
+        LEAF.on(Ribbon.curve((s, t) -> from.add(d.scale(s)).add(axes(dir)[0].scale(Math.cos(s * len * 1.4 + t * 10) * 0.7))
+                .add(axes(dir)[1].scale(Math.sin(s * len * 1.4 + t * 10) * 0.7)), (s, t) -> Brush.faceCam(from.add(d.scale(s)), dir)))
+                .width(0.1f).time(16, 3).hold(0.3f).tailChase(0.6f).sparks(0).play();
+        for (double along = 3; along < len; along += 4) {
+            Vec3 p = from.add(dir.scale(along));
+            int delay = (int) (along / 12);
+            at(delay, () -> Brush.shock(p, dir, 0.4, 1.9, 0.09f, 9, SEA));
+        }
+        at(2, () -> {
+            Brush.glow(to, 2.6f, 12, TEAL);
+            Brush.rays(to, 12, 3, 0.12f, 10, LEAF);
+            Brush.shock(to, dir, 0.4, 3.2, 0.2f, 12, CORE);
         });
+    }
+
+    /** The rope arrow landing: a sagging line pulls tight between you and the hook. */
+    private static void grapple(Ctx c) {
+        Entity e = c.caster();
+        Supplier<Vec3> me = () -> e == null || e.isRemoved() ? c.pos : e.getEyePosition().add(0, -0.3, 0);
+        Vec3 hook = c.aim;
+        Paint rope = Paint.light(ROPE, 0.9f);
+        Brush.tether(me, () -> hook, 0.05f, 14, 0.2, 0.02, rope);
+        Brush.ring(hook, Brush.camera().subtract(hook).normalize(), 0.5, 0.06f, 10, 2, rope);
+        Brush.sparks(hook, 6, 0.25, ROPE);
     }
 }

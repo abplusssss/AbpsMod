@@ -28,15 +28,15 @@ public final class FxKind {
      * Theme numbers: which class an effect belongs to, so the client can draw it in that class's style. 0 means no
      * class. The number rides in the second byte of the effect kind.
      */
-    public static final int THEME_ARCHER = 1, THEME_ASSASSIN = 2, THEME_BERSERKER = 3, THEME_DRUID = 4, THEME_MINER = 5,
-            THEME_NECROMANCER = 6, THEME_PYROMANCER = 7, THEME_SHARK = 8, THEME_TANK = 9, THEME_VAMPIRE = 10, THEME_WINDWALKER = 11;
+    public static final int THEME_ARCHER = 1, THEME_ASSASSIN = 2, THEME_BERSERKER = 3, THEME_MINER = 5,
+            THEME_NECROMANCER = 6, THEME_PYROMANCER = 7, THEME_SHARK = 8, THEME_TANK = 9, THEME_VAMPIRE = 10, THEME_WINDWALKER = 11,
+            THEME_CRYO = 12, THEME_CHRONO = 13, THEME_PALADIN = 14, THEME_VOID = 15, THEME_SAMURAI = 16;
 
     public static int theme(String classId) {
         return switch (classId) {
             case "archer" -> THEME_ARCHER;
             case "assassin" -> THEME_ASSASSIN;
             case "berserker" -> THEME_BERSERKER;
-            case "druid" -> THEME_DRUID;
             case "miner" -> THEME_MINER;
             case "necromancer" -> THEME_NECROMANCER;
             case "pyromancer" -> THEME_PYROMANCER;
@@ -44,6 +44,11 @@ public final class FxKind {
             case "tank" -> THEME_TANK;
             case "vampire" -> THEME_VAMPIRE;
             case "windwalker" -> THEME_WINDWALKER;
+            case "cryomancer" -> THEME_CRYO;
+            case "chronomancer" -> THEME_CHRONO;
+            case "paladin" -> THEME_PALADIN;
+            case "voidwalker" -> THEME_VOID;
+            case "samurai" -> THEME_SAMURAI;
             default -> 0;
         };
     }

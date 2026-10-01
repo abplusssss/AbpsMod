@@ -32,6 +32,26 @@ final class SigShark {
         }
     }
 
+    /** A whirlpool on the surface: water strokes spiralling in toward the middle, for life ticks. */
+    private static void whirl(Vec3 g, double radius, int life, Ctx c) {
+        Brush.Paint water = Brush.Paint.light(lighten(c.c2, 0.3f), 1.0f), deep = Brush.Paint.light(c.c1, 1.1f);
+        Brush.ring(g.add(0, 0.12, 0), Brush.UP, radius, 0.14f, life, -0.8, deep);
+        during(0, life, t -> {
+            if (t % 4 != 0) return;
+            double a0 = rnd() * Math.PI * 2, r0 = radius * (0.6 + rnd() * 0.4);
+            (t % 8 == 0 ? water : deep).on(Ribbon.curve((s, time) -> {
+                double f = Math.min(1, s * 0.8 + time * 0.4);
+                double r = r0 * (1 - f * 0.85);
+                double a = a0 - f * 4;
+                return g.add(Math.cos(a) * r, 0.14, Math.sin(a) * r);
+            }, (s, time) -> {
+                double f = Math.min(1, s * 0.8 + time * 0.4);
+                double a = a0 - f * 4;
+                return new Vec3(Math.cos(a), 0, Math.sin(a));
+            })).width((float) (0.12 + radius * 0.015)).time(18, 8).hold(0.2f).tailChase(1f).sparks(0).segments(20).play();
+        });
+    }
+
     private static void riptide(Ctx c) {
         Vec3 p = c.live();
         Vec3 dir = c.flat();
@@ -95,8 +115,7 @@ final class SigShark {
         double radius = 8;
         bloom(g.add(0, 0.5, 0), 2.0f, 9, c.c2);
         // A great turning disc of water on the ground, a dark eye in the middle, and water spiralling down into it
-        sp("swirl", g.add(0, 0.12, 0)).size((float) radius, (float) radius).life(104).colors(lighten(c.c2, 0.4f), c.c1).facing(0, 1, 0).spin(-0.16f).envelope(0.08f, 0.85f, 0.85f);
-        sp("swirl", g.add(0, 0.16, 0)).size((float) radius * 0.6f, (float) radius * 0.6f).life(104).colors(WHITE, c.c2).facing(0, 1, 0).spin(-0.24f).envelope(0.08f, 0.85f, 0.7f);
+        whirl(g, radius, 104, c);
         sp("glow", g.add(0, 0.1, 0)).size(2.2f, 1.6f).life(104).colors(darken(c.c1, 0.5f), darken(c.c1, 0.7f)).envelope(0.1f, 0.85f, 0.6f);
         ringFlat(g.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, radius + 1, 14, c.c2, "shockwave");
         during(0, 100, t -> {
@@ -142,7 +161,7 @@ final class SigShark {
         // The sea is called: a spout of water rising round the caster and ripples racing out the way the wave will go
         bloom(p.add(0, 1, 0), 2.2f, 10, c.c2);
         ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, 9, 16, c.c1, "shockwave");
-        sp("swirl", p.add(0, 0.14, 0)).size(4.5f, 4.5f).life(40).colors(lighten(c.c2, 0.4f), c.c1).facing(0, 1, 0).spin(0.18f).envelope(0.1f, 0.7f, 0.85f);
+        whirl(p, 4.5, 40, c);
         during(0, 22, t -> c.skin.column(p, 1.3, 5 * ease((t + 1) / 8.0), c.c2, t));
         for (int k = 0; k < 6; k++) {
             int delay = k * 2;
@@ -159,8 +178,7 @@ final class SigShark {
         bloom(p.add(0, 1, 0), 4.0f, 14, c.c2);
         ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, 26, 22, c.c1, "shockwave");
         // The sea drags inward: a colossal slow whirl, and rings that collapse onto the middle again and again
-        sp("swirl", p.add(0, 0.14, 0)).size((float) reach, (float) reach).life(60).colors(lighten(c.c2, 0.3f), c.c1).facing(0, 1, 0).spin(-0.1f).envelope(0.1f, 0.85f, 0.85f);
-        sp("swirl", p.add(0, 0.18, 0)).size((float) reach * 0.6f, (float) reach * 0.6f).life(60).colors(WHITE, c.c2).facing(0, 1, 0).spin(-0.16f).envelope(0.1f, 0.85f, 0.65f);
+        whirl(p, reach, 60, c);
         for (int k = 0; k < 5; k++) {
             int delay = k * 8;
             at(delay, () -> {

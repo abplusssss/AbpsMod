@@ -31,7 +31,7 @@ public final class ShopScreen extends Screen {
     private static final String[] CURRENCIES = {"minecraft:diamond", "minecraft:emerald", "minecraft:gold_ingot", "minecraft:iron_ingot",
             "minecraft:netherite_ingot", "minecraft:netherite_scrap", "minecraft:lapis_lazuli", "minecraft:amethyst_shard"};
 
-    private record Btn(int x, int y, int w, int h, Runnable action) {
+    private record Btn(int x, int y, int w, int h, String label, Runnable action) {
     }
 
     private final List<Btn> buttons = new ArrayList<>();
@@ -90,7 +90,7 @@ public final class ShopScreen extends Screen {
         int fill = enabled ? Draw.argb(color, hover ? 0x70 : 0x38) : 0xC0202028;
         Draw.framed(g, x, y, w, h, fill, border);
         Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2);
-        if (enabled) buttons.add(new Btn(x, y, w, h, action));
+        if (enabled) buttons.add(new Btn(x, y, w, h, Text.strip(label), action));
     }
 
     // ---- Inventory counting, the same way the server does it (main inventory only) ----
@@ -154,6 +154,7 @@ public final class ShopScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
         super.extractRenderState(g, mx, my, pt);
         buttons.clear();
+        for (TextInput f : fields()) f.hide();
         Net.ShopPayload shop = ClientState.shop;
         float open = Math.min(1f, (System.currentTimeMillis() - openedAt) / 180f);
         g.pose().pushMatrix();
@@ -289,7 +290,7 @@ public final class ShopScreen extends Screen {
             g.setTooltipForNextFrame(lines, mx, my);
         }
         final int id = l.id();
-        buttons.add(new Btn(x, y, w, h, () -> {
+        buttons.add(new Btn(x, y, w, h, "card:" + l.id(), () -> {
             listingId = id;
             if (mine) {
                 qty.set("");
@@ -458,7 +459,7 @@ public final class ShopScreen extends Screen {
             boolean hover = Draw.inside(mx, my, cx, y, 20, 20);
             Draw.framed(g, cx, y, 20, 20, on ? Draw.argb(BLUE, 0x60) : hover ? 0x40FFFFFF : 0xE0101016, on ? Draw.opaque(BLUE) : 0xFF33333D);
             g.item(st, cx + 2, y + 2);
-            buttons.add(new Btn(cx, y, 20, 20, () -> currency = st));
+            buttons.add(new Btn(cx, y, 20, 20, "cur:" + cid, () -> currency = st));
             if (hover) g.setTooltipForNextFrame(st.getHoverName(), mx, my);
             cx += 22;
         }
@@ -495,7 +496,7 @@ public final class ShopScreen extends Screen {
                     g.item(st, sx, sy);
                     g.itemDecorations(Draw.font(), st, sx, sy);
                     final int s = slot;
-                    buttons.add(new Btn(sx, sy, slotW - 1, slotW - 1, () -> pickSlot = s));
+                    buttons.add(new Btn(sx, sy, slotW - 1, slotW - 1, "slot:" + s, () -> pickSlot = s));
                     if (hover) g.setTooltipForNextFrame(st.getHoverName(), mx, my);
                 }
             }
@@ -586,6 +587,39 @@ public final class ShopScreen extends Screen {
             qty.setNumber(name.equals("trade") ? Math.max(l.bundle(), 34 / l.bundle() * l.bundle()) : 8);
         }
         popup = name;
+    }
+
+    /** Development only: clicks the first button whose label starts with this, through the real mouse code. */
+    boolean press(String label, int mouseButton) {
+        for (Btn b : List.copyOf(buttons)) {
+            if (!b.label.startsWith(label)) continue;
+            mouseClicked(new MouseButtonEvent(b.x + b.w / 2.0, b.y + b.h / 2.0, new net.minecraft.client.input.MouseButtonInfo(mouseButton, 0)), false);
+            return true;
+        }
+        return false;
+    }
+
+    /** Development only: clicks the amount box so it can be typed in. */
+    boolean pressQty() {
+        double[] c = qty.center();
+        if (c == null) return false;
+        mouseClicked(new MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+        return qty.focused();
+    }
+
+    /** Development only: the amount typed in the amount box. */
+    int qtyValue() {
+        return qty.number(-1);
+    }
+
+    /** Development only: the popup that is open, or "" for none. */
+    String popupName() {
+        return popup;
+    }
+
+    /** Development only: types into whichever box is focused, through the real key code. */
+    void typeText(String s) {
+        for (int i = 0; i < s.length(); i++) charTyped(new CharacterEvent(s.charAt(i)));
     }
 
     // ================= Input =================

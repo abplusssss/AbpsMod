@@ -72,6 +72,40 @@ public final class FxSystem {
         }
     }
 
+    private static long lastPreview;
+
+    /**
+     * Plays one ability's effect on the local player, for the menu's Preview buttons. Only this player sees it and
+     * it does nothing in the world. It starts a few ticks later so the menu has time to close.
+     */
+    public static void preview(String classId, int slot) {
+        Minecraft mc = Minecraft.getInstance();
+        if (!ready || !FxSprites.loaded() || mc.player == null || System.currentTimeMillis() - lastPreview < 800) return;
+        lastPreview = System.currentTimeMillis();
+        add(new Emitter() {
+            int t;
+
+            @Override
+            public boolean tick(ClientLevel level) {
+                if (++t < 4) return true;
+                var pl = mc.player;
+                if (pl == null) return false;
+                int theme = FxKind.theme(classId);
+                net.minecraft.world.phys.Vec3 pos = pl.position(), look = pl.getLookAngle();
+                net.minecraft.world.phys.Vec3 flat = new net.minecraft.world.phys.Vec3(look.x, 0, look.z);
+                flat = flat.lengthSqr() < 1.0e-4 ? new net.minecraft.world.phys.Vec3(0, 0, 1) : flat.normalize();
+                // Aim at what's under the crosshair, or a spot on the ground ahead when looking at the sky
+                var hit = pl.pick(24, 0, false);
+                net.minecraft.world.phys.Vec3 aim = hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? pos.add(flat.scale(8)) : hit.getLocation();
+                int target = mc.crosshairPickEntity == null ? -1 : mc.crosshairPickEntity.getId();
+                Skin s = Skin.of(theme);
+                Signatures.play(new double[]{pos.x, pos.y, pos.z, look.x, look.y, look.z, aim.x, aim.y, aim.z},
+                        new int[]{theme, slot, pl.getId(), target, s.accent, s.accent2, 100});
+                return false;
+            }
+        });
+    }
+
     /** Handles one effect message from the server. Never throws: a broken effect must not crash the game. */
     public static void handle(Net.VfxPayload p) {
         if (!ready || !FxSprites.loaded() || Minecraft.getInstance().level == null) return;

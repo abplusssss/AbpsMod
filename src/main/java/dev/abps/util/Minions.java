@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/** Shared code for summoned helpers (Necromancer undead, Druid wolves). */
+/** Shared code for summoned helpers (Necromancer undead). */
 public final class Minions {
 
     private Minions() {

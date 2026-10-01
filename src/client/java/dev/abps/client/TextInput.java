@@ -62,6 +62,23 @@ public final class TextInput {
         Draw.text(g, shown, x + 4, y + (h - 8) / 2);
     }
 
+    /**
+     * Call at the start of every frame. A box that isn't drawn this frame can't be clicked or typed in, so a field
+     * from a closed popup or another tab never steals clicks from the buttons under where it used to be.
+     */
+    public void hide() {
+        w = 0;
+    }
+
+    /** Development only: where the box was drawn this frame, or null if it wasn't. */
+    public double[] center() {
+        return w > 0 ? new double[]{x + w / 2.0, y + h / 2.0} : null;
+    }
+
+    private boolean live() {
+        return focused && w > 0;
+    }
+
     /** Focuses the box when it is clicked, and unfocuses it when anything else is. Returns true if the box was clicked. */
     public boolean click(double mx, double my) {
         focused = w > 0 && Draw.inside(mx, my, x, y, w, h);
@@ -69,7 +86,7 @@ public final class TextInput {
     }
 
     public boolean charTyped(CharacterEvent e) {
-        if (!focused) return false;
+        if (!live()) return false;
         String c = e.codepointAsString();
         if (numbers ? !c.matches("[0-9]") : !e.isAllowedChatCharacter() || c.equals("|") || c.equals("<") || c.equals(">")) return true;
         if (text.length() < maxLength) text += c;
@@ -78,7 +95,7 @@ public final class TextInput {
     }
 
     public boolean keyPressed(KeyEvent e) {
-        if (!focused) return false;
+        if (!live()) return false;
         if (e.key() == InputConstants.KEY_BACKSPACE) {
             if (!text.isEmpty()) text = e.hasControlDown() ? "" : text.substring(0, text.length() - 1);
             return true;

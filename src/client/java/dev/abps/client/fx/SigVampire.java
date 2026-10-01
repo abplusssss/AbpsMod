@@ -1,16 +1,32 @@
 package dev.abps.client.fx;
 
+import dev.abps.client.fx.Brush.Paint;
 import dev.abps.client.fx.Signatures.Ctx;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+
+import java.util.function.Supplier;
 
 import static dev.abps.client.fx.FxKit.*;
 import static dev.abps.client.fx.Signatures.*;
 
-/** Vampire: blood, bats and a red moon. Crimson over royal purple. */
+/**
+ * Vampire: dark crimson ink with a hot red rim, streams of blood that follow whoever they connect, and violet mist.
+ * No picture sprites anywhere.
+ */
 final class SigVampire {
 
     private SigVampire() {
     }
+
+    static final int CRIMSON = 0xE53935, BLOOD = 0xB0001C, VIOLET = 0x6A0DAD, MIST = 0x2A0716;
+    static final Paint INK = Paint.ink(0x1C0307, 0xFF4B4B);
+    static final Paint INK_VIOLET = Paint.ink(0x14051E, 0xB46CFF);
+    static final Paint LIGHT = Paint.light(CRIMSON, 1.3f);
+    static final Paint THIN = Paint.light(0xFF6E6E, 0.9f);
+
+    // Cues the server sends during abilities and from passives
+    static final int CUE_DRAIN = 11, CUE_LIFESTEAL = 12, CUE_BLEED = 13, CUE_KILL = 14, CUE_BURST_HIT = 15;
 
     static void play(Ctx c) {
         switch (c.slot) {
@@ -19,167 +35,172 @@ final class SigVampire {
             case 3 -> burst(c);
             case 4 -> moon(c);
             case 6 -> feast(c);
+            case CUE_DRAIN -> drain(c, 10, 0.16f);
+            case CUE_LIFESTEAL -> lifesteal(c);
+            case CUE_BLEED -> bleed(c);
+            case CUE_KILL -> kill(c);
+            case CUE_BURST_HIT -> drain(c, 14, 0.13f);
             default -> {
             }
         }
     }
 
-    /** A bat that flies from one point to another along a wobbling path and dissolves into mist on arrival. */
-    private static void bat(Vec3 from, Vec3 to, int life, float size, Ctx c) {
-        Vec3 dir = to.subtract(from);
-        double len = dir.length();
-        Vec3 d = len < 1.0e-4 ? c.look : dir.scale(1 / len);
-        Vec3 side = d.cross(new Vec3(0, 1, 0));
-        Vec3 s = side.lengthSqr() < 1.0e-4 ? new Vec3(1, 0, 0) : side.normalize();
-        double phase = rnd() * 6.28, amp = 0.4 + rnd() * 0.9;
-        sp("bat", from).size(size, size).life(life).colors(mix(c.c1, 0x100010, 0.85f), 0x000000).drag(1f).envelope(0.1f, 0.75f, 1f).bright()
-                .motion((p, age) -> {
-                    double t = Math.min(1.0, (age + 1) / (double) life);
-                    Vec3 pos = from.lerp(to, t).add(s.scale(Math.sin(t * 9 + phase) * amp)).add(0, Math.cos(t * 7 + phase) * amp * 0.6, 0);
-                    p.steer(pos.x, pos.y, pos.z);
-                });
+    // ------------------------------------------------------------------ helpers
+
+    static Supplier<Vec3> mid(Entity e, Vec3 fallback) {
+        return () -> e == null || e.isRemoved() ? fallback : e.position().add(0, e.getBbHeight() * 0.55, 0);
     }
 
+    static Supplier<Vec3> feet(Entity e, Vec3 fallback) {
+        return () -> e == null || e.isRemoved() ? fallback : e.position();
+    }
+
+    /** Three tilted ink rings that close in around a body like a noose. */
+    static void noose(Supplier<Vec3> center, double r, int life) {
+        for (int k = 0; k < 3; k++) {
+            double tilt = (k - 1) * 0.5;
+            int kk = k;
+            Ribbon.Path path = (s, time, out) -> {
+                Vec3 cc = center.get().add(0, (kk - 1) * 0.45, 0);
+                double rr = r * (1.25 - 0.35 * Math.min(1, time * 2));
+                double a = kk * 2.1 + s * Math.PI * 1.7 + time * (kk % 2 == 0 ? 5 : -5);
+                Vec3 n = new Vec3(Math.sin(tilt), Math.cos(tilt), 0);
+                Vec3[] uv = axes(n);
+                Vec3 radial = uv[0].scale(Math.cos(a)).add(uv[1].scale(Math.sin(a)));
+                out[0] = cc.add(radial.scale(rr));
+                out[1] = uv[0].scale(-Math.sin(a)).add(uv[1].scale(Math.cos(a)));
+                out[2] = radial;
+            };
+            INK.on(path).width(0.16f).time(life, 4).hold(0.6f).tailChase(0.4f).sparks(0).segments(24).play();
+        }
+    }
+
+    /** A stream of blood flowing from one body into another, then a small pulse where it arrives. */
+    static void stream(Supplier<Vec3> from, Supplier<Vec3> to, int life, float width) {
+        Brush.tether(from, to, width, life, 0.35, 0.18, INK);
+        Brush.tether(from, to, width * 0.45f, life - 2, 0.3, 0.1, THIN);
+        at(life / 2, () -> {
+            Vec3 p = to.get();
+            Brush.glow(p, 0.7f, 6, CRIMSON);
+            Brush.embers(p, 4, 0.06, CRIMSON);
+        });
+    }
+
+    // ------------------------------------------------------------------ abilities
+
+    /** Blood Curse: a lash of blood from the hand to the target, a crimson circle under them and a noose of ink. */
     private static void curse(Ctx c) {
+        Entity t = c.target();
         Vec3 f = c.focus();
-        Vec3 h = c.hand();
-        bloom(h, 0.8f, 7, c.c1);
-        // A colony of bats leaves the caster's hand and swallows the target
-        for (int k = 0; k < 9; k++) {
-            int delay = k;
-            at(delay, () -> bat(c.hand(), f.add(gauss() * 0.3, gauss() * 0.4, gauss() * 0.3), 14 + (int) (rnd() * 4), 0.5f + (float) rnd() * 0.3f, c));
-        }
-        Vec3 toward = c.eye().subtract(f);
-        Vec3 n = toward.lengthSqr() < 1.0e-4 ? c.look.scale(-1) : toward.normalize();
-        at(12, () -> {
-            bloom(f, 1.6f, 10, c.c1);
-            sp("sigil", f).size(2.4f, 2.8f).life(40).colors(lighten(c.c1, 0.3f), c.c2).facing(n.x, n.y, n.z).spin(0.06f).envelope(0.1f, 0.7f, 0.95f);
-            for (int k = 0; k < n(16); k++) c.skin.body(f.add(rndDir().scale(0.5)), rndDir().scale(0.05).add(0, 0.03, 0), 1.0f, 26, c.c2, 0.9f);
-            for (int k = 0; k < n(12); k++) c.skin.mote(f.add(0, 1, 0), new Vec3(gauss() * 0.02, 0, gauss() * 0.02), 0.16f, 24, c.c1, 0.6f);
+        Supplier<Vec3> tm = mid(t, f), tf = feet(t, f.add(0, -0.9, 0));
+        Brush.glow(c.hand(), 0.6f, 6, CRIMSON);
+        Brush.comet(c.hand(), f, 6, 0.3f, INK, null);
+        Brush.comet(c.hand(), f, 6, 0.12f, THIN, () -> {
+            Vec3 p = tm.get();
+            Brush.glow(p, 1.5f, 10, CRIMSON);
+            Brush.rays(p, 8, 2.0, 0.12f, 9, INK);
+            Brush.ring(p, Brush.camera().subtract(p).normalize(), 1.1, 0.2f, 16, 2.0, INK);
+            Brush.circle(tf.get(), 1.6, 40, 5, INK, INK_VIOLET);
+            noose(tm, 0.85, 30);
         });
-        // A darkness settles over the target and bleeds downward
-        during(12, 30, t -> {
-            Vec3 tp = c.focus();
-            c.skin.body(tp.add(gauss() * 0.4, 0.5 + rnd() * 0.6, gauss() * 0.4), new Vec3(0, 0.02, 0), 0.9f, 20, c.c2, 0.9f);
-            if (t % 3 == 0) c.skin.mote(tp.add(gauss() * 0.3, 0.4, gauss() * 0.3), new Vec3(0, -0.02, 0), 0.14f, 20, c.c1, 0.6f);
+        // The curse lingers: a faint ink ring pulses at their feet
+        during(10, 100, s -> {
+            if (s % 25 != 0) return;
+            Vec3 p = tf.get();
+            Brush.ring(p.add(0, 0.05, 0), Brush.UP, 0.9, 0.08f, 18, 1.2, INK);
+            
         });
     }
 
+    /** Blood Bind: ink chains lock around the target while blood flows from them into you. */
     private static void bind(Ctx c) {
+        Entity t = c.target();
         Vec3 f = c.focus();
-        bloom(f, 1.4f, 9, c.c1);
-        // Chains of blood: three rings around the target that spin in opposite directions
-        during(0, 24, t -> {
-            Vec3 tp = c.focus();
-            for (int k = 0; k < 3; k++) {
-                double a = t * (k % 2 == 0 ? 0.3 : -0.3) + k * 2.1;
-                Vec3 n = new Vec3(Math.sin(a) * 0.4, 1, Math.cos(a) * 0.4).normalize();
-                ringFlat(tp.add(0, -0.6 + k * 0.6, 0), n, 1.0, 1.0, 2, k % 2 == 0 ? c.c1 : c.c2, "ring");
-                for (int q = 0; q < 3; q++) {
-                    double b = a * 2 + q * 2.09;
-                    sp("droplet", tp.add(Math.cos(b) * 1.0, -0.6 + k * 0.6, Math.sin(b) * 1.0)).size(0.2f, 0.16f).life(3).colors(0xFF8080, c.c1).envelope(0.1f, 0.5f, 1f).bright();
-                }
-            }
-        });
-        // Life flowing from the victim to the caster, as drops and hearts
-        during(4, 20, t -> {
-            Vec3 tp = c.focus();
-            Vec3 dest = c.live().add(0, 1.2, 0);
-            Vec3 d = dest.subtract(tp);
-            Vec3 dn = d.lengthSqr() < 1.0e-4 ? c.look : d.normalize();
-            for (int k = 0; k < n(4); k++) {
-                Vec3 start = tp.add(gauss() * 0.3, gauss() * 0.4, gauss() * 0.3);
-                sp("droplet", start).size(0.2f, 0.14f).life(12).colors(0xFF8080, c.c1).vel(dn.scale(d.length() / 12.0)).drag(1f).envelope(0.05f, 0.7f, 1f).bright();
-            }
-            if (t % 4 == 0) sp("heart", tp).size(0.32f, 0.22f).life(14).colors(WHITE, c.c1).vel(dn.scale(d.length() / 14.0)).drag(1f).envelope(0.1f, 0.6f, 1f);
-        });
-        at(16, () -> {
-            Vec3 chest = c.live().add(0, 1.2, 0);
-            bloom(chest, 1.0f, 8, c.c1);
-            sp("heart", chest.add(0, 0.8, 0)).size(0.4f, 0.3f).life(26).colors(WHITE, c.c1).vel(0, 0.05, 0).envelope(0.15f, 0.5f, 0.9f);
-        });
+        Supplier<Vec3> tm = mid(t, f), me = mid(c.caster(), c.chest());
+        int hold = Math.max(40, c.ticks);
+        Brush.glow(f, 1.2f, 8, CRIMSON);
+        Brush.shock(feet(t, f.add(0, -0.9, 0)).get().add(0, 0.1, 0), Brush.UP, 0.4, 2.2, 0.16f, 10, INK);
+        for (int k = 0; k < hold / 12; k++) at(k * 12, () -> noose(tm, 0.75, 16));
+        at(4, () -> stream(tm, me, 16, 0.14f));
+        at(4, () -> Brush.helix(feet(c.caster(), c.pos), 0.6, 2.0, 1.5, 0.1f, 18, rnd() * 6, THIN));
     }
 
+    /** Sanguine Burst: blood rushes into you, then bursts out as a crimson shockwave and a ring of cuts. */
     private static void burst(Ctx c) {
-        Vec3 p = c.live();
-        bloom(p.add(0, 1, 0), 3.0f, 10, c.c1);
-        sp("rays", p.add(0, 1.2, 0)).size(0.8f, 4.2f).life(12).colors(lighten(c.c1, 0.5f), c.c1).spin(-0.05f).envelope(0.05f, 0.3f, 0.9f);
-        ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.4, 7.5, 14, c.c1, "shockwave");
-        c.skin.ring(p.add(0, 0.14, 0), new Vec3(0, 1, 0), 0.4, 6.5, 14, c.c1);
-        // The body bursts: a sphere of blood, then splatter across the ground and a hanging mist
-        for (int k = 0; k < n(90); k++) {
-            Vec3 d = rndDir();
-            c.skin.mote(p.add(0, 1.1, 0), d.scale(0.2 + rnd() * 0.35), 0.24f, 26 + (int) (rnd() * 10), c.c1, 0.6f);
-        }
-        for (int k = 0; k < 5; k++) {
-            double a = rnd() * Math.PI * 2, r = 1 + rnd() * 4;
-            sp("splat", p.add(Math.cos(a) * r, 0.05, Math.sin(a) * r)).size(1.4f + (float) rnd() * 1.4f, 1.6f).life(100).colors(mix(c.c1, 0x300000, 0.35f), mix(c.c1, 0x200000, 0.55f))
-                    .facing(0, 1, 0).startRoll((float) (rnd() * 6.28)).envelope(0.05f, 0.8f, 0.95f).bright();
-        }
-        for (int k = 0; k < n(20); k++) {
-            double a = rnd() * Math.PI * 2, r = rnd() * 4;
-            c.skin.body(p.add(Math.cos(a) * r, 0.4 + rnd() * 1.6, Math.sin(a) * r), new Vec3(Math.cos(a) * 0.05, 0.02, Math.sin(a) * 0.05), 1.6f, 30, c.c1, 0.8f);
-        }
-    }
-
-    private static void moon(Ctx c) {
-        Vec3 p = c.live();
-        Vec3 sky = p.add(c.flat().scale(26)).add(0, 32, 0);
-        bloom(p.add(0, 1, 0), 2.0f, 10, c.c1);
-        ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.4, 8, 16, c.c1, "shockwave");
-        // A blood-red moon rising over the caster, with a halo and slow rays
-        during(0, 110, t -> {
-            double fade = t < 10 ? t / 10.0 : t > 96 ? Math.max(0, (110 - t) / 14.0) : 1.0;
-            float f = (float) fade;
-            sp("glow", sky).size(11f, 11f).life(3).colors(mix(c.c1, 0x300008, 0.35f), mix(c.c1, 0x300008, 0.35f)).envelope(0f, 1f, 0.9f * f);
-            sp("glow", sky).size(7f, 7f).life(3).colors(lighten(c.c1, 0.4f), c.c1).envelope(0f, 1f, 0.95f * f);
-            sp("glow", sky).size(4.5f, 4.5f).life(3).colors(lighten(c.c1, 0.8f), lighten(c.c1, 0.6f)).envelope(0f, 1f, 0.9f * f);
-            sp("rays", sky).size(22f, 22f).life(3).colors(c.c1, c.c1).startRoll(t * 0.01f).envelope(0f, 1f, 0.35f * f);
-            if (t % 6 == 0) ringFlat(sky, sky.subtract(c.eye()).normalize().scale(-1), 8, 8.2, 3, lighten(c.c1, 0.3f), "ring");
-            if (t % 5 == 0) {
-                double a = rnd() * Math.PI * 2, r = 3 + rnd() * 10;
-                c.skin.body(c.live().add(Math.cos(a) * r, 0.2, Math.sin(a) * r), new Vec3(0, 0.03, 0), 2.0f, 30, c.c1, 0.6f);
-            }
-        });
-        // Bats wheeling round the caster for as long as the moon hangs there
-        during(0, 100, t -> {
-            Vec3 b = c.live();
+        Vec3 chest = c.chest(), ground = c.pos.add(0, 0.1, 0);
+        Brush.converge(chest, 2.4, 9, 7, 0.07f, THIN);
+        at(6, () -> {
+            Brush.glow(chest, 2.0f, 10, CRIMSON);
+            Brush.shock(ground, Brush.UP, 0.6, 6.5, 0.32f, 14, INK);
+            Brush.shock(ground.add(0, 0.25, 0), Brush.UP, 0.4, 5.5, 0.14f, 11, LIGHT);
+            Brush.raysUp(chest, 12, 3.2, 0.12f, 9, INK);
             for (int k = 0; k < 4; k++) {
-                double a = t * 0.11 + k * Math.PI / 2, r = 5 + Math.sin(t * 0.07 + k) * 1.5;
-                Vec3 at = b.add(Math.cos(a) * r, 2.5 + Math.sin(t * 0.13 + k * 1.7) * 1.4, Math.sin(a) * r);
-                sp("bat", at).size(0.55f, 0.55f).life(3).colors(mix(c.c1, 0x100010, 0.85f), 0x000000).vel(-Math.sin(a) * 0.08, 0, Math.cos(a) * 0.08).envelope(0.1f, 0.6f, 1f).bright();
+                Vec3 dir = rotY(c.flat(), k * Math.PI / 2 + 0.4);
+                Brush.cut(c.pos.add(0, 0.2, 0), dir, 2.6, 0.32f, 14, k % 2 == 0 ? 1 : -1, INK);
             }
+            Brush.embers(chest, 14, 0.25, CRIMSON);
         });
     }
 
-    private static void feast(Ctx c) {
-        Vec3 p = c.live();
-        double reach = 10;
-        bloom(p.add(0, 1, 0), 3.4f, 12, c.c1);
-        sp("sigil", p.add(0, 0.05, 0)).size((float) reach, (float) reach).life(130).colors(lighten(c.c1, 0.3f), c.c2).facing(0, 1, 0).spin(-0.04f).envelope(0.08f, 0.85f, 0.9f);
-        ringFlat(p.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.5, reach + 3, 18, c.c1, "shockwave");
-        // For six seconds blood is pulled in from the whole circle toward the vampire, as drops, hearts and bats
-        during(0, 120, t -> {
-            Vec3 b = c.live();
-            Vec3 dest = b.add(0, 1.2, 0);
-            for (int k = 0; k < n(4); k++) {
-                double a = rnd() * Math.PI * 2, r = 3 + rnd() * (reach - 3);
-                Vec3 from = b.add(Math.cos(a) * r, 0.3 + rnd() * 2.0, Math.sin(a) * r);
-                Vec3 d = dest.subtract(from);
-                sp("droplet", from).size(0.22f, 0.14f).life(14).colors(0xFF8080, c.c1).vel(d.scale(1 / 14.0)).drag(1f).envelope(0.05f, 0.7f, 1f).bright();
-            }
-            if (t % 5 == 0) {
-                double a = rnd() * Math.PI * 2, r = 5 + rnd() * (reach - 5);
-                Vec3 from = b.add(Math.cos(a) * r, 0.5 + rnd() * 2, Math.sin(a) * r);
-                sp("heart", from).size(0.32f, 0.22f).life(16).colors(WHITE, c.c1).vel(dest.subtract(from).scale(1 / 16.0)).drag(1f).envelope(0.1f, 0.6f, 1f);
-            }
-            if (t % 6 == 0) {
-                double a = rnd() * Math.PI * 2;
-                Vec3 from = b.add(Math.cos(a) * reach, 1 + rnd() * 3, Math.sin(a) * reach);
-                bat(from, dest, 18, 0.6f, c);
-            }
-            if (t % 10 == 0) ringFlat(b.add(0, 0.14, 0), new Vec3(0, 1, 0), reach, 1.2, 14, c.c1, "ring");
-            c.skin.column(b.add(Math.cos(t * 0.3) * 1.2, 0, Math.sin(t * 0.3) * 1.2), 0.5, 3, c.c1, t);
+    /** Blood Moon: a red moon rises over you, and crimson streams wind around you for as long as it lasts. */
+    private static void moon(Ctx c) {
+        Entity e = c.caster();
+        Supplier<Vec3> base = feet(e, c.pos);
+        int life = Math.max(100, c.ticks);
+        Brush.circle(c.pos, 2.4, 30, 6, INK, INK_VIOLET);
+        Brush.pillar(c.pos, 0.7, 4.5, 18, 3, INK);
+        // The moon: a disk of red light far above, ringed by a dark halo
+        Vec3 moonAt = c.pos.add(c.flat().scale(-3)).add(0, 9, 0);
+        sp("glow", moonAt).size(1.8f, 2.2f).life(life).colors(0xFF5A4A, BLOOD).envelope(0.05f, 0.9f, 0.9f);
+        sp("glow", moonAt).size(3.6f, 4.0f).life(life).colors(BLOOD, darken(BLOOD, 0.5f)).envelope(0.05f, 0.9f, 0.35f);
+        at(2, () -> Brush.ring(moonAt, Brush.camera().subtract(moonAt).normalize(), 2.0, 0.18f, 30, 1.0, INK));
+        // Around you while it lasts
+        during(10, life, s -> {
+            if (s % 30 == 0) Brush.helix(base, 0.7, 2.1, 1.2, 0.09f, 26, s * 0.7, THIN);
+
         });
+    }
+
+    /** Crimson Feast: a huge blood circle, a column of ink on you; the server sends a drain cue for every victim tick. */
+    private static void feast(Ctx c) {
+        Brush.circle(c.pos, 10, 120, 8, INK, INK_VIOLET);
+        Brush.pillar(c.pos, 1.0, 7, 30, 4, INK);
+        Brush.glow(c.chest(), 2.4f, 14, CRIMSON);
+        Brush.shock(c.pos.add(0, 0.1, 0), Brush.UP, 1, 10, 0.4f, 16, INK);
+        Supplier<Vec3> base = feet(c.caster(), c.pos);
+        during(0, 120, s -> {
+            if (s % 20 == 0) Brush.helix(base, 1.0, 2.6, 1.6, 0.13f, 24, s * 0.5, INK);
+
+        });
+    }
+
+    // ------------------------------------------------------------------ cues
+
+    /** A stream of blood from a victim (target) back to the vampire (caster). */
+    private static void drain(Ctx c, int life, float width) {
+        Entity victim = c.target();
+        Supplier<Vec3> from = mid(victim, c.aim), to = mid(c.caster(), c.pos.add(0, 1, 0));
+        stream(from, to, life, width);
+        Brush.glow(from.get(), 0.6f, 5, CRIMSON);
+    }
+
+    /** Lifesteal on a melee hit: a quick thin stream back to you and a little spray of blood. */
+    private static void lifesteal(Ctx c) {
+        Supplier<Vec3> from = mid(c.target(), c.aim), to = mid(c.caster(), c.pos.add(0, 1, 0));
+        Brush.tether(from, to, 0.07f, 9, 0.25, 0.08, THIN);
+        Brush.rays(from.get(), 4, 0.9, 0.06f, 6, INK);
+    }
+
+    private static void bleed(Ctx c) {
+        Vec3 p = mid(c.target(), c.aim).get();
+        Brush.rays(p, 3, 0.8, 0.06f, 7, INK);
+        sp("ember", p).size(0.06f, 0.02f).life(14).vel(0, -0.02, 0).grav(0.01f).colors(CRIMSON, BLOOD).envelope(0.05f, 0.5f, 1f);
+    }
+
+    private static void kill(Ctx c) {
+        Supplier<Vec3> base = feet(c.caster(), c.pos);
+        Brush.helix(base, 0.7, 2.2, 1.8, 0.12f, 22, rnd() * 6, INK);
+        Brush.helix(base, 0.7, 2.2, 1.8, 0.06f, 20, rnd() * 6 + 3, THIN);
+        Brush.glow(c.pos.add(0, 1, 0), 1.0f, 8, CRIMSON);
     }
 }

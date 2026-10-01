@@ -131,14 +131,15 @@ public final class Berserker extends AttributeClass {
             Targets.pushAway(c, e, 0.9, 0.45);
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 40, 1));
         }
+        Fx.sound(level, c, SoundEvents.GENERIC_EXPLODE, 0.8f, 1.2f);
+        Fx.shakeNear(level, c, 12, 8, 0.8f);
+        if (cue(p, 11, c, c.add(0, 1, 0), p, null, (int) (radius * 10))) return;
         Fx.burst(level, ParticleTypes.EXPLOSION, c, 3, 1, 0.2, 1, 0);
         dev.abps.util.Fancy.impact(level, c.add(0, 0.5, 0), (float) (radius / 2.2), 0xFF6D00, 0xFF1744);
         dev.abps.util.Vfx.jaws(level, c, radius * 0.8, 10, 1.6, dev.abps.util.Vfx.tint(0x8D6E63), 0xFF6D00);
         Fx.burst(level, Fx.block(level.getBlockState(BlockPos.containing(c).below())), c, 50, radius / 2, 0.1, radius / 2, 0.2);
         // A shockwave ring spreading out
         Tasks.repeat(4, 1, step -> Fx.ring(level, ParticleTypes.CLOUD, c, 1 + step * radius / 4, 18 + step * 6));
-        Fx.sound(level, c, SoundEvents.GENERIC_EXPLODE, 0.8f, 1.2f);
-        Fx.shakeNear(level, c, 12, 8, 0.8f);
     }
 
     @Override
@@ -154,18 +155,20 @@ public final class Berserker extends AttributeClass {
     @Override
     public void afterHit(ServerPlayer p, PlayerData d, LivingEntity victim, float dealt, Hit hit) {
         if (!hit.melee()) return;
-        dev.abps.util.Vfx.burst(level(p), victim.position().add(0, victim.getBbHeight() / 2, 0), dev.abps.util.Vfx.tint(0xFF1744), 4 + d.stacks, 0.14, 0.12f, 10, -1);
-        if (hit.weapon().is(ItemTags.AXES) && rand() < stunChance(d.level)) {
-            victim.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20, 3));
-            Fx.burst(level(p), ParticleTypes.CRIT, victim.getEyePosition(), 10, 0.3, 0.1);
+        boolean stun = hit.weapon().is(ItemTags.AXES) && rand() < stunChance(d.level);
+        if (!cue(p, 12, p.position(), victim.position().add(0, victim.getBbHeight() * 0.55, 0), p, victim, d.stacks + (stun ? 100 : 0))) {
+            dev.abps.util.Vfx.burst(level(p), victim.position().add(0, victim.getBbHeight() / 2, 0), dev.abps.util.Vfx.tint(0xFF1744), 4 + d.stacks, 0.14, 0.12f, 10, -1);
+            if (stun) Fx.burst(level(p), ParticleTypes.CRIT, victim.getEyePosition(), 10, 0.3, 0.1);
         }
+        if (stun) victim.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20, 3));
         if (now() > d.stacksUntil) d.stacks = 0;
         int before = d.stacks;
         d.stacks = Math.min(MAX_FURY, d.stacks + 1);
         d.stacksUntil = now() + 5000;
         if (before == MAX_FURY - 1 && d.stacks == MAX_FURY) {
             heal(p, 4);
-            Fx.burst(level(p), ParticleTypes.HEART, p.getEyePosition().add(0, 0.5, 0), 3, 0.3, 0);
+            if (!cue(p, 13, p.position(), p.position().add(0, 1, 0), p, null, 0))
+                Fx.burst(level(p), ParticleTypes.HEART, p.getEyePosition().add(0, 0.5, 0), 3, 0.3, 0);
             Fx.sound(level(p), p, SoundEvents.RAVAGER_ROAR, 0.4f, 1.8f);
         }
         AbpsMod.service().actionBar(p, gradient("<bold>Fury " + "▮".repeat(d.stacks) + "</bold>") + "<dark_gray>" + "▯".repeat(MAX_FURY - d.stacks));
@@ -297,6 +300,7 @@ public final class Berserker extends AttributeClass {
         Targets.velocity(p, dir.add(0, 1.0, 0));
         d.noFallUntil = now() + 5000;
         Fx.sound(level, p, SoundEvents.RAVAGER_ROAR, 1f, 0.6f);
+        castTarget = t;
         dev.abps.util.Vfx.trail(level, p, 40, dev.abps.util.Vfx.tint(0xFF1744), 0.26f, 0xFF1744);
         long start = now();
         Tasks.repeat(60, 1, step -> {
@@ -313,6 +317,7 @@ public final class Berserker extends AttributeClass {
                 if (e != t) Targets.damage(e, dmg * 0.5, p);
             }
             Vec3 c = t.position();
+            cue(p, 14, p.position(), c.add(0, t.getBbHeight() * 0.55, 0), p, t, 0);
             dev.abps.util.Fancy.impact(level, c.add(0, 1, 0), 2.6f, 0xFF1744, 0x8B0000);
             dev.abps.util.Vfx.slash(level, c.add(0, 1.4, 0), p.getLookAngle(), 3.2, 3.6, 0.22f, dev.abps.util.Vfx.WHITE, 0xFF1744);
             dev.abps.util.Vfx.jaws(level, c, 3.5, 12, 2.2, dev.abps.util.Vfx.tint(0x8B0000), 0xFF1744);
@@ -326,6 +331,21 @@ public final class Berserker extends AttributeClass {
         });
         used(p, ULTIMATE);
         return true;
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 1 -> (int) (rageTime(d.level) * 20);
+            case 3 -> 60;
+            case 4 -> 200;
+            default -> 0;
+        };
     }
 
     @Override

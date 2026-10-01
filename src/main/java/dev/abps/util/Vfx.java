@@ -60,8 +60,32 @@ public final class Vfx {
     /** Which class the effects being made right now belong to (see FxKind.theme). Set while an ability runs and remembered by scheduled tasks. */
     private static int theme;
 
+    /**
+     * Set on the theme while an ability whose client effect is fully hand-made runs (and inside the tasks it
+     * schedules). Players with the mod then get only that hand-made effect and the cues it asks for; the older
+     * server effects the ability makes are still built for players without the mod.
+     */
+    public static final int AUTHORED = 0x1000;
+
     public static int theme() {
         return theme;
+    }
+
+    /**
+     * A moment in an ability that the client draws itself: a hit landing, a drain tick, a tether snapping. Sent
+     * like a signature with slot set to the cue number (10 and up), from a point toward another point, with up to
+     * two entities to follow. Returns true when everyone nearby who can draw it got it.
+     */
+    public static boolean cue(ServerLevel level, int cue, Vec3 from, Vec3 dir, Vec3 to, Entity a, Entity b, int c1, int c2, int extra) {
+        double[] d = {from.x, from.y, from.z, dir.x, dir.y, dir.z, to.x, to.y, to.z};
+        int[] i = {theme & 0xFF, cue, a == null ? -1 : a.getId(), b == null ? -1 : b.getId(), c1, c2, extra};
+        int saved = theme;
+        theme &= ~AUTHORED; // a cue is the hand-made effect itself, so it always goes out
+        try {
+            return remote(level, from, FxKind.SIGNATURE, d, i);
+        } finally {
+            theme = saved;
+        }
     }
 
     /** Sets the class the following effects belong to and returns the old one so it can be restored. */
@@ -95,7 +119,8 @@ public final class Vfx {
      */
     private static boolean remote(ServerLevel level, Vec3 at, int kind, double[] d, int[] i) {
         if (!enabled) return true;
-        kind |= theme << 8;
+        boolean authored = (theme & AUTHORED) != 0 && kind != FxKind.SIGNATURE;
+        kind |= (theme & 0xFF) << 8;
         java.util.List<ServerPlayer> ready = new ArrayList<>();
         boolean anyone = false;
         for (ServerPlayer p : level.players()) {
@@ -107,6 +132,8 @@ public final class Vfx {
         // Display entities are seen by everyone, so they are only a fallback when nobody nearby has the mod.
         // Otherwise players with the mod would get a pile of blocks on top of their own effects.
         if (ready.isEmpty()) return false;
+        // The hand-made client effect already covers this one
+        if (authored) return true;
         Net.VfxPayload payload = new Net.VfxPayload(kind, d, i);
         for (ServerPlayer p : ready) ServerPlayNetworking.send(p, payload);
         return true;
@@ -114,7 +141,8 @@ public final class Vfx {
 
     /** Sends to every nearby player who can draw effects, without falling back to displays for anyone else. */
     private static void sendReady(ServerLevel level, Vec3 at, int kind, double[] d, int[] i) {
-        kind |= theme << 8;
+        if ((theme & AUTHORED) != 0) return;
+        kind |= (theme & 0xFF) << 8;
         Net.VfxPayload payload = new Net.VfxPayload(kind, d, i);
         for (ServerPlayer p : level.players()) {
             if (p.position().distanceToSqr(at) <= 96 * 96 && AbpsMod.service().vfxReady(p)) ServerPlayNetworking.send(p, payload);

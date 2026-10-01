@@ -112,7 +112,7 @@ public final class Pyromancer extends AttributeClass {
 
     @Override
     public void tick(ServerPlayer p, PlayerData d) {
-        if (d.tickCount % 8 == 0) dev.abps.util.Vfx.groundRing(level(p), p.position(), 3.8, 4.0, 14, dev.abps.util.Vfx.tint(0xFF6D00), 0.06f, 10, 0xFF6D00);
+        if (d.tickCount % 8 == 0) fallbackOnly(() -> dev.abps.util.Vfx.groundRing(level(p), p.position(), 3.8, 4.0, 14, dev.abps.util.Vfx.tint(0xFF6D00), 0.06f, 10, 0xFF6D00));
         if (d.tickCount % 8 != 0) return; // every 2 seconds
         ServerLevel level = level(p);
         for (LivingEntity e : Targets.enemiesNear(p, p.position(), 4)) {
@@ -125,7 +125,7 @@ public final class Pyromancer extends AttributeClass {
             p.hurtServer(level, p.damageSources().magic(), 1f);
             AbpsMod.service().actionBar(p, "<aqua>The water burns you!");
         }
-        Fx.burst(level, ParticleTypes.SMOKE, p.position().add(0, 1, 0), 6, 0.3, 0.5, 0.3, 0.01);
+        fallbackOnly(() -> Fx.burst(level, ParticleTypes.SMOKE, p.position().add(0, 1, 0), 6, 0.3, 0.5, 0.3, 0.01));
     }
 
     @Override
@@ -166,9 +166,10 @@ public final class Pyromancer extends AttributeClass {
                 Targets.damage(le, dmg, p);
                 le.igniteForSeconds(3);
             }
+            Fx.sound(level, at, SoundEvents.GENERIC_EXPLODE, 0.6f, 1.5f);
+            if (cue(p, 13, at, at.add(0, 1, 0), p, null, 0)) return;
             Fx.burst(level, ParticleTypes.EXPLOSION, at, 1, 0, 0);
             Fx.burst(level, ParticleTypes.FLAME, at, 30, 0.6, 0.12);
-            Fx.sound(level, at, SoundEvents.GENERIC_EXPLODE, 0.6f, 1.5f);
         });
     }
 
@@ -188,12 +189,16 @@ public final class Pyromancer extends AttributeClass {
             Targets.damage(le, dmg * 0.5, p);
             le.igniteForSeconds(3);
         }
+        Fx.sound(level, at, SoundEvents.BLAZE_HURT, 0.7f, 1.4f);
+        if (cue(p, 11, at, at.add(0, 1, 0), p, null, 0)) {
+            projectile.discard();
+            return true;
+        }
         Fx.burst(level, ParticleTypes.FLAME, at, 40, 0.8, 0.08);
         dev.abps.util.Fancy.impact(level, at, 2f, 0xFF6D00, 0xFFD600);
         dev.abps.util.Vfx.sphere(level, at, 0.3, 3, 20, dev.abps.util.Vfx.tint(0xFF6D00), 0.2f, 12, 0xFF6D00);
         Fx.burst(level, ParticleTypes.LAVA, at, 6, 0.5, 0);
         Fx.burst(level, ParticleTypes.EXPLOSION, at, 1, 0, 0);
-        Fx.sound(level, at, SoundEvents.BLAZE_HURT, 0.7f, 1.4f);
         projectile.discard();
         return true; // no fire on blocks, no normal fireball damage
     }
@@ -216,6 +221,7 @@ public final class Pyromancer extends AttributeClass {
         fb.addTag(FIREBALL);
         fb.addTag("abps_ability");
         p.level().addFreshEntity(fb);
+        cue(p, 12, p.getEyePosition(), p.getEyePosition().add(look), fb, null, 0);
         Fx.sound(level(p), p, SoundEvents.BLAZE_SHOOT, 1f, 1f);
         dev.abps.util.Vfx.trail(level(p), fb, 40, dev.abps.util.Vfx.tint(0xFF9800), 0.24f, 0xFF6D00);
         dev.abps.util.Vfx.flash(level(p), p.getEyePosition().add(look), 1.3f, dev.abps.util.Vfx.tint(0xFFD600), 6, 0xFF6D00);
@@ -239,6 +245,10 @@ public final class Pyromancer extends AttributeClass {
             e.igniteForSeconds(6);
             Targets.pushAway(c, e, 0.5, 0.3);
         }
+        Fx.sound(level, c, SoundEvents.FIRECHARGE_USE, 1f, 0.7f);
+        Fx.sound(level, c, SoundEvents.BLAZE_SHOOT, 0.8f, 0.6f);
+        Fx.shakeNear(level, c, 10, 5, 0.4f);
+        if (cue(p, 14, c, c.add(0, 1, 0), p, null, 0)) return;
         Tasks.repeat(6, 1, step -> {
             Fx.ring(level, ParticleTypes.FLAME, c, 1 + step * 1.2, 10 + step * 10);
             if (step % 2 == 0) Fx.ring(level, Fx.dust(0xFF3D00, 1.3f), c.add(0, 0.3, 0), 1 + step, 8 + step * 6);
@@ -246,9 +256,6 @@ public final class Pyromancer extends AttributeClass {
         Fx.burst(level, ParticleTypes.LAVA, c, 12, 2, 0.3, 2, 0);
         dev.abps.util.Fancy.sigil(level, c, 7, 10, 0xFF6D00, 0xFFD600, 24);
         dev.abps.util.Vfx.sphere(level, c.add(0, 1, 0), 0.5, 7, 46, dev.abps.util.Vfx.tint(0xFF6D00), 0.24f, 14, 0xFF3D00);
-        Fx.sound(level, c, SoundEvents.FIRECHARGE_USE, 1f, 0.7f);
-        Fx.sound(level, c, SoundEvents.BLAZE_SHOOT, 0.8f, 0.6f);
-        Fx.shakeNear(level, c, 10, 5, 0.4f);
     }
 
     @Override
@@ -362,6 +369,20 @@ public final class Pyromancer extends AttributeClass {
     @Override
     protected double groundAimRange(int idx) {
         return idx == 4 ? 40 : 0;
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 4 -> 30;
+            case ULTIMATE -> 120;
+            default -> 0;
+        };
     }
 
     @Override

@@ -184,11 +184,12 @@ public final class Archer extends AttributeClass {
         Targets.velocity(p, pull);
         d.noFallUntil = now() + 4000;
         ServerLevel level = level(p);
+        Fx.sound(level, p, SoundEvents.TRIDENT_RIPTIDE_1, 1f, 1.3f);
+        if (cue(p, 11, p.getEyePosition().add(0, -0.2, 0), to, p, null, 0)) return true;
         Fx.line(level, Fx.dust(0xD7CCC8, 0.6f), p.getEyePosition(), to, 0.5);
         dev.abps.util.Fancy.laser(level, p.getEyePosition().add(0, -0.2, 0), to, 0.1f, 0xD7CCC8, 0xFFFFFF, 12);
         dev.abps.util.Fancy.impact(level, to, 1.2f, 0xD7CCC8, 0xFFFFFF);
         dev.abps.util.Vfx.trail(level, p, 14, dev.abps.util.Vfx.tint(0xD7CCC8), 0.16f, 0xFFFFFF);
-        Fx.sound(level, p, SoundEvents.TRIDENT_RIPTIDE_1, 1f, 1.3f);
         return true;
     }
 
@@ -230,6 +231,7 @@ public final class Archer extends AttributeClass {
             return false;
         }
         t.addEffect(new MobEffectInstance(MobEffects.GLOWING, 240, 0));
+        castTarget = t;
         d.markTarget = t.getUUID();
         d.setBuff("mark", 12_000);
         ServerLevel level = level(p);
@@ -321,6 +323,7 @@ public final class Archer extends AttributeClass {
                 Targets.velocity(e, look.scale(1.2).add(0, 0.3, 0));
                 Fx.burst(level, ParticleTypes.END_ROD, e.getEyePosition(), 10, 0.3, 0.2);
             }
+            cue(p, 12, eye.add(look.scale(1.0)).add(0, -0.25, 0), end, p, null, 0);
             Fx.line(level, ParticleTypes.END_ROD, eye, end, 0.4);
             dev.abps.util.Fancy.laser(level, eye.add(look.scale(1.0)).add(0, -0.25, 0), end, 0.7f, 0x00BFA5, 0xFFFFFF, 14);
             dev.abps.util.Fancy.impact(level, end, 3f, 0x00BFA5, 0xFFFFFF);
@@ -344,6 +347,22 @@ public final class Archer extends AttributeClass {
         net.minecraft.world.phys.Vec3 look = p.getLookAngle();
         dev.abps.util.Vfx.beam(level, eye.add(look.scale(0.8)).add(0, -0.25, 0), eye.add(look.scale(ult ? 30 : 14)), ult ? 0.16f : 0.07f, dev.abps.util.Vfx.tint(rgb()), 10, rgb());
         dev.abps.util.Vfx.burst(level, eye.add(look.scale(1.2)), dev.abps.util.Vfx.tint(rgb2()), 8, 0.14, 0.1f, 12, rgb2());
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 1 -> volleyCount(d.level);
+            case 2 -> 240;
+            case 4 -> stormWaves(d.level) * 5;
+            case ULTIMATE -> 20;
+            default -> 0;
+        };
     }
 
     @Override

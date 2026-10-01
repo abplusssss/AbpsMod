@@ -23,6 +23,8 @@ final class Signatures {
     /** Everything a signature needs to know about the cast. */
     static final class Ctx {
         final int theme, slot, casterId, targetId, c1, c2;
+        /** How long the ability lasts in ticks, or the cue's extra number. */
+        final int ticks;
         final Vec3 pos, look, aim;
         final Skin skin;
 
@@ -36,6 +38,7 @@ final class Signatures {
             this.targetId = i[3];
             this.c1 = i[4];
             this.c2 = i[5];
+            this.ticks = i.length > 6 ? i[6] : 0;
             this.skin = Skin.of(i[0]);
         }
 
@@ -167,7 +170,6 @@ final class Signatures {
             case Skin.ARCHER -> SigArcher.play(c);
             case Skin.ASSASSIN -> SigAssassin.play(c);
             case Skin.BERSERKER -> SigBerserker.play(c);
-            case Skin.DRUID -> SigDruid.play(c);
             case Skin.MINER -> SigMiner.play(c);
             case Skin.NECRO -> SigNecro.play(c);
             case Skin.PYRO -> SigPyro.play(c);
@@ -175,6 +177,11 @@ final class Signatures {
             case Skin.TANK -> SigTank.play(c);
             case Skin.VAMPIRE -> SigVampire.play(c);
             case Skin.WIND -> SigWind.play(c);
+            case Skin.CRYO -> SigCryo.play(c);
+            case Skin.CHRONO -> SigChrono.play(c);
+            case Skin.PALADIN -> SigPaladin.play(c);
+            case Skin.VOID -> SigVoid.play(c);
+            case Skin.SAMURAI -> SigSamurai.play(c);
             default -> {
             }
         }

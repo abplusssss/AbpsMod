@@ -143,14 +143,27 @@ public final class Targets {
     }
 
     // ---- Rooting ----
+    /** When each rooted entity is free again, so an earlier, shorter root doesn't free it early. */
+    private static final java.util.Map<UUID, Long> rootedUntil = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static void root(LivingEntity e, int ticks) {
         Mods.set(e, Attributes.MOVEMENT_SPEED, "root", -1, Mods.MULT);
         Mods.set(e, Attributes.JUMP_STRENGTH, "root", -1, Mods.MULT);
         velocity(e, new Vec3(0, Math.min(0, e.getDeltaMovement().y), 0));
+        long until = Tasks.now() + ticks;
+        rootedUntil.merge(e.getUUID(), until, Math::max);
         Tasks.later(ticks, () -> {
+            Long end = rootedUntil.get(e.getUUID());
+            if (end != null && end > Tasks.now()) return; // a longer root is still running
+            rootedUntil.remove(e.getUUID());
             Mods.remove(e, Attributes.MOVEMENT_SPEED, "root");
             Mods.remove(e, Attributes.JUMP_STRENGTH, "root");
         });
+    }
+
+    public static boolean isRooted(LivingEntity e) {
+        Long end = rootedUntil.get(e.getUUID());
+        return end != null && end > Tasks.now();
     }
 
     // ---- Minions ----

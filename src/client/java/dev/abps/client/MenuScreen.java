@@ -27,6 +27,7 @@ public final class MenuScreen extends Screen {
         SHOPS("Shops", "minecraft:emerald"),
         TRAVEL("Travel", "minecraft:ender_pearl"),
         PROFILE("Profile", "minecraft:name_tag"),
+        NEWS("What's New", "minecraft:writable_book"),
         KEYBINDS("Keybinds", "minecraft:tripwire_hook"),
         SETTINGS("Settings", "minecraft:comparator"),
         ADMIN("Admin", "minecraft:command_block"); // only shown to operators
@@ -39,7 +40,10 @@ public final class MenuScreen extends Screen {
         }
     }
 
-    private record Btn(int x, int y, int w, int h, Runnable action) {
+    private record Btn(int x, int y, int w, int h, String label, Runnable action) {
+        Btn(int x, int y, int w, int h, Runnable action) {
+            this(x, y, w, h, "", action);
+        }
     }
 
     private final List<Btn> buttons = new ArrayList<>();
@@ -70,6 +74,7 @@ public final class MenuScreen extends Screen {
         super(Component.literal("AbpsMod"));
         switch (tab) {
             case "abilities" -> this.tab = Tab.ABILITIES;
+            case "news", "new" -> this.tab = Tab.NEWS;
             case "road" -> this.tab = Tab.ROAD;
             case "classes", "attributes" -> this.tab = Tab.CLASSES;
             case "top" -> this.tab = Tab.TOP;
@@ -123,7 +128,7 @@ public final class MenuScreen extends Screen {
         int fill = enabled ? Draw.argb(color, hover ? 0x70 : 0x38) : 0xC0202028;
         Draw.framed(g, x, y, w, h, fill, border);
         Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2);
-        if (enabled) buttons.add(new Btn(x, y, w, h, action));
+        if (enabled) buttons.add(new Btn(x, y, w, h, Text.strip(label), action));
     }
 
     // ================= Drawing =================
@@ -133,6 +138,8 @@ public final class MenuScreen extends Screen {
         super.extractRenderState(g, mx, my, pt);
         layout();
         buttons.clear();
+        shopName.hide();
+        homeName.hide();
         Net.SyncPayload s = ClientState.sync;
         Net.ClassInfo c = ClientState.myClass();
         int c1 = c == null ? 0x7C4DFF : c.color(), c2 = c == null ? 0x00E5FF : c.color2();
@@ -158,7 +165,8 @@ public final class MenuScreen extends Screen {
         int ty = py + 30;
         boolean isAdmin = s != null && s.admin();
         int tabCount = Tab.values().length - (isAdmin ? 0 : 1);
-        int step = Math.max(17, Math.min(25, (ph - 36) / tabCount)), tabH = step - 3;
+        // Tabs shrink to fit the window, so every tab stays on screen even on short screens or big GUI scales
+        int step = Math.max(11, Math.min(25, (ph - 36) / tabCount)), tabH = step - (step >= 17 ? 3 : 1);
         if (tab == Tab.ADMIN && !isAdmin) tab = Tab.OVERVIEW; // lost operator status while the menu was open
         for (Tab t : Tab.values()) {
             if (t == Tab.ADMIN && !isAdmin) continue;
@@ -171,11 +179,12 @@ public final class MenuScreen extends Screen {
                 Draw.panel(g, px + 6, ty, 84, tabH, 0x30FFFFFF);
             }
             String icon = t == Tab.OVERVIEW && c != null ? c.icon() : t.icon;
-            float iconScale = tabH >= 20 ? 1f : 0.8f;
+            float iconScale = tabH >= 20 ? 1f : tabH >= 14 ? 0.8f : 0.6f;
             Draw.item(g, icon, px + 11, ty + (tabH - 16 * iconScale) / 2f, iconScale);
-            Draw.text(g, (active ? "<white>" : "<gray>") + t.label, px + 30, ty + (tabH - 8) / 2);
+            if (tabH >= 14) Draw.text(g, (active ? "<white>" : "<gray>") + t.label, px + 30, ty + (tabH - 8) / 2);
+            else Draw.scaled(g, (active ? "<white>" : "<gray>") + t.label, px + 26, ty + (tabH - 6) / 2f, 0.75f, false);
             final Tab target = t;
-            buttons.add(new Btn(px + 6, ty, 84, tabH, () -> switchTab(target)));
+            buttons.add(new Btn(px + 6, ty, 84, tabH, "tab:" + target.name(), () -> switchTab(target)));
             ty += step;
         }
         g.fill(px + 93, py + 30, px + 94, py + ph - 8, Draw.LINE);
@@ -184,7 +193,7 @@ public final class MenuScreen extends Screen {
         if (s == null || !AbpsClient.connected()) {
             Draw.centered(g, "<gray>This server doesn't run AbpsMod, or it's still loading.", cx + cw / 2, cy + ch / 2 - 4);
         } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN && tab != Tab.KEYBINDS
-                && tab != Tab.SHOPS && tab != Tab.TRAVEL && tab != Tab.PROFILE) {
+                && tab != Tab.SHOPS && tab != Tab.TRAVEL && tab != Tab.PROFILE && tab != Tab.NEWS) {
             Draw.centered(g, "<gray>Loading your attribute...", cx + cw / 2, cy + ch / 2 - 4);
         } else {
             g.enableScissor(cx, cy, cx + cw, cy + ch);
@@ -193,7 +202,7 @@ public final class MenuScreen extends Screen {
             int mmx = popup ? -1 : mx, mmy = popup ? -1 : my;
             contentHeight = switch (tab) {
                 case OVERVIEW -> overview(g, mmx, mmy, s, c, top);
-                case ABILITIES -> abilities(g, s, c, top);
+                case ABILITIES -> abilities(g, mmx, mmy, s, c, top);
                 case ROAD -> road(g, mmx, mmy, s, c, top);
                 case CLASSES -> classes(g, mmx, mmy, top);
                 case TOP -> top(g, mmx, mmy, top);
@@ -203,6 +212,7 @@ public final class MenuScreen extends Screen {
                 case SHOPS -> shops(g, mmx, mmy, top);
                 case TRAVEL -> travel(g, mmx, mmy, top);
                 case PROFILE -> profile(g, mmx, mmy, top);
+                case NEWS -> news(g, mmx, mmy, top);
             };
             g.disableScissor();
             // Scroll bar
@@ -288,7 +298,45 @@ public final class MenuScreen extends Screen {
         return y + 12;
     }
 
-    private int abilities(GuiGraphicsExtractor g, Net.SyncPayload s, Net.ClassInfo c, int y0) {
+    /** One new class in the What's New tab: its icon, name, tagline and a button to look at it. */
+    private int newClass(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, String id) {
+        Net.ClassInfo info = ClientState.catalog.get(id);
+        if (info == null) return y;
+        Draw.framed(g, x, y, w, 30, 0xE0101016, Draw.argb(info.color(), 0x90));
+        Draw.item(g, info.icon(), x + 6, y + 7, 1f);
+        Draw.text(g, "<bold>" + Draw.gradient(info.color(), info.color2(), info.symbol() + " " + info.name()) + "</bold>", x + 28, y + 6);
+        Draw.textFit(g, "<gray>" + info.tagline(), x + 28, y + 17, w - 28 - 70);
+        button(g, mx, my, x + w - 64, y + 7, 58, 16, "<white>See it", info.color(), true, () -> {
+            classPick = id;
+            switchTab(Tab.CLASSES);
+        });
+        return y + 34;
+    }
+
+    private int news(GuiGraphicsExtractor g, int mx, int my, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        y = section(g, "5 new attributes", 0x00E5FF, x, y);
+        for (String id : new String[]{"cryomancer", "chronomancer", "paladin", "voidwalker", "samurai"}) y = newClass(g, mx, my, x, y, w, id);
+        y += 4;
+        String[] notes = {
+                "<white>Every ability has a new hand-made effect: smooth strokes of light and ink instead of picture sprites.",
+                "<white>Press <yellow>▶</yellow> next to any ability (Abilities or Attributes tab) to see its effect on yourself. Only you see it.",
+                "<white>Effects no longer cover your screen, and the faint squares around glows are gone.",
+                "<white>Druid was removed. Druid players got a free new attribute and kept their level.",
+                "<white>Shops: every button works again, and long names and prices fit on screen.",
+                "<white>Area abilities land on the ground even when you aim at the sky."};
+        y = section(g, "Changes", 0x69F0AE, x, y);
+        for (String n : notes) y += Draw.wrapped(g, "<#69F0AE>•</#69F0AE> " + n, x, y, w, Draw.TEXT) + 3;
+        return y - y0 + 6;
+    }
+
+    /** Closes the menu and plays an ability's effect on you, so you can see what it looks like. */
+    private void preview(String classId, int slot) {
+        Minecraft.getInstance().gui.setScreen(null);
+        dev.abps.client.fx.FxSystem.preview(classId, slot);
+    }
+
+    private int abilities(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c, int y0) {
         int x = cx + 6, y = y0 + 4;
         int lvlIdx = Math.max(0, Math.min(c.descsByLevel().size() - 1, s.level() - 1));
         int count = ClientState.abilityCount(c);
@@ -298,7 +346,7 @@ public final class MenuScreen extends Screen {
             boolean unlocked = ClientState.unlocked(i);
             String desc = c.descsByLevel().get(lvlIdx).get(i - 1);
             int textW = cw - 16 - 34 - 6;
-            int h = Math.max(34, 14 + Draw.wrappedHeight(desc, textW) + 6);
+            int h = Math.max(44, 14 + Draw.wrappedHeight(desc, textW) + 6);
             int border = ult ? Text.lerp(c.color(), c.color2(), Draw.pulse(0.6f)) : unlocked ? c.color() : 0x3A3A44;
             Draw.framed(g, x, y, cw - 16, h, ult ? 0xE0181420 : 0xE0121218, Draw.argb(border, 0xFF));
             Draw.framed(g, x + 5, y + 5, 24, 24, 0xFF0A0A10, Draw.argb(border, 0xA0));
@@ -313,6 +361,8 @@ public final class MenuScreen extends Screen {
             int mw = Draw.font().width(Text.mm(meta));
             Draw.scaled(g, meta, x + cw - 20 - mw * 0.75f, y + 6, 0.75f, false);
             Draw.wrapped(g, desc, x + 34, y + 17, textW, unlocked ? Draw.MUTED : Draw.DIM);
+            final int slot = i;
+            button(g, mx, my, x + 5, y + 31, 24, 10, "<white>▶", c.color(), true, () -> preview(c.id(), slot));
             y += h + 4;
         }
         Draw.wrapped(g, "<dark_gray>Change keys in Options > Controls > Key Binds > AbpsMod.", x, y + 2, cw - 16, Draw.DIM);
@@ -417,7 +467,10 @@ public final class MenuScreen extends Screen {
             if (i == 5 && shown < 5) continue;
             Draw.item(g, Draw.abilityIcon(info.id(), i), dx, yy - 2, 0.6f);
             String n = i == 6 ? "<gold>★ " + info.abilityNames().get(5) + "</gold> <dark_gray>(ultimate)" : "<white>" + info.abilityNames().get(i - 1);
-            yy += Draw.wrapped(g, n, dx + 12, yy, dw - 12, Draw.TEXT) + 1;
+            final int slot = i;
+            final String cid = info.id();
+            button(g, mx, my, dx + dw - 22, yy - 1, 22, 10, "<white>▶", info.color(), true, () -> preview(cid, slot));
+            yy += Draw.wrapped(g, n, dx + 12, yy, dw - 36, Draw.TEXT) + 1;
         }
         yy += 4;
         Draw.text(g, "<bold><#69F0AE>Passives</#69F0AE></bold> <dark_gray>(at level 1)", dx, yy);
@@ -874,9 +927,10 @@ public final class MenuScreen extends Screen {
             });
         } else {
             Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Open your own shop", x + 8, y + 6);
-            Draw.textFit(g, "<gray>Costs " + list.createCost(), x + 8, y + 18, w - 16);
+            Draw.textFit(g, (list.canCreate() ? "<gray>Costs " : "<#FF8A80>You need ") + list.createCost(), x + 8, y + 18, w - 16);
             shopName.draw(g, x + 8, y + 31, w - 112, 18, 0x69F0AE, "Shop name (optional)");
-            button(g, mx, my, x + w - 98, y + 31, 90, 18, "<white><bold>Open shop", 0x69F0AE, list.canCreate(), () -> {
+            // Always clickable: if you can't pay, the server says exactly what's missing
+            button(g, mx, my, x + w - 98, y + 31, 90, 18, "<white><bold>Open shop", list.canCreate() ? 0x69F0AE : 0x9E9E9E, true, () -> {
                 AbpsClient.send("shop", "create|" + shopName.text().trim());
                 waitingShop = me;
             });
@@ -902,7 +956,7 @@ public final class MenuScreen extends Screen {
                 ix += 18;
             }
             final java.util.UUID owner = card.owner();
-            buttons.add(new Btn(x, y, w, 32, () -> {
+            buttons.add(new Btn(x, y, w, 32, "shop:" + card.name(), () -> {
                 waitingShop = owner;
                 AbpsClient.send("shop", "open|" + owner);
             }));
@@ -1051,13 +1105,26 @@ public final class MenuScreen extends Screen {
         return y - y0 + 6;
     }
 
+    /** Development only: clicks the first button whose label starts with this, through the real mouse code. */
+    boolean press(String label) {
+        for (Btn b : List.copyOf(buttons)) {
+            if (!b.label.startsWith(label)) continue;
+            mouseClicked(new MouseButtonEvent(b.x + b.w / 2.0, b.y + b.h / 2.0, new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+            return true;
+        }
+        return false;
+    }
+
     // ================= Input =================
 
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         dev.abps.AbpsMod.LOGGER.debug("[Abps menu] click at {},{} button {} with {} buttons registered, popup='{}'",
                 (int) e.x(), (int) e.y(), e.button(), buttons.size(), confirm);
-        boolean typed = shopName.click(e.x(), e.y()) | homeName.click(e.x(), e.y());
+        // Text boxes only count inside the visible content area, and never under a popup
+        boolean inContent = confirm.isEmpty() && Draw.inside(e.x(), e.y(), cx, cy, cw, ch);
+        double fx = inContent ? e.x() : -9999, fy = inContent ? e.y() : -9999;
+        boolean typed = shopName.click(fx, fy) | homeName.click(fx, fy);
         if (typed) return true;
         if (e.button() == 0 || e.button() == 1) { // left or right click, so swapped mouse buttons still work
             for (Btn b : List.copyOf(buttons)) {
