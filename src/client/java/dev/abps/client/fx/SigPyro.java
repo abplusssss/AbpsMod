@@ -42,22 +42,15 @@ final class SigPyro {
         }
     }
 
-    /** A few real flames licking up from a point. */
-    static void flames(Vec3 at, double spread, int count, float size) {
-        Brush.fire(at, spread, Math.max(1, (count + 1) / 2), size, ORANGE, GOLD);
-    }
-
     static void smoke(Vec3 at, double spread, int count) {
         Brush.mist(at, spread, count, 0x2A2420, 0.55f, 1.2f, 30);
     }
 
-    /** A fire explosion: a flash, a burst ring facing you, flames, embers and smoke. */
+    /** A fire explosion: a flash, a burst ring facing you, rays of fire and a little smoke. */
     static void blast(Vec3 at, float s) {
         Brush.glow(at, 2.0f * s, 10, ORANGE);
         Brush.shock(at, Brush.camera().subtract(at).normalize(), 0.3, 2.6 * s, 0.2f * s, 11, FIRE);
         Brush.rays(at, 10, 2.2 * s, 0.1f * s, 9, HOT);
-        flames(at, 0.6 * s, 10, 0.5f * s);
-        Brush.embers(at, 18, 0.3 * s, ORANGE);
         smoke(at.add(0, 0.3, 0), 0.6 * s, 6);
     }
 
@@ -70,11 +63,9 @@ final class SigPyro {
             Vec3 p = e.position().add(0, e.getBbHeight() * 0.5, 0);
             Vec3 v = e.getDeltaMovement();
             sp("glow", p).size(0.6f, 0.4f).life(3).colors(WHITE, ORANGE).envelope(0.05f, 0.4f, 1f);
-            flames(p, 0.1, 1, 0.35f);
             if (v.lengthSqr() > 0.01 && t % 2 == 0) {
-                FIRE.on(Brush.lineCam(p.subtract(v.normalize().scale(1.8)), p)).width(0.22f).time(7, 2).hold(0f).tailChase(1f).sparks(1).segments(10).play();
+                FIRE.on(Brush.lineCam(p.subtract(v.normalize().scale(1.8)), p)).width(0.22f).time(7, 2).hold(0f).tailChase(1f).sparks(0).segments(10).play();
             }
-            if (t % 3 == 0) smoke(p, 0.1, 1);
         });
     }
 
@@ -87,12 +78,6 @@ final class SigPyro {
         Brush.dome(g.add(0, 1, 0), 0.5, 3.5, 0.14f, 12, FIRE);
         Brush.circle(c.pos, 7, 26, 7, CHAR, FIRE);
         Brush.raysUp(g, 10, 2.8, 0.1f, 10, HOT);
-        for (int k = 0; k < 16; k++) {
-            double a = k * Math.PI / 8;
-            Vec3 p = g.add(Math.cos(a) * 4, 0, Math.sin(a) * 4);
-            at(3, () -> flames(p, 0.4, 3, 0.7f));
-        }
-        Brush.embers(g.add(0, 1, 0), 24, 0.35, ORANGE);
     }
 
     /** Blaze Dash: you leave a ribbon of fire behind, with rings blowing off it. */
@@ -104,9 +89,8 @@ final class SigPyro {
             Vec3 v = e == null ? c.look : e.getDeltaMovement();
             if (v.lengthSqr() < 0.02) return;
             Vec3 d = v.normalize();
-            FIRE.on(Brush.lineCam(p.subtract(d.scale(2.2)), p)).width(0.32f).time(9, 2).hold(0.1f).tailChase(1f).sparks(2).segments(12).play();
+            FIRE.on(Brush.lineCam(p.subtract(d.scale(2.2)), p)).width(0.32f).time(9, 2).hold(0.1f).tailChase(1f).sparks(0).segments(12).play();
             if (t % 3 == 0) Brush.ring(p, d, 0.9, 0.08f, 8, 2, HOT);
-            flames(p.add(0, -0.6, 0), 0.3, 2, 0.6f);
         });
     }
 
@@ -122,9 +106,8 @@ final class SigPyro {
             Vec3 next = start.lerp(g.add(0, 0.8, 0), Math.min(1, (f + 0.05) * (f + 0.05)));
             Vec3 d = next.subtract(p).lengthSqr() < 1e-6 ? new Vec3(0, -1, 0) : next.subtract(p).normalize();
             sp("glow", p).size(1.6f, 1.2f).life(3).colors(WHITE, ORANGE).envelope(0.05f, 0.5f, 1f);
-            FIRE.on(Brush.lineCam(p.subtract(d.scale(5)), p)).width(0.9f).time(6, 2).hold(0f).tailChase(1f).sparks(2).segments(14).play();
+            FIRE.on(Brush.lineCam(p.subtract(d.scale(5)), p)).width(0.9f).time(6, 2).hold(0f).tailChase(1f).sparks(0).segments(14).play();
             CHAR.on(Brush.lineCam(p.subtract(d.scale(3.5)), p)).width(0.45f).time(6, 2).hold(0f).tailChase(1f).sparks(0).segments(10).play();
-            flames(p, 0.5, 2, 0.9f);
             if (t % 2 == 0) smoke(p.subtract(d.scale(2)), 0.6, 2);
         });
         at(fall, () -> {
@@ -153,11 +136,6 @@ final class SigPyro {
                 Brush.shock(b.add(0, 0.08, 0), Brush.UP, 0.6, 8, 0.25f, 14, FIRE);
                 Brush.ring(b.add(0, 0.08, 0), Brush.UP, 8, 0.16f, 22, 0.8, HOT);
             }
-            if (t % 2 == 0) {
-                double a = rnd() * Math.PI * 2, r = 1 + rnd() * 7;
-                flames(b.add(Math.cos(a) * r, 0.1, Math.sin(a) * r), 0.2, 1, 0.8f);
-            }
-            if (t % 6 == 0) Brush.embers(b.add(0, 1, 0), 3, 0.2, ORANGE);
         });
     }
 }
