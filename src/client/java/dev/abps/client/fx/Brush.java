@@ -278,12 +278,48 @@ final class Brush {
         bloom(at, size, life, col);
     }
 
-    /** A soft cloud of smoke or mist. alpha is how solid it is. */
+    /**
+     * Smoke or mist, drawn as a few curling wisps that rise and drift, not as flat puffs. Dark colors become ink
+     * wisps, light ones become faint light. alpha is how strong it is.
+     */
     static void mist(Vec3 at, double spread, int count, int col, float alpha, float size, int life) {
-        for (int k = 0; k < n(count); k++) {
-            Vec3 p = at.add(gauss() * spread, gauss() * spread * 0.5, gauss() * spread);
-            sp("smoke", p).size(size * 0.6f, size * 1.4f).life(life + (int) (rnd() * 8)).colors(lighten(col, 0.2f), col)
-                    .vel(gauss() * 0.01, 0.01 + rnd() * 0.01, gauss() * 0.01).spin((float) (gauss() * 0.03)).envelope(0.15f, 0.5f, alpha);
+        int r = (col >> 16) & 0xFF, g = (col >> 8) & 0xFF, b = col & 0xFF;
+        boolean dark = r + g + b < 300;
+        Paint p = dark ? Paint.ink(col, lighten(col, 0.35f)) : Paint.light(col, 0.35f + alpha * 0.4f);
+        int wisps = Math.max(1, n(count) / 3);
+        for (int k = 0; k < wisps; k++) {
+            Vec3 base = at.add(gauss() * spread, gauss() * spread * 0.4, gauss() * spread);
+            double h = size * (1.2 + rnd() * 0.8), phase = rnd() * 6.28, curl = (0.25 + rnd() * 0.3) * size;
+            Vec3 drift = new Vec3(gauss(), 0, gauss()).normalize().scale(size * 0.4);
+            p.on(Ribbon.curve((s, t) -> base.add(drift.scale(s + t)).add(Math.sin(s * 5 + phase + t * 2) * curl, s * h + t * size * 0.5, Math.cos(s * 4 + phase) * curl),
+                    (s, t) -> faceCam(base, UP))).width((float) (size * 0.22)).time(life, Math.max(4, life / 3)).hold(0.3f).tailChase(0.7f).sparks(0)
+                    .segments(16).play();
+        }
+    }
+
+    /**
+     * One tongue of fire: a wavering stroke, widest near its base and sharp at the tip, with a hotter core inside.
+     * It flickers and rises as it burns out.
+     */
+    static void flame(Vec3 base, double height, float width, int life, int outer, int inner) {
+        double phase = rnd() * 6.28, sway = height * 0.18;
+        for (int layer = 0; layer < 2; layer++) {
+            double hh = layer == 0 ? height : height * 0.6;
+            Paint p = layer == 0 ? Paint.light(outer, 1.3f) : Paint.light(inner, 1.1f);
+            // Drawn from the tip down to the base, so the stroke's sharp point is the tip and its body sits low
+            p.on(Ribbon.curve((s, t) -> {
+                double up = 1 - s;
+                return base.add(Math.sin(up * 3 + phase + t * 9) * sway * up, up * hh + t * hh * 0.3, Math.cos(up * 2.5 + phase + t * 7) * sway * up * 0.6);
+            }, (s, t) -> faceCam(base, UP))).width(layer == 0 ? width : width * 0.55f).time(life, 2).hold(0.4f).tailChase(0.15f).sparks(layer == 0 ? 1 : 0)
+                    .segments(12).play();
+        }
+    }
+
+    /** A few flame tongues around a point. */
+    static void fire(Vec3 at, double spread, int count, float size, int outer, int inner) {
+        for (int k = 0; k < Math.max(1, n(count)); k++) {
+            Vec3 b = at.add(gauss() * spread, 0, gauss() * spread);
+            flame(b, size * (1.4 + rnd() * 0.8), size * 0.45f, 10 + (int) (rnd() * 6), outer, inner);
         }
     }
 

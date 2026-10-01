@@ -34,6 +34,7 @@ final class SigMiner {
     }
 
     static void debris(Vec3 at, int count, double speed) {
+        count = Math.max(1, count / 2);
         for (int k = 0; k < n(count); k++) {
             sp("debris", at.add(gauss() * 0.3, gauss() * 0.3, gauss() * 0.3)).size(0.12f, 0.08f).life(16 + (int) (rnd() * 12))
                     .vel(rndUp().scale(speed * (0.5 + rnd()))).grav(0.05f).drag(0.96f).colors(0x9E9E9E, 0x5D4037).spin((float) (gauss() * 0.3))

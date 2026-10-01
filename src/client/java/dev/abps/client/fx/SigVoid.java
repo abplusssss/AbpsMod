@@ -140,10 +140,7 @@ final class SigVoid {
         Brush.helix(feet, 0.7, 2.1, 1.5, 0.12f, 16, 0, VOID);
         during(4, life, t -> {
             if (t % 8 == 0) Brush.helix(feet, 0.6, 2.0, 1.2, 0.07f, 14, t * 0.6, t % 16 == 0 ? VOID : GLOW);
-            if (t % 3 == 0) {
-                Vec3 p = feet.get().add(gauss() * 0.3, rnd() * 1.8, gauss() * 0.3);
-                sp("smoke", p).size(0.3f, 0.6f).life(14).colors(0x2A1050, 0x05010A).vel(0, 0.01, 0).envelope(0.1f, 0.4f, 0.55f);
-            }
+            if (t % 10 == 0) Brush.mist(feet.get().add(0, 0.2, 0), 0.3, 3, 0x1A0A33, 0.7f, 0.9f, 16);
         });
         at(life, () -> rift(feet.get().add(0, 1, 0), 2.0, 12));
     }

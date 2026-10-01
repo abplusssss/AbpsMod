@@ -161,10 +161,7 @@ final class SigSamurai {
         Brush.shock(c.pos.add(0, 0.1, 0), Brush.UP, 0.3, 3, 0.2f, 10, INK);
         Brush.rays(c.chest(), 10, 2, 0.08f, 8, INK);
         Brush.glow(c.chest(), 1.4f, 8, RED);
-        for (int k = 0; k < 8; k++) {
-            Vec3 p = c.chest().add(gauss() * 0.4, gauss() * 0.6, gauss() * 0.4);
-            sp("smoke", p).size(0.4f, 0.9f).life(16).colors(0x15151A, 0x050508).vel(gauss() * 0.02, 0.02, gauss() * 0.02).envelope(0.05f, 0.4f, 0.7f);
-        }
+        Brush.mist(c.chest().add(0, -0.5, 0), 0.4, 9, 0x101014, 0.8f, 1f, 18);
     }
 
     // ------------------------------------------------------------------ cues

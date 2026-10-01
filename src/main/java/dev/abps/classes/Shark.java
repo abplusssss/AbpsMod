@@ -180,15 +180,19 @@ public final class Shark extends AttributeClass {
             Targets.velocity(p, p.getDeltaMovement().add(look.x * 0.5, 0.75, look.z * 0.5));
             d.noFallUntil = now() + 3000;
             ServerLevel lv = level(p);
-            Vfx.groundRing(lv, p.position(), 0.5, 3, 20, Vfx.tint(rgb2()), 0.12f, 10, rgb2());
-            Vfx.burst(lv, p.position().add(0, 0.5, 0), Vfx.tint(rgb()), 14, 0.2, 0.16f, 16, rgb());
             Fx.sound(lv, p, SoundEvents.DOLPHIN_JUMP, 1f, 1f);
+            if (!cue(p, 14, p.position(), p.position().add(0, 1, 0), p, null, 0)) {
+                Vfx.groundRing(lv, p.position(), 0.5, 3, 20, Vfx.tint(rgb2()), 0.12f, 10, rgb2());
+                Vfx.burst(lv, p.position().add(0, 0.5, 0), Vfx.tint(rgb()), 14, 0.2, 0.16f, 16, rgb());
+            }
         }
 
         if (d.buff("frenzy") && d.tickCount % 2 == 0) {
             ServerLevel level = level(p);
-            Fx.burst(level, Fx.dust(0xB71C1C, 1f), p.position().add(0, 1, 0), 3, 0.4, 0);
-            if (inWater) Fx.burst(level, ParticleTypes.BUBBLE_POP, p.position().add(0, 1, 0), 3, 0.4, 0.05);
+            fallbackOnly(() -> {
+                Fx.burst(level, Fx.dust(0xB71C1C, 1f), p.position().add(0, 1, 0), 3, 0.4, 0);
+                if (inWater) Fx.burst(level, ParticleTypes.BUBBLE_POP, p.position().add(0, 1, 0), 3, 0.4, 0.05);
+            });
         }
     }
 
@@ -217,7 +221,8 @@ public final class Shark extends AttributeClass {
     public void afterHit(ServerPlayer p, PlayerData d, LivingEntity victim, float dealt, Hit hit) {
         if (d.buff("frenzy")) {
             heal(p, dealt * frenzySteal(d.level));
-            Fx.burst(level(p), Fx.dust(0xB71C1C, 0.9f), victim.position().add(0, victim.getBbHeight() / 2, 0), 6, 0.3, 0);
+            if (!cue(p, 12, p.position(), victim.position().add(0, victim.getBbHeight() / 2, 0), p, victim, 0))
+                Fx.burst(level(p), Fx.dust(0xB71C1C, 0.9f), victim.position().add(0, victim.getBbHeight() / 2, 0), 6, 0.3, 0);
         }
         if (victim.isInWater() && victim.isAlive() && victim.getHealth() < victim.getMaxHealth() * 0.4f) {
             victim.addEffect(new MobEffectInstance(MobEffects.GLOWING, WOUNDED_MARK_TICKS, 0));
@@ -251,8 +256,10 @@ public final class Shark extends AttributeClass {
         heal(p, 4);
         ServerLevel level = level(p);
         Vec3 from = victim.position().add(0, victim.getBbHeight() / 2, 0);
-        Vfx.burst(level, from, Vfx.tint(0xB71C1C), 16, 0.18, 0.16f, 16, 0xB71C1C);
-        Vfx.beam(level, from, p.getEyePosition(), 0.12f, Vfx.tint(0xB71C1C), 8, 0xFF1744);
+        if (!cue(p, 15, p.position(), from, p, victim, 0)) {
+            Vfx.burst(level, from, Vfx.tint(0xB71C1C), 16, 0.18, 0.16f, 16, 0xB71C1C);
+            Vfx.beam(level, from, p.getEyePosition(), 0.12f, Vfx.tint(0xB71C1C), 8, 0xFF1744);
+        }
         dev.abps.AbpsMod.service().actionBar(p, gradient("<bold>≋ Blood in the water</bold>") + " <gray>+2s Frenzy");
     }
 
@@ -281,6 +288,7 @@ public final class Shark extends AttributeClass {
             for (LivingEntity e : Targets.enemiesNear(p, body, 2.2)) {
                 if (!hit.add(e.getUUID())) continue;
                 Targets.damage(e, dmg, p);
+                cue(p, 16, p.position(), e.position().add(0, e.getBbHeight() / 2, 0), p, e, 0);
                 Vec3 side = e.position().subtract(p.position());
                 Targets.velocity(e, dir.scale(0.6).add(side.normalize().scale(0.5)).add(0, 0.35, 0));
                 // A bite: teeth snap shut around it, then it bleeds
@@ -329,6 +337,7 @@ public final class Shark extends AttributeClass {
             Targets.velocity(e, look.scale(1.5).add(0, 0.35, 0));
             e.addEffect(new MobEffectInstance(MobEffects.GLOWING, (int) (scentTime(d.level) * 20), 0));
             MARKS.put(e.getUUID(), markUntil);
+            cue(p, 17, eye, e.position().add(0, e.getBbHeight() / 2, 0), p, e, 0);
             Vec3 core = e.position().add(0, e.getBbHeight() / 2, 0);
             Vfx.ring(level, core, new Vec3(0, 1, 0), 2.0, 0.5, 14, Vfx.tint(0xFF1744), 0.09f, 20, 0xFF1744);
             Vfx.burst(level, core, Vfx.tint(rgb2()), 12, 0.2, 0.14f, 14, rgb2());
@@ -339,6 +348,7 @@ public final class Shark extends AttributeClass {
         for (double t = 1.5; t < len; t += 2.5) {
             Vfx.ring(level, eye.add(look.scale(t)), look, 0.3, 1.6, 12, Vfx.tint(rgb2()), 0.09f, 8, rgb2());
         }
+        castAim = tip;
         Vfx.burst(level, tip, Vfx.tint(rgb2()), 20, 0.26, 0.2f, 16, rgb2());
         Vfx.burst(level, muzzle, Vfx.WHITE, 10, 0.18, 0.12f, 12, rgb());
         Targets.velocity(p, p.getDeltaMovement().add(look.scale(-0.5)));
@@ -419,6 +429,7 @@ public final class Shark extends AttributeClass {
             double a = Math.PI * 2 * i / 4;
             Vfx.zigzag(level, at.add(Math.cos(a) * 2.5, 0, Math.sin(a) * 2.5), at.add(0, 1.4, 0), 4, 0.4, 0.07f, Vfx.tint(0xB71C1C), 12, 0xFF1744);
         }
+        cue(p, 13, at, at.add(0, 1, 0), p, null, ticks);
         Fx.sound(level, p, SoundEvents.WARDEN_ROAR, 0.5f, 1.6f);
         Fx.sound(level, p, SoundEvents.DOLPHIN_ATTACK, 1f, 0.5f);
         Fx.screen(p, Fx.TINT, 0xB71C1C, 20, 0.18f);
@@ -467,6 +478,7 @@ public final class Shark extends AttributeClass {
             e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1));
             Fx.burst(level, ParticleTypes.SPLASH, e.position().add(0, 1, 0), 20, 0.4, 0.2);
         }
+        cue(p, 18, at, at.add(0, 1, 0), p, null, 0);
         // Giant jaws slam shut around the impact, then the water blows outward
         Vfx.jaws(level, at, 6.5, 16, 3.6, Vfx.WHITE, rgb());
         Vfx.jaws(level, at, 3.6, 10, 2.4, Vfx.WHITE, rgb2());
@@ -620,6 +632,20 @@ public final class Shark extends AttributeClass {
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, ticks, 1));
         startFrenzy(p, d, leviathanTime(d.level));
         return true;
+    }
+
+    @Override
+    protected boolean authored(int idx) {
+        return true;
+    }
+
+    @Override
+    protected int fxTicks(int idx, PlayerData d) {
+        return switch (idx) {
+            case 3 -> 105;
+            case ULTIMATE -> 40;
+            default -> 0;
+        };
     }
 
     @Override

@@ -44,10 +44,7 @@ final class SigPyro {
 
     /** A few real flames licking up from a point. */
     static void flames(Vec3 at, double spread, int count, float size) {
-        for (int k = 0; k < n(count); k++) {
-            sp("flame", at.add(gauss() * spread, rnd() * spread * 0.5, gauss() * spread)).size(size, size * 0.4f).life(10 + (int) (rnd() * 8))
-                    .vel(gauss() * 0.01, 0.04 + rnd() * 0.04, gauss() * 0.01).colors(GOLD, RED).envelope(0.1f, 0.5f, 1f);
-        }
+        Brush.fire(at, spread, Math.max(1, (count + 1) / 2), size, ORANGE, GOLD);
     }
 
     static void smoke(Vec3 at, double spread, int count) {

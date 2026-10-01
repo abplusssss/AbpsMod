@@ -187,48 +187,7 @@ final class FxEffects {
     }
 
     static void jaws(double[] d, int[] i, Skin s) {
-        Vec3 c = vec(d, 0);
-        double radius = d[3], height = d[4];
-        int teeth = i[0], col = i[1];
-        double[] hs = new double[teeth];
-        for (int k = 0; k < teeth; k++) hs[k] = 0.75 + rnd() * 0.5;
-        FxSystem.add(new FxSystem.Emitter() {
-            int age;
-
-            @Override
-            public boolean tick(ClientLevel level) {
-                if (age % 2 == 0) {
-                    double tilt = age < 8 ? -0.35 : age < 12 ? -0.35 + 1.1 * (age - 8) / 4.0 : 0.75;
-                    double grow = age < 4 ? (age + 1) / 4.0 : age < 24 ? 1.0 : 1.0 - (age - 24) / 10.0;
-                    int samples = n(4);
-                    for (int k = 0; k < teeth; k++) {
-                        double a = Math.PI * 2 * k / teeth;
-                        Vec3 radial = new Vec3(Math.cos(a), 0, Math.sin(a));
-                        Vec3 base = c.add(radial.scale(radius));
-                        Vec3 tip = new Vec3(0, Math.cos(tilt), 0).add(radial.scale(-Math.sin(tilt)));
-                        double h = height * hs[k] * grow;
-                        for (int q = 0; q <= samples; q++) {
-                            double f = q / (double) Math.max(1, samples);
-                            Vec3 pos = base.add(tip.scale(h * f));
-                            float sz = (float) (0.30 * (1 - 0.7 * f) + 0.06);
-                            sp("glow", pos).size(sz * 1.5f, sz * 0.6f).life(4).colors(lighten(col, 0.5f), col);
-                            if (q == samples) sp("spark", pos).size(0.3f, 0.05f).life(6).colors(WHITE, col);
-                        }
-                        if (rnd() < 0.5) s.mote(base.add(tip.scale(h * rnd())), new Vec3(radial.x * 0.05, 0.08, radial.z * 0.05), 0.16f, 14, col, 0.5f);
-                    }
-                }
-                if (age == 12) {
-                    s.ring(c.add(0, 0.1, 0), new Vec3(0, 1, 0), radius * 0.4, radius * 1.4, 12, col);
-                    s.flash(c.add(0, 0.5, 0), (float) radius * 0.7f + 0.5f, 10, col);
-                    for (int k = 0; k < n(24); k++) {
-                        double a = rnd() * 6.28;
-                        s.mote(c.add(Math.cos(a) * radius * 0.5, 0.4, Math.sin(a) * radius * 0.5), new Vec3(Math.cos(a) * 0.3, 0.3 + rnd() * 0.3, Math.sin(a) * 0.3), 0.22f, 22, col, 0.5f);
-                    }
-                }
-                age++;
-                return age < 34;
-            }
-        });
+        SigShark.jaws(vec(d, 0), d[3], d[4], i[0], 0);
     }
 
     static void slash(double[] d, int[] i, Skin s, int theme) {
@@ -334,38 +293,7 @@ final class FxEffects {
     }
 
     static void fins(double[] d, int[] i, Skin s) {
-        Vec3 c = vec(d, 0);
-        double radius = d[3], turns = d[4];
-        int count = i[0], ticks = i[1], col = i[2];
-        FxSystem.add(new FxSystem.Emitter() {
-            int age;
-
-            @Override
-            public boolean tick(ClientLevel level) {
-                double spin = age / 20.0 * turns * Math.PI * 2;
-                for (int k = 0; k < count; k++) {
-                    double a = spin + Math.PI * 2 * k / count;
-                    Vec3 radial = new Vec3(Math.cos(a), 0, Math.sin(a));
-                    Vec3 tangent = new Vec3(-radial.z, 0, radial.x);
-                    Vec3 p = c.add(radial.scale(radius));
-                    // The fin itself, leaning back, and the V-shaped wake behind it
-                    for (int q = 0; q < 5; q++) {
-                        double f = q / 4.0;
-                        Vec3 fp = p.add(0, f * 1.1, 0).subtract(tangent.scale(f * 0.45));
-                        float sz = (float) (0.34 * (1 - f * 0.65) + 0.05);
-                        sp("glow", fp).size(sz * 1.5f, sz * 0.7f).life(3).colors(lighten(col, 0.35f), col);
-                        sp("foam", fp).size(sz * 1.2f, sz * 1.2f).life(3).colors(0xFFFFFF, lighten(col, 0.6f)).envelope(0.1f, 0.5f, 0.7f);
-                    }
-                    for (int side = -1; side <= 1; side += 2) {
-                        Vec3 w = p.subtract(tangent.scale(0.7)).add(radial.scale(side * 0.35));
-                        sp("foam", w.x, c.y + 0.1, w.z).size(0.5f, 1.0f).life(8).colors(0xFFFFFF, lighten(col, 0.5f)).envelope(0.05f, 0.4f, 0.7f);
-                    }
-                    if (age % 2 == 0) s.mote(p.add(0, 1.0, 0), new Vec3(gauss() * 0.02, 0.06, gauss() * 0.02), 0.14f, 12, col, 0.5f);
-                }
-                age++;
-                return age < ticks;
-            }
-        });
+        SigShark.fins(vec(d, 0), d[3], i[0], i[1], d[4]);
     }
 
     static void helix(double[] d, int[] i, Skin s) {

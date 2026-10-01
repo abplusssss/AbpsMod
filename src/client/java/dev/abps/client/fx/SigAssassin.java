@@ -39,11 +39,7 @@ final class SigAssassin {
 
     /** A burst of shadow: dark smoke balls, a ring of ink and a few short ink spikes. */
     static void puff(Vec3 at, float s) {
-        for (int k = 0; k < n(10); k++) {
-            Vec3 p = at.add(gauss() * 0.35 * s, gauss() * 0.5 * s, gauss() * 0.35 * s);
-            sp("smoke", p).size(0.35f * s, 0.9f * s).life(16 + (int) (rnd() * 8)).colors(0x1A1426, 0x050308)
-                    .vel(gauss() * 0.03, 0.01 + rnd() * 0.02, gauss() * 0.03).spin((float) (gauss() * 0.05)).envelope(0.05f, 0.4f, 0.75f);
-        }
+        Brush.mist(at.add(0, -0.4, 0), 0.35 * s, 9, 0x140F1E, 0.8f, 0.9f * s, 18);
         Brush.rays(at, 6, 1.4 * s, 0.07f * s, 8, INK);
         Brush.shock(at.add(0, -0.9, 0), Brush.UP, 0.2, 1.6 * s, 0.12f * s, 10, INK);
     }
@@ -98,12 +94,16 @@ final class SigAssassin {
         Vec3 g = c.pos;
         Brush.shock(g.add(0, 0.1, 0), Brush.UP, 0.3, 5.2, 0.3f, 14, INK);
         Brush.circle(g, 5, 30, 5, INK, EDGE);
-        for (int k = 0; k < n(40); k++) {
-            double a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 4.5;
-            Vec3 p = g.add(Math.cos(a) * r, 0.3 + rnd() * 1.8, Math.sin(a) * r);
-            sp("smoke", p).size(0.8f, 1.8f).life(50 + (int) (rnd() * 30)).colors(0x2A2433, 0x0A080E)
-                    .vel(Math.cos(a) * 0.03, 0.005, Math.sin(a) * 0.03).spin((float) (gauss() * 0.02)).envelope(0.1f, 0.6f, 0.8f);
+        // Rolling bands of smoke spreading out across the circle
+        for (int k = 0; k < 10; k++) {
+            double a0 = k * Math.PI / 5 + rnd() * 0.3, y = 0.3 + rnd() * 1.4;
+            Paint.ink(0x1E1826, 0x3A3046).on(Ribbon.curve((s, t) -> {
+                double r = 0.5 + (s * 0.6 + t * 0.5) * 4.2;
+                double a = a0 + s * 1.2;
+                return g.add(Math.cos(a) * r, y + Math.sin(s * 6 + t * 3) * 0.25, Math.sin(a) * r);
+            }, (s, t) -> Brush.faceCam(g, Brush.UP))).width(0.45f).time(50, 14).hold(0.5f).tailChase(0.6f).sparks(0).segments(20).play();
         }
+        Brush.mist(g.add(0, 0.6, 0), 2.5, 18, 0x18141E, 0.8f, 1.4f, 50);
         puff(c.chest(), 1f);
     }
 

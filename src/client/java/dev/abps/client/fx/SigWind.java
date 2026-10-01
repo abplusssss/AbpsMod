@@ -174,11 +174,11 @@ final class SigWind {
                 WIND.on(Ribbon.arc(b.add(0, 0.6 + rnd() * 3, 0), mid, Brush.UP, 7 + rnd() * 6, 2.2, 1.4, 1.0)).width(0.2f).time(16, 4).hold(0.3f)
                         .tailChase(0.7f).sparks(0).play();
             }
-            if (t % 5 == 0) {
-                double a = rnd() * Math.PI * 2, r = 4 + rnd() * 9;
-                Vec3 p = b.add(Math.cos(a) * r, 10 + rnd() * 2, Math.sin(a) * r);
-                sp("smoke", p).size(2.5f, 3.5f).life(30).colors(0x5A6470, 0x3A4048).vel(-Math.sin(a) * 0.08, 0, Math.cos(a) * 0.08)
-                        .envelope(0.15f, 0.6f, 0.6f);
+            if (t % 10 == 0) {
+                // Storm cloud: slow dark bands turning overhead
+                Vec3 mid = rotY(new Vec3(1, 0, 0), t * 0.15 + rnd());
+                Paint.ink(0x3A4250, 0x7A8696).on(Ribbon.arc(b.add(0, 10 + rnd() * 2, 0), mid, Brush.UP, 6 + rnd() * 6, 1.6, 0.8, 1.0)).width(1.1f)
+                        .time(30, 8).hold(0.5f).tailChase(0.5f).sparks(0).play();
             }
             if (t % 20 == 0) Brush.ring(b.add(0, 0.1, 0), Brush.UP, 14, 0.12f, 18, 0.6, BLUE.bright(0.6f));
         });
