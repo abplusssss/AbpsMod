@@ -71,11 +71,14 @@ final class SigShark {
                 double grow = Math.min(1, t * 5);
                 return root.add(dir.scale(h * grow * (1 - s)));
             };
-            Ribbon.Curve side = (s, t) -> Brush.faceCam(root, Brush.UP);
+            // Fixed in the world, crossed at right angles: a solid tooth that bends as the jaw closes but never spins
+            Vec3 tangent = new Vec3(-radial.z, 0, radial.x);
+            Ribbon.Curve flat = (s, t) -> tangent, edge = (s, t) -> radial;
             int d = delay + (k % 2);
             at(d, () -> {
-                TEETH.on(Ribbon.curve(pos, side)).width((float) (0.14 + height * 0.05)).time(30, 2).hold(0.7f).tailChase(0f).sparks(0).segments(10).play();
-                WATER.on(Ribbon.curve(pos, side)).width((float) (0.24 + height * 0.07)).time(30, 2).hold(0.6f).tailChase(0f).sparks(0).segments(10)
+                TEETH.on(Ribbon.curve(pos, flat)).width((float) (0.14 + height * 0.05)).time(30, 2).hold(0.7f).tailChase(0f).sparks(0).segments(10).play();
+                TEETH.on(Ribbon.curve(pos, edge)).width((float) (0.11 + height * 0.04)).time(30, 2).hold(0.7f).tailChase(0f).sparks(0).segments(10).play();
+                WATER.on(Ribbon.curve(pos, flat)).width((float) (0.24 + height * 0.07)).time(30, 2).hold(0.6f).tailChase(0f).sparks(0).segments(10)
                         .brightness(0.5f).play();
             });
         }

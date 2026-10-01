@@ -26,6 +26,8 @@ public final class ClientPrefs {
     public int fxQuality = 1;
     /** Fade effects that are right in front of your eyes or on your crosshair. */
     public boolean clearView = true;
+    /** Effects cast by other players: 0 all of them, 1 their casts but not their hit cues, 2 none. Effects aimed at you always show. */
+    public int othersFx = 0;
 
     public static ClientPrefs get() {
         if (instance == null) load();

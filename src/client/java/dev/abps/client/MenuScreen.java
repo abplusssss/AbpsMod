@@ -324,7 +324,10 @@ public final class MenuScreen extends Screen {
                 "<white>Effects no longer cover your screen, and the faint squares around glows are gone.",
                 "<white>Druid was removed. Druid players got a free new attribute and kept their level.",
                 "<white>Shops: every button works again, and long names and prices fit on screen.",
-                "<white>Area abilities land on the ground even when you aim at the sky."};
+                "<white>Area abilities land on the ground even when you aim at the sky.",
+                "<white>Kill streaks are announced. At 5 kills in a row you get a bounty, and whoever ends your streak gets paid.",
+                "<white>Levelling up plays an effect in your class colors.",
+                "<white>New setting: show <yellow>All</yellow>, <yellow>Fewer</yellow> or <yellow>no</yellow> effects from other players (Settings tab)."};
         y = section(g, "Changes", 0x69F0AE, x, y);
         for (String n : notes) y += Draw.wrapped(g, "<#69F0AE>•</#69F0AE> " + n, x, y, w, Draw.TEXT) + 3;
         return y - y0 + 6;
@@ -589,6 +592,20 @@ public final class MenuScreen extends Screen {
                         prefs.save();
                     });
             qx += 46;
+        }
+        y += 22;
+        Draw.text(g, "<white>Other players' effects", x, y + 5);
+        String[] otherNames = {"All", "Fewer", "Off"};
+        int ox = x + cw - 16 - 3 * 46;
+        for (int q = 0; q < 3; q++) {
+            final int mode = q;
+            boolean on = prefs.othersFx == q;
+            button(g, mx, my, ox, y, 44, 16, (on ? "<white><bold>" : "<gray>") + otherNames[q], on ? 0xFF4081 : 0x55555F, true,
+                    () -> {
+                        prefs.othersFx = mode;
+                        prefs.save();
+                    });
+            ox += 46;
         }
         y += 22;
         y = toggle(g, mx, my, x, y, "Clear view (fade effects in front of your eyes)", prefs.clearView, () -> prefs.clearView = !prefs.clearView);

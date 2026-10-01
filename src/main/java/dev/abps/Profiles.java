@@ -48,6 +48,8 @@ public final class Profiles {
         stat(labels, values, "Deaths", String.valueOf(d.deaths));
         stat(labels, values, "K/D", String.format(java.util.Locale.ROOT, "%.2f", kd));
         stat(labels, values, "Best kill streak", String.valueOf(d.bestStreak));
+        int bounty = Streaks.bounty(d.killStreak);
+        stat(labels, values, "Kill streak now", d.killStreak + (bounty > 0 ? " (bounty " + bounty + ")" : ""));
         stat(labels, values, "Mobs killed", String.valueOf(d.mobKills));
         stat(labels, values, "Damage dealt", Text.num(d.damageDealt / 2) + " hearts");
         stat(labels, values, "Damage taken", Text.num(d.damageTaken / 2) + " hearts");

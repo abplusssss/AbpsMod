@@ -371,6 +371,10 @@ public final class Service {
         banner(p, c.gradient(max ? "<bold>MASTERED</bold>" : "<bold>LEVEL " + d.level + "</bold>"),
                 "<gray>" + c.name() + (max ? " is now max level" : " upgraded"), c.rgb(), 50);
         Fx.sound(level(p), p, max ? SoundEvents.UI_TOAST_CHALLENGE_COMPLETE : SoundEvents.PLAYER_LEVELUP, 1f, 1.2f);
+        // A level-up effect in the class's colors, for everyone nearby with the mod
+        int outer = dev.abps.util.Vfx.theme(dev.abps.util.FxKind.theme(c.id()));
+        dev.abps.util.Vfx.cue(level(p), 20, p.position(), new net.minecraft.world.phys.Vec3(0, 1, 0), p.position().add(0, 1, 0), p, null, c.rgb(), c.rgb2(), max ? 1 : 0);
+        dev.abps.util.Vfx.theme(outer);
         send(p, "<green>Upgraded to level " + d.level + "! " + bar(d.level, cfg().maxLevel, 12, c));
         for (int i = 2; i <= c.abilityCount(); i++) {
             if (d.level == cfg().unlockLevel(i)) {

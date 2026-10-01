@@ -79,8 +79,14 @@ final class Brush {
 
     /** A crystal spike growing from base to tip: sharp at the tip, widest near the base, with a bright core. */
     static void spike(Vec3 base, Vec3 tip, float width, int life, Paint p) {
-        p.on(lineCam(tip, base)).width(width).time(life, 2).hold(0.75f).tailChase(0f).sparks(0).segments(10).play();
-        Paint.light(WHITE, 0.8f).on(lineCam(tip, base.lerp(tip, 0.25))).width(width * 0.35f).time(life - 2, 2).hold(0.6f).tailChase(0f).sparks(0)
+        // Two strokes crossed at right angles and fixed in the world, so it reads as a solid crystal from every side
+        // and never swivels to follow the camera
+        Vec3 d = tip.subtract(base);
+        Vec3 a = d.cross(Math.abs(d.normalize().y) > 0.95 ? new Vec3(1, 0, 0) : UP).normalize(), b = d.cross(a).normalize();
+        for (Vec3 side : new Vec3[]{a, b}) {
+            p.on(Ribbon.line(tip, base, side)).width(width).time(life, 2).hold(0.75f).tailChase(0f).sparks(0).segments(10).play();
+        }
+        Paint.light(WHITE, 0.8f).on(Ribbon.line(tip, base.lerp(tip, 0.25), a)).width(width * 0.3f).time(life - 2, 2).hold(0.6f).tailChase(0f).sparks(0)
                 .segments(8).play();
     }
 

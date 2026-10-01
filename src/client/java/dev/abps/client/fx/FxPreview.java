@@ -88,6 +88,9 @@ public final class FxPreview {
     private static void tick(Minecraft mc, String[] list) {
         if (mc.player == null || !FxSystem.ready || !FxSprites.loaded()) return;
         ticks++;
+        // Recording must not stop if the window loses focus: no pause menu, and close anything that opens
+        mc.options.pauseOnLostFocus = false;
+        if (Boolean.getBoolean("abps.fxvideo") && mc.gui.screen() != null) mc.gui.setScreen(null);
         if (ticks == 1) {
             if (Boolean.getBoolean("abps.fxvideo")) {
                 // A clean stage: no dropped items or old mobs, and a still zombie to aim at, ahead and to the right

@@ -164,8 +164,33 @@ final class Signatures {
         ringFlat(at, look, r0, r1, life, col, "ring");
     }
 
+    /** Levelling up, for any class: two rising spirals in its colors, a burst ring and a crown of light over the head. */
+    private static void levelUp(Ctx c) {
+        Entity e = c.caster();
+        java.util.function.Supplier<Vec3> feet = () -> e == null || e.isRemoved() ? c.pos : e.position();
+        Brush.Paint a = Brush.Paint.light(c.c1, 1.2f), b = Brush.Paint.light(c.c2, 1.1f);
+        Brush.helix(feet, 0.8, 2.4, 2, 0.12f, 22, 0, a);
+        Brush.helix(feet, 0.8, 2.4, 2, 0.12f, 22, Math.PI, b);
+        Brush.shock(c.pos.add(0, 0.08, 0), Brush.UP, 0.3, 3.5, 0.2f, 14, a);
+        Brush.raysUp(c.pos.add(0, 0.2, 0), 10, 3, 0.08f, 12, b);
+        at(14, () -> {
+            Vec3 head = feet.get().add(0, 2.3, 0);
+            Brush.ring(head, Brush.UP, 0.45, 0.07f, 30, 3, a);
+            Brush.glow(head, 0.9f, 12, c.c1);
+        });
+        if (c.ticks == 1) {
+            // Max level: a full pillar and a circle on the ground
+            Brush.pillar(c.pos, 1.0, 8, 30, 4, a);
+            Brush.circle(c.pos, 4, 40, 8, a, b);
+        }
+    }
+
     static void play(double[] d, int[] i) {
         Ctx c = new Ctx(d, i);
+        if (c.slot == 20) {
+            levelUp(c);
+            return;
+        }
         switch (c.theme) {
             case Skin.ARCHER -> SigArcher.play(c);
             case Skin.ASSASSIN -> SigAssassin.play(c);

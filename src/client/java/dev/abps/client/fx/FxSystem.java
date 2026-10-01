@@ -72,6 +72,16 @@ public final class FxSystem {
         }
     }
 
+    /** True when this hand-made effect belongs to another player and the settings say to leave it out. */
+    private static boolean hiddenOther(int[] i) {
+        int mode = ClientPrefs.get().othersFx;
+        var me = Minecraft.getInstance().player;
+        if (mode == 0 || me == null) return false;
+        if (i[2] == me.getId() || i[3] == me.getId()) return false; // yours, or aimed at you
+        if (i[1] == 20) return false; // level ups are rare and worth seeing
+        return mode == 2 || i[1] >= 10;
+    }
+
     private static long lastPreview;
 
     /**
@@ -115,6 +125,7 @@ public final class FxSystem {
             int kind = p.kind() & 0xFF;
             int theme = (p.kind() >> 8) & 0xFF;
             Skin s = Skin.of(theme);
+            if (kind == FxKind.SIGNATURE && i.length > 3 && hiddenOther(i)) return;
             switch (kind) {
                 case FxKind.SHARD -> FxEffects.shard(d, i, s);
                 case FxKind.BURST -> FxEffects.burst(d, i, s);

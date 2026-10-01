@@ -96,6 +96,14 @@ public final class Config {
     /** The item new listings are priced in unless the owner picks another. */
     public String shopDefaultCurrency = "minecraft:diamond";
 
+    // ---- Kill streaks and bounties ----
+    public boolean streaksEnabled = true;
+    /** The kill streak at which a player gets a bounty on their head. */
+    public int bountyStartsAt = 5;
+    /** What the bounty is paid in, and the most a single bounty can be worth. */
+    public String bountyItem = "minecraft:diamond";
+    public int bountyMax = 8;
+
     // ---- Daily rewards ----
     public boolean dailyRewardsEnabled = true;
     /** One reward per day of a 7 day streak. Missing a day starts the streak over. Each is a list of item id to count. */
@@ -148,6 +156,8 @@ public final class Config {
     }
 
     private void fix() {
+        bountyStartsAt = Math.max(2, bountyStartsAt);
+        bountyMax = Math.max(1, Math.min(64, bountyMax));
         maxLevel = Math.max(2, maxLevel);
         if (abilityUnlockLevels == null || abilityUnlockLevels.length < 4) abilityUnlockLevels = new int[]{1, 5, 12, 20, 16};
         if (abilityUnlockLevels.length < 5) {

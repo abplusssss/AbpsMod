@@ -221,7 +221,7 @@ public final class Pyromancer extends AttributeClass {
         fb.addTag(FIREBALL);
         fb.addTag("abps_ability");
         p.level().addFreshEntity(fb);
-        cue(p, 12, p.getEyePosition(), p.getEyePosition().add(look), fb, null, 0);
+        cue(p, 12, p.getEyePosition(), p.getEyePosition().add(look), fb, p, 0); // the caster rides along as the target so their own trail always shows
         Fx.sound(level(p), p, SoundEvents.BLAZE_SHOOT, 1f, 1f);
         dev.abps.util.Vfx.trail(level(p), fb, 40, dev.abps.util.Vfx.tint(0xFF9800), 0.24f, 0xFF6D00);
         dev.abps.util.Vfx.flash(level(p), p.getEyePosition().add(look), 1.3f, dev.abps.util.Vfx.tint(0xFFD600), 6, 0xFF6D00);

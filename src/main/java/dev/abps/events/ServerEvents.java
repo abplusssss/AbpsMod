@@ -251,19 +251,22 @@ public final class ServerEvents {
     private static void afterDeath(LivingEntity entity, net.minecraft.world.damagesource.DamageSource source) {
         if (!AbpsMod.running()) return;
         Targets.forgetMinion(entity.getUUID());
+        int lostStreak = 0;
         if (entity instanceof ServerPlayer dead) {
             PlayerData dd = data(dead);
             dd.back = Teleports.here(dead);
             dd.deaths++;
+            lostStreak = dd.killStreak;
             dd.killStreak = 0;
         }
         var src = source.getEntity();
         if (src instanceof ServerPlayer killer && killer != entity) {
             PlayerData kd = data(killer);
-            if (entity instanceof ServerPlayer) {
+            if (entity instanceof ServerPlayer victim) {
                 kd.kills++;
                 kd.killStreak++;
                 kd.bestStreak = Math.max(kd.bestStreak, kd.killStreak);
+                dev.abps.Streaks.onPlayerKill(killer, kd, victim, lostStreak);
             } else if (!(entity instanceof net.minecraft.world.entity.player.Player)) {
                 kd.mobKills++;
             }
