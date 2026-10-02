@@ -11,3 +11,7 @@ run/
 .idea/
 *.iml
 .vscode/
+
+# The old RandomAttributes plugin, kept locally for reference
+/RandomAttributes/
+/RandomAttributes-*.jar
