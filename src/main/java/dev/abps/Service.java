@@ -703,8 +703,9 @@ public final class Service {
         }
         boolean max = c.mastered(d);
         String lvl = max ? "★" : String.valueOf(d.level);
+        String title = d.title == null || d.title.isEmpty() ? "" : " <gradient:#FFD54F:#FF8F00>«" + d.title + "»</gradient>";
         d.chatTag = Text.mm("<dark_gray>[</dark_gray>" + c.gradient(c.symbol() + " " + (max ? "<bold>" + c.name() + "</bold>" : c.name()))
-                        + " <white>" + lvl + "</white><dark_gray>]</dark_gray>")
+                        + " <white>" + lvl + "</white><dark_gray>]</dark_gray>" + title)
                 .withStyle(s -> s.withHoverEvent(new HoverEvent.ShowText(Text.mm(classHover(c, d.level)))));
     }
 
@@ -716,8 +717,9 @@ public final class Service {
         AttributeClass c = cls(d);
         if (c == null) return null;
         String lvl = c.mastered(d) ? "★" : String.valueOf(d.level);
+        String title = d.title == null || d.title.isEmpty() ? "" : " <gold>«" + d.title + "»";
         return Text.mm(c.colored(c.symbol()) + " <white>" + p.getName().getString()
-                + " <dark_gray>[</dark_gray>" + c.colored(lvl) + "<dark_gray>]");
+                + " <dark_gray>[</dark_gray>" + c.colored(lvl) + "<dark_gray>]" + title);
     }
 
     public void welcome(ServerPlayer p) {

@@ -475,6 +475,84 @@ public final class Net {
      * The Profile tab: fight stats, playtime and the daily reward streak. Stats are sent as label/value pairs so new
      * ones can be added on the server without changing the client.
      */
+    /** One dungeon in the Dungeons tab. best is a time in ms, or the best wave for the arena. */
+    public record DungeonCard(String id, String name, String blurb, String mode, int difficulty, String icon, int color, int clears, long best,
+                              List<String> board) {
+    }
+
+    /** Everything the Dungeons tab shows: the dungeons, your party, invites and your titles. */
+    public record DungeonsPayload(boolean enabled, List<DungeonCard> cards, List<String> party, boolean leader, String inviteFrom, String inRun,
+                                  List<String> online, List<String> titles, String title) implements CustomPacketPayload {
+        public static final Type<DungeonsPayload> TYPE = newType("dungeons");
+        public static final StreamCodec<RegistryFriendlyByteBuf, DungeonsPayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeBoolean(p.enabled);
+                    buf.writeVarInt(p.cards.size());
+                    for (DungeonCard c : p.cards) {
+                        buf.writeUtf(c.id);
+                        buf.writeUtf(c.name);
+                        buf.writeUtf(c.blurb);
+                        buf.writeUtf(c.mode);
+                        buf.writeVarInt(c.difficulty);
+                        buf.writeUtf(c.icon);
+                        buf.writeInt(c.color);
+                        buf.writeVarInt(c.clears);
+                        buf.writeVarLong(c.best);
+                        writeStrings(buf, c.board);
+                    }
+                    writeStrings(buf, p.party);
+                    buf.writeBoolean(p.leader);
+                    buf.writeUtf(p.inviteFrom);
+                    buf.writeUtf(p.inRun);
+                    writeStrings(buf, p.online);
+                    writeStrings(buf, p.titles);
+                    buf.writeUtf(p.title);
+                },
+                buf -> {
+                    boolean enabled = buf.readBoolean();
+                    int n = buf.readVarInt();
+                    List<DungeonCard> cards = new ArrayList<>(n);
+                    for (int i = 0; i < n; i++) {
+                        cards.add(new DungeonCard(buf.readUtf(), buf.readUtf(), buf.readUtf(), buf.readUtf(), buf.readVarInt(), buf.readUtf(), buf.readInt(),
+                                buf.readVarInt(), buf.readVarLong(), readStrings(buf)));
+                    }
+                    List<String> party = readStrings(buf);
+                    boolean leader = buf.readBoolean();
+                    String invite = buf.readUtf(), inRun = buf.readUtf();
+                    return new DungeonsPayload(enabled, cards, party, leader, invite, inRun, readStrings(buf), readStrings(buf), buf.readUtf());
+                });
+
+        @Override
+        public Type<DungeonsPayload> type() {
+            return TYPE;
+        }
+    }
+
+    /** The small dungeon panel at the top of the screen during a run. */
+    public record DungeonHudPayload(boolean active, String name, int room, int rooms, String objective, int downsLeft, long elapsed, int wave, int color)
+            implements CustomPacketPayload {
+        public static final Type<DungeonHudPayload> TYPE = newType("dungeon_hud");
+        public static final StreamCodec<RegistryFriendlyByteBuf, DungeonHudPayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeBoolean(p.active);
+                    buf.writeUtf(p.name);
+                    buf.writeVarInt(p.room);
+                    buf.writeVarInt(p.rooms);
+                    buf.writeUtf(p.objective);
+                    buf.writeVarInt(p.downsLeft);
+                    buf.writeVarLong(p.elapsed);
+                    buf.writeVarInt(p.wave);
+                    buf.writeInt(p.color);
+                },
+                buf -> new DungeonHudPayload(buf.readBoolean(), buf.readUtf(), buf.readVarInt(), buf.readVarInt(), buf.readUtf(), buf.readVarInt(),
+                        buf.readVarLong(), buf.readVarInt(), buf.readInt()));
+
+        @Override
+        public Type<DungeonHudPayload> type() {
+            return TYPE;
+        }
+    }
+
     public record ProfilePayload(String name, List<String> labels, List<String> values, int streak, boolean canClaim,
                                  long nextClaimIn, List<List<net.minecraft.world.item.ItemStack>> rewards, boolean dailyEnabled)
             implements CustomPacketPayload {
@@ -514,6 +592,8 @@ public final class Net {
         PayloadTypeRegistry.clientboundPlay().registerLarge(ShopPayload.TYPE, ShopPayload.CODEC, 1024 * 1024);
         PayloadTypeRegistry.clientboundPlay().register(TravelPayload.TYPE, TravelPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(ProfilePayload.TYPE, ProfilePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().registerLarge(DungeonsPayload.TYPE, DungeonsPayload.CODEC, 1024 * 1024);
+        PayloadTypeRegistry.clientboundPlay().register(DungeonHudPayload.TYPE, DungeonHudPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VfxPayload.TYPE, VfxPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VanishPayload.TYPE, VanishPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(CastPayload.TYPE, CastPayload.CODEC);

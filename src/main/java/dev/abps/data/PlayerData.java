@@ -38,6 +38,14 @@ public final class PlayerData {
     public long lastDaily = -1;
     public int dailyStreak;
 
+    // ---- Dungeons ----
+    /** Clears and best clear time (ms) per dungeon id, the best arena wave, unlocked titles and the one shown. */
+    public java.util.Map<String, Integer> dungeonClears = new java.util.HashMap<>();
+    public java.util.Map<String, Long> dungeonBest = new java.util.HashMap<>();
+    public int bestWave;
+    public java.util.List<String> titles = new java.util.ArrayList<>();
+    public String title = "";
+
     // ---- Runtime only ----
     public transient long[] cooldownEnd = new long[7];
     public transient boolean[] readyNotified = new boolean[7];

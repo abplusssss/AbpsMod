@@ -238,6 +238,11 @@ public final class Text {
         return "x" + s;
     }
 
+    /** A MiniMessage color tag for an RGB color, like <#FF6D00>. */
+    public static String colorTag(int rgb) {
+        return String.format("<#%06X>", rgb & 0xFFFFFF);
+    }
+
     public static String time(long ms) {
         if (ms < 60_000) return String.format(Locale.ROOT, "%.1fs", ms / 1000.0);
         long sec = ms / 1000;

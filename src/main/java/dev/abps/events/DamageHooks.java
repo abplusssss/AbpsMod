@@ -60,6 +60,7 @@ public final class DamageHooks {
             PlayerData d = data(p);
             AttributeClass c = cls(d);
             Hit hit = hitOf(p, source);
+            if (hit != null) m *= dev.abps.items.CustomItems.outgoing(p, victim, hit);
             if (c != null && hit != null) {
                 double out = c.outgoing(p, d, victim, hit);
                 if (out != 1 && d.debug) {
@@ -178,8 +179,8 @@ public final class DamageHooks {
         if (!(entity instanceof ServerPlayer p) || !AbpsMod.running()) return null;
         PlayerData d = data(p);
         AttributeClass c = cls(d);
-        if (c == null) return null;
-        c.modifyDrops(p, d, state, drops);
+        if (c != null) c.modifyDrops(p, d, state, drops);
+        dev.abps.items.CustomItems.modifyDrops(p, state, drops);
         return drops;
     }
 

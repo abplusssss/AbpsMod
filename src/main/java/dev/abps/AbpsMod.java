@@ -46,6 +46,7 @@ public class AbpsMod implements ModInitializer {
 		state = new ServerState(data.root());
 		shops = new dev.abps.shop.Shops(s, data.root());
 		service = new Service(s);
+		dev.abps.dungeon.Dungeons.load();
 		SelfTest.maybeRun(s);
 		checkForUpdate();
 	}

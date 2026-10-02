@@ -92,6 +92,10 @@ public final class Commands {
         add(new Entry("TpCancel", "", "Cancels requests you sent.", "tp", "tpc", "tpcancel"));
         add(new Entry("Spawn", "", "Teleports you to spawn.", "tp", "hub", "lobby"));
         add(new Entry("Back", "", "Goes back to where you last teleported or died.", "tp", "return"));
+        // Dungeons
+        add(new Entry("Dungeon", "[start <id> | leave | list]", "Opens the dungeons, starts a run or leaves one.", "dungeon", "dungeons", "dg", "raid", "dungeonrun"));
+        add(new Entry("Party", "[invite <name> | accept | decline | leave | kick <name>]", "Your dungeon party (up to 4 players).", "dungeon", "team", "group", "dparty"));
+        add(new Entry("Title", "[name | off]", "Shows or picks the title next to your name.", "dungeon", "titles", "settitle"));
         // Shops, rewards and profile
         add(new Entry("Shop", "", "Opens the player shops.", "extra", "shops", "market", "pshop", "playershops"));
         add(new Entry("Daily", "", "Claims your daily reward.", "extra", "reward", "claim", "dailyreward"));
@@ -326,6 +330,77 @@ public final class Commands {
                 ServerPlayer p = needPlayer(s);
                 if (p != null) Teleports.setHome(p, args.length > 0 ? args[0] : "home");
             }
+            case "Dungeon" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                String op = args.length > 0 ? args[0].toLowerCase(java.util.Locale.ROOT) : "";
+                switch (op) {
+                    case "start", "go", "play" -> {
+                        if (args.length < 2) Service.send(s, "<red>Use: !Dungeon start <id>. <gray>Ids: <white>" + String.join(", ", dev.abps.dungeon.DungeonDef.ALL.keySet()));
+                        else dev.abps.dungeon.Dungeons.start(p, args[1].toLowerCase(java.util.Locale.ROOT));
+                    }
+                    case "leave", "quit", "exit" -> dev.abps.dungeon.Dungeons.leave(p);
+                    case "list", "" -> {
+                        if (op.isEmpty() && Service.hasMod(p)) {
+                            ServerPlayNetworking.send(p, new Net.OpenMenuPayload("dungeons"));
+                            return;
+                        }
+                        Service.send(s, "<light_purple><bold>Dungeons</bold></light_purple> <gray>(start one with <yellow>!Dungeon start <id></yellow>)");
+                        for (var d : dev.abps.dungeon.DungeonDef.ALL.values()) {
+                            Service.raw(s, " <gold>" + d.stars() + "</gold> <white>" + d.name() + "</white> <dark_gray>(" + d.id() + ")</dark_gray> <gray>" + d.blurb());
+                        }
+                    }
+                    default -> Service.send(s, "<red>Use: !Dungeon [start <id> | leave | list]");
+                }
+            }
+            case "Party" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                String op = args.length > 0 ? args[0].toLowerCase(java.util.Locale.ROOT) : "";
+                switch (op) {
+                    case "invite", "add", "inv" -> {
+                        ServerPlayer to = args.length > 1 ? AbpsMod.server().getPlayerList().getPlayerByName(args[1]) : null;
+                        if (to == null) Service.send(s, "<red>Use: !Party invite <online player>");
+                        else dev.abps.dungeon.Party.invite(p, to);
+                    }
+                    case "accept", "join", "yes" -> dev.abps.dungeon.Party.accept(p);
+                    case "decline", "deny", "no" -> dev.abps.dungeon.Party.decline(p);
+                    case "leave", "quit" -> dev.abps.dungeon.Party.leave(p, true);
+                    case "kick", "remove" -> {
+                        ServerPlayer who = args.length > 1 ? AbpsMod.server().getPlayerList().getPlayerByName(args[1]) : null;
+                        if (who == null) Service.send(s, "<red>Use: !Party kick <player>");
+                        else dev.abps.dungeon.Party.kick(p, who);
+                    }
+                    default -> {
+                        var party = dev.abps.dungeon.Party.of(p);
+                        if (party == null || party.size() <= 1) Service.send(s, "<gray>You're not in a party. Invite someone with <yellow>!Party invite <name></yellow>.");
+                        else {
+                            java.util.List<String> names = new java.util.ArrayList<>();
+                            for (ServerPlayer m : party.online()) names.add(m.getName().getString());
+                            Service.send(s, "<aqua>Your party:</aqua> <white>" + String.join(", ", names));
+                        }
+                    }
+                }
+            }
+            case "Title" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                PlayerData d = sv.data(p);
+                if (args.length == 0) {
+                    Service.send(s, d.titles.isEmpty() ? "<gray>You have no titles yet. Clear dungeons to earn them."
+                            : "<gold>Your titles:</gold> <white>" + String.join(", ", d.titles) + "</white> <gray>(use !Title <name> or !Title off)");
+                    return;
+                }
+                String want = String.join(" ", args);
+                if (want.equalsIgnoreCase("off") || want.equalsIgnoreCase("none")) want = "";
+                String pick = "";
+                for (String t : d.titles) if (t.equalsIgnoreCase(want)) pick = t;
+                if (!want.isEmpty() && pick.isEmpty()) {
+                    Service.send(s, "<red>You don't have that title.");
+                    return;
+                }
+                dev.abps.dungeon.Dungeons.handle(p, "title|" + pick);
+            }
             case "Shop" -> openTab(s, "shops", "<gray>Shops need <gold>AbpsMod</gold> installed on your game.");
             case "Travel" -> openTab(s, "travel", "<gray>Use <yellow>!Home</yellow>, <yellow>!Spawn</yellow> and <yellow>!TPR</yellow> without the mod.");
             case "Daily" -> {
@@ -542,7 +617,8 @@ public final class Commands {
         boolean admin = isAdmin(s);
         Service.raw(s, Service.LINE);
         Service.raw(s, " <gradient:#FFD54F:#FF8F00><bold>AbpsMod Commands</bold></gradient> <dark_gray>(click one to fill it in)");
-        String[][] groups = {{"attr", "<gold><bold>Attributes"}, {"tp", "<aqua><bold>Teleports"}, {"extra", "<green><bold>Shops and Rewards"}, {"admin", "<red><bold>Admin / Testing"}};
+        String[][] groups = {{"attr", "<gold><bold>Attributes"}, {"tp", "<aqua><bold>Teleports"}, {"dungeon", "<light_purple><bold>Dungeons"},
+                {"extra", "<green><bold>Shops and Rewards"}, {"admin", "<red><bold>Admin / Testing"}};
         for (String[] g : groups) {
             if (g[0].equals("admin") && !admin) continue;
             Service.raw(s, " " + g[1]);

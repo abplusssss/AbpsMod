@@ -55,6 +55,7 @@ public final class ServerEvents {
         // ---- Lifecycle ----
         ServerLifecycleEvents.SERVER_STARTED.register(AbpsMod::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            dev.abps.dungeon.Dungeons.shutdown();
             for (ServerPlayer p : new ArrayList<>(server.getPlayerList().getPlayers())) AbpsMod.service().handleQuit(p);
             Tasks.clear();
             AbpsMod.stop();
@@ -85,6 +86,8 @@ public final class ServerEvents {
             ServerPlayer p = handler.player;
             AbpsMod.service().setVfxReady(p, false);
             if (AbpsMod.data().peek(p.getUUID()) == null) return; // was kicked for a lockout before loading
+            dev.abps.dungeon.Dungeons.onQuit(p);
+            dev.abps.items.CustomItems.forget(p.getUUID());
             Combat.onQuit(p);
             Teleports.forget(p.getUUID());
             AbpsMod.service().handleQuit(p);
@@ -99,6 +102,9 @@ public final class ServerEvents {
         ServerLivingEntityEvents.AFTER_DAMAGE.register(ServerEvents::afterDamage);
         ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
             if (!(entity instanceof ServerPlayer p) || !AbpsMod.running()) return true;
+            // In a dungeon you are downed instead of dying; elsewhere a Phoenix Feather can save you
+            if (!dev.abps.dungeon.Dungeons.allowDeath(p)) return false;
+            if (!dev.abps.items.CustomItems.allowDeath(p)) return false;
             AttributeClass c = cls(p);
             return c == null || c.allowDeath(p, data(p), source);
         });
@@ -116,8 +122,15 @@ public final class ServerEvents {
             if (player instanceof ServerPlayer p && AbpsMod.running()) {
                 AttributeClass c = cls(p);
                 if (c != null) c.afterBlockBreak(p, data(p), (ServerLevel) level, pos, state);
+                dev.abps.items.CustomItems.afterBreak(p, (ServerLevel) level, pos, state);
             }
         });
+        // Dungeons can't be dug through or built in (creative players can still edit them)
+        PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->
+                !(AbpsMod.running() && level.dimension() == dev.abps.dungeon.Dungeons.WORLD && !player.isCreative()));
+        net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) ->
+                AbpsMod.running() && level.dimension() == dev.abps.dungeon.Dungeons.WORLD && !player.isCreative()
+                        ? InteractionResult.FAIL : InteractionResult.PASS);
         UseItemCallback.EVENT.register((player, level, hand) -> {
             if (player instanceof ServerPlayer p && AbpsMod.running()) {
                 AttributeClass c = cls(p);
@@ -185,6 +198,7 @@ public final class ServerEvents {
         Tasks.tick();
         ticks++;
         if (ticks % (20L * 60 * 60 * 6) == 0) AbpsMod.checkForUpdate();
+        dev.abps.dungeon.Dungeons.tick();
         boolean slow = ticks % 5 == 0;
         Service s = AbpsMod.service();
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
@@ -234,6 +248,7 @@ public final class ServerEvents {
             s.addUltCharge(p, d, taken, victim instanceof ServerPlayer);
             AttributeClass c = s.cls(d);
             if (c != null && hit != null && !Targets.abilityDamage) c.afterHit(p, d, victim, taken, hit);
+            if (hit != null && !Targets.abilityDamage) dev.abps.items.CustomItems.afterHit(p, victim, taken, hit);
             if (victim instanceof ServerPlayer vp) Combat.tag(p, vp);
         } else if (src != null) {
             // Necromancer minions heal their owner
@@ -276,6 +291,7 @@ public final class ServerEvents {
             }
             AttributeClass c = cls(killer);
             if (c != null) c.onKill(killer, data(killer), entity);
+            dev.abps.items.CustomItems.onKill(killer, entity);
             return;
         }
         UUID owner = Targets.minionOwner(src);
@@ -338,6 +354,7 @@ public final class ServerEvents {
             case "travel" -> dev.abps.Profiles.travel(p, arg);
             case "profile" -> dev.abps.Profiles.sendProfile(p);
             case "daily" -> dev.abps.Profiles.claimDaily(p);
+            case "dungeon" -> dev.abps.dungeon.Dungeons.handle(p, arg);
             default -> {
             }
         }

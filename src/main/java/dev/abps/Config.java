@@ -102,6 +102,13 @@ public final class Config {
     /** Where the version file is. Leave as it is unless you host your own builds. */
     public String updateUrl = dev.abps.Updater.DEFAULT_URL;
 
+    // ---- Dungeons ----
+    public boolean dungeonsEnabled = true;
+    /** Rare ruined gates in the overworld that start a dungeon run when you walk into them. */
+    public boolean dungeonGates = true;
+    /** About one gate per this many new chunks. */
+    public int gateRarity = 600;
+
     // ---- Kill streaks and bounties ----
     public boolean streaksEnabled = true;
     /** The kill streak at which a player gets a bounty on their head. */
