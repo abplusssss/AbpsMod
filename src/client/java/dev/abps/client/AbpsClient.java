@@ -94,6 +94,13 @@ public final class AbpsClient implements ClientModInitializer {
         });
         ClientPlayNetworking.registerGlobalReceiver(Net.TravelPayload.TYPE, (p, ctx) -> ClientState.travel = p);
         ClientPlayNetworking.registerGlobalReceiver(Net.ProfilePayload.TYPE, (p, ctx) -> ClientState.profile = p);
+        ClientPlayNetworking.registerGlobalReceiver(Net.DungeonsPayload.TYPE, (p, ctx) -> ClientState.dungeons = p);
+        ClientPlayNetworking.registerGlobalReceiver(Net.DungeonHudPayload.TYPE, (p, ctx) -> {
+            Net.DungeonHudPayload old = ClientState.dungeonHud;
+            ClientState.dungeonClock = p.active() && old != null && old.active() && p.elapsed() != old.elapsed();
+            ClientState.dungeonHud = p.active() ? p : null;
+            ClientState.dungeonHudAt = System.currentTimeMillis();
+        });
         ClientPlayNetworking.registerGlobalReceiver(Net.VanishPayload.TYPE, (p, ctx) -> {
             ClientState.vanished.clear();
             ClientState.vanished.addAll(p.ids());

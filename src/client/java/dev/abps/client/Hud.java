@@ -29,7 +29,53 @@ public final class Hud implements HudElement {
             panel(g, s, c, pos[0], pos[1]);
             g.pose().popMatrix();
         }
+        if (!(mc.gui.screen() instanceof MenuScreen)) dungeon(g);
         banners(g);
+    }
+
+    // ---------------- Dungeon run panel ----------------
+
+    public static final int RUN_WIDTH = 150;
+
+    /** The run panel: dungeon name, clock, rooms, what to do now and how many downs the party has left. */
+    private static void dungeon(GuiGraphicsExtractor g) {
+        Net.DungeonHudPayload h = ClientState.dungeonHud;
+        if (h == null || !h.active()) return;
+        ClientPrefs prefs = ClientPrefs.get();
+        int w = RUN_WIDTH, hh = 50;
+        // Top corner on the other side from the HUD panel. Boss bars sit in the top middle, so on narrow screens
+        // where the two would touch, the panel moves down below two bars' worth of space.
+        int x = prefs.hudOnRight ? 4 : g.guiWidth() - w - 4;
+        int y = g.guiWidth() < 182 + 2 * (w + 8) ? 44 : 4;
+        int c1 = h.color() == 0 ? 0xB388FF : h.color(), c2 = Text.lerp(c1, 0xFFFFFF, 0.5f);
+        Draw.panel(g, x, y, w, hh, Draw.PANEL);
+        Draw.hGradient(g, x + 1, y, w - 2, 1, Draw.opaque(c1), Draw.opaque(c2));
+        Draw.hGradient(g, x, y + 1, w, 6, Draw.argb(c1, 0x40), Draw.argb(c2, 0x08));
+
+        String clock = "<white>" + Text.time(ClientState.dungeonElapsed());
+        int clockW = Draw.font().width(Text.mm(clock));
+        Draw.textFit(g, "<bold>" + Draw.gradient(c1, c2, h.name()) + "</bold>", x + 5, y + 5, w - 14 - clockW);
+        Draw.text(g, clock, x + w - 5 - clockW, y + 5);
+
+        int by = y + 17;
+        if (h.wave() > 0 || h.rooms() <= 1) {
+            Draw.text(g, "<gray>Wave</gray> <gold><bold>" + Math.max(1, h.wave()) + "</bold></gold>", x + 5, by);
+        } else {
+            // One small block per room: done, current, still ahead
+            int n = Math.max(1, h.rooms()), gap = 2;
+            int bw = Math.max(3, (w - 10 - 40 - gap * (n - 1)) / n);
+            for (int k = 0; k < n; k++) {
+                int bx = x + 5 + k * (bw + gap);
+                int col = k + 1 < h.room() ? Draw.opaque(c1) : k + 1 == h.room() ? Draw.opaque(Text.lerp(c1, 0xFFFFFF, Draw.pulse(1.2f) * 0.6f)) : 0xFF33333D;
+                g.fill(bx, by + 2, bx + bw, by + 6, col);
+            }
+            String rooms = "<gray>" + h.room() + "/" + h.rooms();
+            Draw.text(g, rooms, x + w - 5 - Draw.font().width(Text.mm(rooms)), by);
+        }
+        Draw.textFit(g, "<white>" + h.objective(), x + 5, y + 28, w - 10);
+        int downs = h.downsLeft();
+        String d = downs == 0 ? "<#FF5252>No downs left, careful!" : "<#FF8A80>♥</#FF8A80> <gray>" + downs + " down" + (downs == 1 ? "" : "s") + " left";
+        Draw.textFit(g, d, x + 5, y + 39, w - 10);
     }
 
     /** Where the panel is drawn, in the scaled coordinates the panel uses. Custom spot if it was dragged, otherwise a corner. */

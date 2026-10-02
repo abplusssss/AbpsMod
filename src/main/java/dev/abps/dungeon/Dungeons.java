@@ -48,6 +48,15 @@ public final class Dungeons {
     private Dungeons() {
     }
 
+    /** Fake players the self test runs through dungeons. They aren't in the server's player list. */
+    static final Map<UUID, ServerPlayer> TEST_PLAYERS = new HashMap<>();
+
+    /** An online player by id, or a self test player. */
+    static ServerPlayer player(UUID id) {
+        ServerPlayer p = AbpsMod.server().getPlayerList().getPlayer(id);
+        return p != null ? p : TEST_PLAYERS.get(id);
+    }
+
     public static ServerLevel level() {
         return AbpsMod.server().getLevel(WORLD);
     }
@@ -126,6 +135,7 @@ public final class Dungeons {
     }
 
     public static void tick() {
+        Gates.tick();
         ServerLevel level = level();
         if (level == null) return;
         for (Run r : new ArrayList<>(RUNS.values())) {
@@ -134,7 +144,7 @@ public final class Dungeons {
                     r.state = Run.State.ACTIVE;
                     r.startedAt = System.currentTimeMillis();
                     for (UUID id : r.players) {
-                        ServerPlayer p = AbpsMod.server().getPlayerList().getPlayer(id);
+                        ServerPlayer p = Dungeons.player(id);
                         if (p != null) r.enter(p);
                     }
                 }
@@ -142,7 +152,7 @@ public final class Dungeons {
             }
             // People who teleported out some other way are out of the run
             for (UUID id : new ArrayList<>(r.players)) {
-                ServerPlayer p = AbpsMod.server().getPlayerList().getPlayer(id);
+                ServerPlayer p = Dungeons.player(id);
                 if (p != null && p.level() != level && r.ticks > 40) r.players.remove(id);
             }
             r.tick();
@@ -187,6 +197,7 @@ public final class Dungeons {
         if (level != null) for (Builder b : TEARDOWN.values()) while (!b.tick(level)) ;
         TEARDOWN.clear();
         save();
+        Gates.save();
     }
 
     // ------------------------------------------------------------------ menu
@@ -211,7 +222,7 @@ public final class Dungeons {
         List<String> members = new ArrayList<>();
         if (party != null) {
             for (UUID id : party.ids()) {
-                ServerPlayer m = AbpsMod.server().getPlayerList().getPlayer(id);
+                ServerPlayer m = Dungeons.player(id);
                 members.add(m == null ? "?" : m.getName().getString());
             }
         } else {
@@ -220,7 +231,7 @@ public final class Dungeons {
         Party invited = Party.invitedTo(p);
         String from = "";
         if (invited != null) {
-            ServerPlayer l = AbpsMod.server().getPlayerList().getPlayer(invited.leader());
+            ServerPlayer l = Dungeons.player(invited.leader());
             from = l == null ? "" : l.getName().getString();
         }
         List<String> online = new ArrayList<>();
@@ -235,6 +246,10 @@ public final class Dungeons {
         String[] a = arg.split("[|]", 2);
         String op = a[0], v = a.length > 1 ? a[1] : "";
         switch (op) {
+            case "list" -> {
+                sendMenu(p);
+                return;
+            }
             case "start" -> start(p, v);
             case "leave" -> leave(p);
             case "invite" -> {
@@ -304,10 +319,24 @@ public final class Dungeons {
         try {
             int c2 = run.boss != null ? run.boss.color : run.def.color();
             Vec3 dir = to.subtract(from);
-            Vfx.cue(run.level, cue, from, dir.lengthSqr() < 1e-6 ? new Vec3(0, 1, 0) : dir.normalize(), to, a, null, run.def.color(), c2, extra);
+            boolean drawn = Vfx.cue(run.level, cue, from, dir.lengthSqr() < 1e-6 ? new Vec3(0, 1, 0) : dir.normalize(), to, a, null, run.def.color(), c2, extra);
+            if (!drawn) fallback(run, cue, from, to, extra);
         } finally {
             Vfx.theme(outer);
         }
+    }
+
+    /** Nobody nearby has the client mod: outline the boss warnings in red dust so they can still dodge. */
+    private static void fallback(Run run, int cue, Vec3 from, Vec3 to, int warn) {
+        if (cue != CUE_RING_WARN && cue != CUE_LINE_WARN) return;
+        var red = dev.abps.util.Fx.dust(0xFF3B30, 1.2f);
+        Vec3 a = from.add(0, 0.15, 0), b = to.add(0, 0.15, 0);
+        double r = from.distanceTo(to);
+        dev.abps.util.Tasks.repeat(Math.max(1, warn / 5), 5, step -> {
+            if (run.state == Run.State.OVER) return;
+            if (cue == CUE_RING_WARN) dev.abps.util.Fx.ring(run.level, red, a, r, (int) Math.max(12, r * 8));
+            else dev.abps.util.Fx.line(run.level, red, a, b, 0.5);
+        });
     }
 
     // ------------------------------------------------------------------ records and titles
@@ -317,6 +346,7 @@ public final class Dungeons {
     }
 
     public static void load() {
+        Gates.load();
         try {
             Path f = file();
             if (Files.exists(f)) {
@@ -344,7 +374,7 @@ public final class Dungeons {
     private static String names(Run run) {
         List<String> n = new ArrayList<>();
         for (UUID id : run.returns.keySet()) {
-            ServerPlayer p = AbpsMod.server().getPlayerList().getPlayer(id);
+            ServerPlayer p = Dungeons.player(id);
             n.add(p != null ? p.getName().getString() : "?");
         }
         return String.join(", ", n);
@@ -389,7 +419,7 @@ public final class Dungeons {
         if (wave <= 0) return;
         addEntry(run.def.id(), new Entry(names(run), wave, run.partySize), false);
         for (UUID id : run.returns.keySet()) {
-            ServerPlayer p = AbpsMod.server().getPlayerList().getPlayer(id);
+            ServerPlayer p = Dungeons.player(id);
             if (p == null) continue;
             PlayerData d = AbpsMod.data().get(p);
             d.bestWave = Math.max(d.bestWave, wave);

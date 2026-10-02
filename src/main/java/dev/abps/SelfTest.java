@@ -55,7 +55,11 @@ public final class SelfTest {
             if (step == all.size()) {
                 testCommands(server);
                 testShops(level);
-                finish(server);
+                // Dungeons take a few minutes of real ticks, so they report back when they're done
+                dev.abps.dungeon.DungeonTest.run(server, (what, ok) -> {
+                    if (!ok) problems++;
+                    report.add(what + ": " + (ok ? "OK" : "FAILED"));
+                }, () -> finish(server));
                 return;
             }
             AttributeClass c = all.get(index[0]++);
@@ -125,7 +129,7 @@ public final class SelfTest {
 
     private static void testCommands(MinecraftServer server) {
         String[] cmds = {"help", "attributes", "top", "stats @a", "savealll", "saveall", "reload", "giveattribute @r Miner",
-                "clearcombat Nobody", "cooldowns", "home", "spawn", "tpr Nobody"};
+                "clearcombat Nobody", "cooldowns", "home", "spawn", "tpr Nobody", "dungeon list", "party", "title"};
         for (String c : cmds) {
             try {
                 Commands.handle(server.createCommandSourceStack(), c);
@@ -214,7 +218,7 @@ public final class SelfTest {
     private static void finish(MinecraftServer server) {
         AbpsMod.LOGGER.info("===== AbpsMod self test =====");
         for (String line : report) AbpsMod.LOGGER.info(line);
-        AbpsMod.LOGGER.info("===== {} crashes =====", problems);
+        AbpsMod.LOGGER.info("===== {} crashes or failures =====", problems);
         Tasks.later(40, () -> server.halt(false));
     }
 }

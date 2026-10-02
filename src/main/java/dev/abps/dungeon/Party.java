@@ -55,7 +55,7 @@ public final class Party {
     public List<ServerPlayer> online() {
         List<ServerPlayer> out = new ArrayList<>();
         for (UUID id : members) {
-            ServerPlayer p = AbpsMod.server().getPlayerList().getPlayer(id);
+            ServerPlayer p = Dungeons.player(id);
             if (p != null) out.add(p);
         }
         return out;

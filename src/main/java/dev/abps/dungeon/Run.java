@@ -236,7 +236,7 @@ public final class Run {
     public List<ServerPlayer> online() {
         List<ServerPlayer> out = new ArrayList<>();
         for (UUID id : players) {
-            ServerPlayer p = AbpsMod.server().getPlayerList().getPlayer(id);
+            ServerPlayer p = Dungeons.player(id);
             if (p != null && p.level() == level) out.add(p);
         }
         return out;

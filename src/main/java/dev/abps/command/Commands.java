@@ -340,6 +340,21 @@ public final class Commands {
                         else dev.abps.dungeon.Dungeons.start(p, args[1].toLowerCase(java.util.Locale.ROOT));
                     }
                     case "leave", "quit", "exit" -> dev.abps.dungeon.Dungeons.leave(p);
+                    case "gate", "makegate", "spawngate" -> {
+                        if (!isAdmin(s)) {
+                            Service.send(s, "<red>Only operators can make gates.");
+                            return;
+                        }
+                        if (p.level() != AbpsMod.server().overworld()) {
+                            Service.send(s, "<red>Gates only work in the overworld.");
+                            return;
+                        }
+                        // A few blocks ahead of you, so you don't end up inside the arch
+                        var ahead = p.position().add(p.getLookAngle().multiply(1, 0, 1).normalize().scale(6));
+                        var gate = dev.abps.dungeon.Gates.build((net.minecraft.server.level.ServerLevel) p.level(), (int) Math.floor(ahead.x), (int) Math.floor(ahead.z));
+                        Service.send(s, gate == null ? "<red>No room for a gate there (water, trees, or another gate within 200 blocks)."
+                                : "<green>A dungeon gate formed at " + gate.getX() + " " + gate.getY() + " " + gate.getZ() + ".");
+                    }
                     case "list", "" -> {
                         if (op.isEmpty() && Service.hasMod(p)) {
                             ServerPlayNetworking.send(p, new Net.OpenMenuPayload("dungeons"));

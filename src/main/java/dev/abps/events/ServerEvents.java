@@ -61,6 +61,7 @@ public final class ServerEvents {
             AbpsMod.stop();
         });
         ServerTickEvents.END_SERVER_TICK.register(ServerEvents::tick);
+        dev.abps.dungeon.Gates.register();
 
         // ---- Join and leave ----
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {

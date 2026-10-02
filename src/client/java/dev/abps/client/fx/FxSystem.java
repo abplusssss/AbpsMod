@@ -79,6 +79,7 @@ public final class FxSystem {
         if (mode == 0 || me == null) return false;
         if (i[2] == me.getId() || i[3] == me.getId()) return false; // yours, or aimed at you
         if (i[1] == 20) return false; // level ups are rare and worth seeing
+        if (i[0] == SigDungeon.THEME) return false; // dungeon warnings show where not to stand, so they are never hidden
         return mode == 2 || i[1] >= 10;
     }
 

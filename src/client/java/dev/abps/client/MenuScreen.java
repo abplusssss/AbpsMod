@@ -26,6 +26,7 @@ public final class MenuScreen extends Screen {
         TOP("Top Players", "minecraft:totem_of_undying"),
         SHOPS("Shops", "minecraft:emerald"),
         TRAVEL("Travel", "minecraft:ender_pearl"),
+        DUNGEONS("Dungeons", "minecraft:skeleton_skull"),
         PROFILE("Profile", "minecraft:name_tag"),
         NEWS("What's New", "minecraft:writable_book"),
         KEYBINDS("Keybinds", "minecraft:tripwire_hook"),
@@ -83,6 +84,7 @@ public final class MenuScreen extends Screen {
             case "admin" -> this.tab = Tab.ADMIN;
             case "shops", "shop" -> this.tab = Tab.SHOPS;
             case "travel" -> this.tab = Tab.TRAVEL;
+            case "dungeons", "dungeon", "party", "titles" -> this.tab = Tab.DUNGEONS;
             case "profile" -> this.tab = Tab.PROFILE;
             case "confirm_upgrade" -> confirm = "upgrade";
             case "confirm_reroll" -> confirm = "reroll";
@@ -193,7 +195,7 @@ public final class MenuScreen extends Screen {
         if (s == null || !AbpsClient.connected()) {
             Draw.centered(g, "<gray>This server doesn't run AbpsMod, or it's still loading.", cx + cw / 2, cy + ch / 2 - 4);
         } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN && tab != Tab.KEYBINDS
-                && tab != Tab.SHOPS && tab != Tab.TRAVEL && tab != Tab.PROFILE && tab != Tab.NEWS) {
+                && tab != Tab.SHOPS && tab != Tab.TRAVEL && tab != Tab.PROFILE && tab != Tab.NEWS && tab != Tab.DUNGEONS) {
             Draw.centered(g, "<gray>Loading your attribute...", cx + cw / 2, cy + ch / 2 - 4);
         } else {
             g.enableScissor(cx, cy, cx + cw, cy + ch);
@@ -211,6 +213,7 @@ public final class MenuScreen extends Screen {
                 case ADMIN -> admin(g, mmx, mmy, s, top);
                 case SHOPS -> shops(g, mmx, mmy, top);
                 case TRAVEL -> travel(g, mmx, mmy, top);
+                case DUNGEONS -> dungeons(g, mmx, mmy, top);
                 case PROFILE -> profile(g, mmx, mmy, top);
                 case NEWS -> news(g, mmx, mmy, top);
             };
@@ -315,9 +318,20 @@ public final class MenuScreen extends Screen {
 
     private int news(GuiGraphicsExtractor g, int mx, int my, int y0) {
         int x = cx + 6, y = y0 + 4, w = cw - 16;
-        y = section(g, "New in " + dev.abps.Updater.current(), 0xFFD54F, x, y);
+        y = section(g, "New in " + dev.abps.Updater.current() + ": Dungeons", 0xB388FF, x, y);
+        String[] dungeons = {
+                "<white>Five dungeons: three story dungeons with a boss each, <light_purple>The Shifting Depths</light_purple> (new rooms and a random boss every run) and the <gold>Endless Arena</gold>.",
+                "<white>Go alone or with a party of up to 4. The party leader starts the run from the <yellow>Dungeons</yellow> tab.",
+                "<white>Bosses warn you first: a red ring or lane on the ground fills up, then hits. Get out of it!",
+                "<white>Falling in a dungeon downs you instead of killing you. The party shares a few downs.",
+                "<white>15 dungeon items with special powers, best times, top 5 boards and titles to show next to your name.",
+                "<white>Ruined stone arches appear in new land. Walk through one to start The Shifting Depths."};
+        for (String n : dungeons) y += Draw.wrapped(g, "<light_purple>•</light_purple> " + n, x, y, w, Draw.TEXT) + 3;
+        button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Dungeons", 0xB388FF, true, () -> switchTab(Tab.DUNGEONS));
+        y += 26;
+        y = section(g, "Also new", 0xFFD54F, x, y);
         String[] latest = {
-                "<white>The mod now updates itself. Servers and players download new versions on their own; restart to use them.",
+                "<white>The mod updates itself. Servers and players download new versions on their own; restart to use them.",
                 "<white>Press <yellow>" + AbpsClient.hudKey.getTranslatedKeyMessage().getString() + "</yellow> to hide or show the HUD panel (also in Settings).",
                 "<white>Shop buttons work with a real mouse again."};
         for (String n : latest) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
@@ -920,6 +934,10 @@ public final class MenuScreen extends Screen {
             case SHOPS -> AbpsClient.send("shop", "list");
             case TRAVEL -> AbpsClient.send("travel", "list");
             case PROFILE -> AbpsClient.send("profile", "");
+            case DUNGEONS -> {
+                AbpsClient.send("dungeon", "list");
+                dungeonsAskedAt = System.currentTimeMillis();
+            }
             default -> {
             }
         }
@@ -1134,6 +1152,152 @@ public final class MenuScreen extends Screen {
         y += ((pr.labels().size() + cols - 1) / cols) * 34 + 6;
 
         return y - y0 + 6;
+    }
+
+    // ================= Dungeons tab =================
+
+    private long dungeonsAskedAt;
+
+    private static String modeName(String mode) {
+        return switch (mode) {
+            case "WAVES" -> "Waves";
+            case "RANDOM" -> "New layout every run";
+            default -> "Story";
+        };
+    }
+
+    private int dungeons(GuiGraphicsExtractor g, int mx, int my, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        // Invites accepted or players leaving don't send anything, so ask again every few seconds while the tab is open
+        if (System.currentTimeMillis() - dungeonsAskedAt > 3000) request(Tab.DUNGEONS);
+        Net.DungeonsPayload dp = ClientState.dungeons;
+        if (dp == null) {
+            Draw.centered(g, "<gray>Loading dungeons...", cx + cw / 2, y + 20);
+            return 40;
+        }
+        if (!dp.enabled()) {
+            Draw.centered(g, "<gray>Dungeons are turned off on this server.", cx + cw / 2, y + 20);
+            return 40;
+        }
+        String me = Minecraft.getInstance().player == null ? "" : Minecraft.getInstance().player.getGameProfile().name();
+
+        // In a run right now
+        if (!dp.inRun().isEmpty()) {
+            Draw.framed(g, x, y, w, 26, 0xE0181020, 0xFFB388FF);
+            Draw.textFit(g, "<gray>You're in <white><bold>" + dp.inRun(), x + 8, y + 9, w - 16 - 84);
+            button(g, mx, my, x + w - 80, y + 4, 74, 18, "<white><bold>Leave run", 0xFF5252, true, () -> AbpsClient.send("dungeon", "leave"));
+            y += 32;
+        }
+        // A party invite waiting for an answer
+        if (!dp.inviteFrom().isEmpty()) {
+            Draw.framed(g, x, y, w, 26, 0xE0181410, 0xFF5A4A20);
+            Draw.textFit(g, "<aqua>" + dp.inviteFrom() + "</aqua> <gray>invited you to their party", x + 8, y + 9, w - 16 - 122);
+            button(g, mx, my, x + w - 118, y + 5, 56, 16, "<#69F0AE>Accept", 0x69F0AE, true, () -> AbpsClient.send("dungeon", "accept"));
+            button(g, mx, my, x + w - 58, y + 5, 52, 16, "<#FF5252>Decline", 0xFF5252, true, () -> AbpsClient.send("dungeon", "decline"));
+            y += 32;
+        }
+
+        // The party
+        y = section(g, "Your party (" + dp.party().size() + "/4)", 0x00E5FF, x, y);
+        for (int k = 0; k < dp.party().size(); k++) {
+            String name = dp.party().get(k);
+            boolean leader = k == 0, mine = name.equals(me);
+            boolean canKick = dp.leader() && !mine;
+            Draw.framed(g, x, y, w, 20, mine ? 0xE0101C24 : 0xE0101016, 0xFF2A2A34);
+            String label = (leader ? "<gold>♛</gold> " : "<dark_gray>•</dark_gray> ") + "<white>" + name + (mine ? " <gray>(you)" : "")
+                    + (leader && dp.party().size() > 1 ? " <dark_gray>leader" : "");
+            Draw.textFit(g, label, x + 6, y + 6, w - 12 - (canKick ? 50 : 0));
+            if (canKick) button(g, mx, my, x + w - 48, y + 2, 44, 16, "<#FF5252>Kick", 0xFF5252, true, () -> AbpsClient.send("dungeon", "kick|" + name));
+            y += 22;
+        }
+        if (dp.party().size() > 1) {
+            button(g, mx, my, x, y, 90, 16, "<gray>Leave party", 0x777781, true, () -> AbpsClient.send("dungeon", "partyleave"));
+            y += 20;
+        }
+        if (dp.leader() && dp.party().size() < 4) {
+            List<String> labels = new ArrayList<>();
+            List<Boolean> on = new ArrayList<>();
+            List<Runnable> acts = new ArrayList<>();
+            for (String n : dp.online()) {
+                if (dp.party().contains(n)) continue;
+                labels.add("+ " + n);
+                on.add(false);
+                acts.add(() -> AbpsClient.send("dungeon", "invite|" + n));
+            }
+            if (labels.isEmpty()) {
+                Draw.text(g, "<gray>Nobody else is online to invite.", x, y + 2);
+                y += 14;
+            } else {
+                Draw.text(g, "<gray>Invite:", x, y + 4);
+                y = chips(g, mx, my, x + 42, y, w - 42, labels, on, 0x00E5FF, acts);
+            }
+        } else if (!dp.leader()) {
+            y += Draw.wrapped(g, "<gray>Your party leader picks the dungeon and starts the run.", x, y + 2, w, Draw.MUTED) + 4;
+        }
+
+        // The dungeons
+        y = section(g, "Dungeons", 0xB388FF, x, y + 4);
+        boolean canStart = dp.leader() && dp.inRun().isEmpty();
+        int size = dp.party().size();
+        for (Net.DungeonCard d : dp.cards()) {
+            int col = d.color(), col2 = Text.lerp(col, 0xFFFFFF, 0.5f);
+            boolean waves = d.mode().equals("WAVES");
+            int textW = w - 38 - 80;
+            String blurb = "<gray>" + d.blurb();
+            int blurbH = Draw.wrappedHeight(blurb, textW);
+            int rows = Math.max(1, Math.min(5, d.board().size()));
+            int top = Math.max(30 + blurbH, 34);
+            int h = top + 11 + 11 + rows * 10 + 6;
+            Draw.framed(g, x, y, w, h, 0xE0101016, Draw.argb(col, 0x90));
+            Draw.item(g, d.icon(), x + 8, y + 6, 1.5f);
+            Draw.textFit(g, "<bold>" + Draw.gradient(col, col2, d.name()) + "</bold>", x + 38, y + 6, textW);
+            Draw.textFit(g, "<gold>" + "★".repeat(Math.max(0, d.difficulty())) + "</gold><dark_gray>" + "☆".repeat(Math.max(0, 3 - d.difficulty()))
+                    + "</dark_gray> <dark_gray>·</dark_gray> <gray>" + modeName(d.mode()), x + 38, y + 17, textW);
+            Draw.wrapped(g, blurb, x + 38, y + 29, textW, Draw.MUTED);
+            String startLabel = !dp.inRun().isEmpty() ? "In a run" : !dp.leader() ? "Leader only" : size > 1 ? "<white><bold>Start (" + size + ")" : "<white><bold>Start";
+            final String id = d.id();
+            button(g, mx, my, x + w - 74, y + 8, 66, 18, startLabel, col, canStart, () -> AbpsClient.send("dungeon", "start|" + id));
+
+            int yy = y + top;
+            String stats;
+            if (waves) stats = d.best() > 0 ? "<gray>Your best:</gray> <white>wave " + d.best() : "<gray>You haven't tried it yet.";
+            else if (d.clears() > 0) stats = "<gray>Cleared</gray> <white>" + d.clears() + "×</white>" + (d.best() > 0 ? "  <gray>Best time</gray> <white>" + Text.time(d.best()) : "");
+            else stats = "<gray>Not cleared yet.";
+            Draw.textFit(g, stats, x + 8, yy, w - 16);
+            yy += 11;
+            Draw.text(g, "<bold>" + Draw.gradient(col, col2, waves ? "Top 5 waves" : "Top 5 times") + "</bold>", x + 8, yy);
+            yy += 11;
+            if (d.board().isEmpty()) {
+                Draw.textFit(g, "<dark_gray>Nobody yet. Be the first!", x + 12, yy, w - 24);
+            } else {
+                for (int k = 0; k < rows; k++) {
+                    String line = d.board().get(k);
+                    String medal = k == 0 ? "<#FFD54F>" : k == 1 ? "<#CFD8DC>" : k == 2 ? "<#FFAB91>" : "<gray>";
+                    Draw.textFit(g, medal + line, x + 12, yy + k * 10, w - 24);
+                }
+            }
+            y += h + 4;
+        }
+
+        // Titles
+        y = section(g, "Titles", 0xFFD54F, x, y + 4);
+        if (dp.titles().isEmpty()) {
+            y += Draw.wrapped(g, "<gray>Clear dungeons to earn titles. Your title shows next to your name in chat and the tab list.", x, y, w, Draw.MUTED) + 4;
+        } else {
+            List<String> labels = new ArrayList<>(List.of("None"));
+            List<Boolean> on = new ArrayList<>(List.of(dp.title().isEmpty()));
+            List<Runnable> acts = new ArrayList<>();
+            acts.add(() -> AbpsClient.send("dungeon", "title|"));
+            for (String t : dp.titles()) {
+                labels.add(t);
+                on.add(t.equals(dp.title()));
+                acts.add(() -> AbpsClient.send("dungeon", "title|" + t));
+            }
+            y = chips(g, mx, my, x, y, w, labels, on, 0xFFD54F, acts);
+        }
+        y += Draw.wrapped(g, "<dark_gray>Look out for ruined stone arches in new land. Walking through one starts The Shifting Depths for your party.",
+                x, y + 2, w, Draw.DIM);
+        return y - y0 + 10;
     }
 
     /** Development only: clicks the first button whose label starts with this, through the real mouse code. */

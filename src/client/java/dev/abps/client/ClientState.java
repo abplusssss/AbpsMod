@@ -24,6 +24,12 @@ public final class ClientState {
     public static Net.ShopPayload shop;
     public static Net.TravelPayload travel;
     public static Net.ProfilePayload profile;
+    public static Net.DungeonsPayload dungeons;
+    /** The run panel. Null or inactive when you're not in a dungeon. */
+    public static Net.DungeonHudPayload dungeonHud;
+    public static long dungeonHudAt;
+    /** True while the run's clock is moving, so the panel can count between updates. */
+    public static boolean dungeonClock;
     public static final Set<UUID> vanished = new HashSet<>();
 
     // Screen effects
@@ -49,6 +55,9 @@ public final class ClientState {
         shop = null;
         travel = null;
         profile = null;
+        dungeons = null;
+        dungeonHud = null;
+        dungeonClock = false;
         vanished.clear();
         banners.clear();
         shakeTicks = tintTicks = flashTicks = 0;
@@ -67,6 +76,13 @@ public final class ClientState {
     public static long combatLeft() {
         if (sync == null) return 0;
         return Math.max(0, sync.combatLeft() - (System.currentTimeMillis() - syncAt));
+    }
+
+    /** Time spent in the current dungeon run, counting on between the server's once-a-second updates. */
+    public static long dungeonElapsed() {
+        Net.DungeonHudPayload h = dungeonHud;
+        if (h == null) return 0;
+        return h.elapsed() + (dungeonClock ? Math.min(1500, System.currentTimeMillis() - dungeonHudAt) : 0);
     }
 
     public static long ultLockLeft() {
