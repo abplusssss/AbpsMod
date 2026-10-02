@@ -199,7 +199,11 @@ public final class MenuScreen extends Screen {
         if (s == null || !AbpsClient.connected()) {
             Draw.centered(g, "<gray>This server doesn't run AbpsMod, or it's still loading.", cx + cw / 2, cy + ch / 2 - 4);
         } else if (s.classId().isEmpty() && tab == Tab.OVERVIEW) {
-            roleCards(g, mx, my);
+            try {
+                roleCards(g, mx, my);
+            } catch (Throwable t) {
+                drawError(g, t);
+            }
         } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN && tab != Tab.KEYBINDS
                 && tab != Tab.SHOPS && tab != Tab.TRAVEL && tab != Tab.PROFILE && tab != Tab.NEWS && tab != Tab.DUNGEONS) {
             Draw.centered(g, "<gray>Loading your attribute...", cx + cw / 2, cy + ch / 2 - 4);
@@ -208,6 +212,7 @@ public final class MenuScreen extends Screen {
             int top = cy - (int) scroll;
             boolean popup = !confirm.isEmpty();
             int mmx = popup ? -1 : mx, mmy = popup ? -1 : my;
+            try {
             contentHeight = switch (tab) {
                 case OVERVIEW -> overview(g, mmx, mmy, s, c, top);
                 case ABILITIES -> abilities(g, mmx, mmy, s, c, top);
@@ -223,6 +228,11 @@ public final class MenuScreen extends Screen {
                 case PROFILE -> profile(g, mmx, mmy, top);
                 case NEWS -> news(g, mmx, mmy, top);
             };
+            } catch (Throwable t) {
+                // A broken tab shows what went wrong instead of crashing the game
+                drawError(g, t);
+                contentHeight = ch;
+            }
             g.disableScissor();
             // Scroll bar
             if (contentHeight > ch) {
@@ -302,6 +312,17 @@ public final class MenuScreen extends Screen {
         return y - y0 + 8;
     }
 
+    private static long lastErrorLog;
+
+    private void drawError(GuiGraphicsExtractor g, Throwable t) {
+        if (System.currentTimeMillis() - lastErrorLog > 5000) {
+            lastErrorLog = System.currentTimeMillis();
+            dev.abps.AbpsMod.LOGGER.error("Menu tab {} failed to draw", tab, t);
+        }
+        Draw.wrapped(g, "<red>This tab hit an error: " + t.getClass().getSimpleName() + ". <gray>Please send the log (latest.log) so it can be fixed.",
+                cx + 6, cy + 10, cw - 16, Draw.TEXT);
+    }
+
     /** For players without an attribute yet: two big cards to pick PvP or Gatherer. */
     private void roleCards(GuiGraphicsExtractor g, int mx, int my) {
         int x = cx + 6, w = cw - 16, y = cy + 6;
@@ -309,10 +330,13 @@ public final class MenuScreen extends Screen {
         y += 18;
         y += Draw.wrapped(g, "<gray>You get an attribute for <white>both</white> roles. Pick which one you play first; switch between them any time for free.",
                 x, y, w, Draw.MUTED) + 6;
-        int cardW = (w - 8) / 2, cardH = Math.min(ch - (y - cy) - 8, 130);
+        int cardW = (w - 8) / 2;
         String[][] roles = {
                 {"pvp", "PvP", "minecraft:netherite_sword", "Built for fighting other players. Strong abilities, ultimates charged by hitting players."},
                 {"gatherer", "Gatherer", "minecraft:diamond_pickaxe", "Built for getting items and progressing: farming, mining, chopping, fishing and exploring. Ultimates charge as you gather. Less damage to players."}};
+        // Tall enough for the longer of the two descriptions, with room to spare at the bottom
+        int textH = Math.max(Draw.wrappedHeight("<gray>" + roles[0][3], cardW - 16), Draw.wrappedHeight("<gray>" + roles[1][3], cardW - 16));
+        int cardH = 60 + textH + 10;
         for (int k = 0; k < 2; k++) {
             int col = k == 0 ? 0xFF5252 : 0x69F0AE;
             int bx = x + k * (cardW + 8);

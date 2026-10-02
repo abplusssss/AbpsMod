@@ -76,8 +76,8 @@ public final class Tasks {
             int outer = Vfx.theme(t.theme);
             try {
                 t.body.accept(t.step++);
-            } catch (Exception e) {
-                AbpsMod.LOGGER.warn("A scheduled effect stopped: {}", e.toString());
+            } catch (Throwable e) {
+                AbpsMod.LOGGER.warn("A scheduled task stopped", e);
                 return true;
             } finally {
                 Vfx.theme(outer);

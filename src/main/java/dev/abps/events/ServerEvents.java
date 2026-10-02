@@ -192,8 +192,15 @@ public final class ServerEvents {
         // ---- Packets from the client mod ----
         ServerPlayNetworking.registerGlobalReceiver(Net.CastPayload.TYPE, (payload, ctx) ->
                 AbpsMod.service().cast(ctx.player(), payload.slot()));
-        ServerPlayNetworking.registerGlobalReceiver(Net.ActionPayload.TYPE, (payload, ctx) ->
-                action(ctx.player(), payload.action(), payload.arg()));
+        ServerPlayNetworking.registerGlobalReceiver(Net.ActionPayload.TYPE, (payload, ctx) -> {
+            // A broken menu action must never take the server (or a singleplayer game) down with it
+            try {
+                action(ctx.player(), payload.action(), payload.arg());
+            } catch (Throwable t) {
+                AbpsMod.LOGGER.error("Menu action '{}' ({}) failed for {}", payload.action(), payload.arg(), ctx.player().getName().getString(), t);
+                AbpsMod.service().send(ctx.player(), "<red>That didn't work (" + t.getClass().getSimpleName() + "). The details are in the log.");
+            }
+        });
     }
 
     // ================= Tick =================

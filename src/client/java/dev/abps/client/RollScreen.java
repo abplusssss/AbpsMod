@@ -60,6 +60,16 @@ public final class RollScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
+        try {
+            draw(g, mx, my, pt);
+        } catch (Throwable t) {
+            // Never crash the game over an animation: log it and close
+            dev.abps.AbpsMod.LOGGER.error("The roll animation failed", t);
+            onClose();
+        }
+    }
+
+    private void draw(GuiGraphicsExtractor g, int mx, int my, float pt) {
         super.extractRenderState(g, mx, my, pt);
         List<Net.ClassInfo> list = order();
         int cxm = width / 2, cym = height / 2;

@@ -13,8 +13,21 @@ public final class Hud implements HudElement {
     public static final int WIDTH = 132;
     private static final String[] KEY_FALLBACK = {"R", "C", "V", "G", "X", "Z"};
 
+    private static long lastError;
+
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, DeltaTracker delta) {
+        try {
+            draw(g);
+        } catch (Throwable t) {
+            if (System.currentTimeMillis() - lastError > 10_000) {
+                lastError = System.currentTimeMillis();
+                dev.abps.AbpsMod.LOGGER.error("The HUD failed to draw", t);
+            }
+        }
+    }
+
+    private void draw(GuiGraphicsExtractor g) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         overlays(g);
