@@ -127,7 +127,7 @@ public final class MenuScreen extends Screen {
     private void button(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h, String label, int color, boolean enabled, Runnable action) {
         boolean hover = enabled && Draw.inside(mx, my, x, y, w, h);
         Draw.button(g, x, y, w, h, color, hover, enabled);
-        Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 12 ? 1 : 0));
+        Draw.centeredFit(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 12 ? 1 : 0), w - 6);
         if (enabled) buttons.add(new Btn(x, y, w, h, Text.strip(label), action));
     }
 
@@ -174,10 +174,11 @@ public final class MenuScreen extends Screen {
             if (active) Draw.button(g, px + 6, ty, 84, tabH, c1, false, true);
             else if (hover) Draw.framed(g, px + 6, ty, 84, tabH, 0x28FFFFFF, 0x50FFFFFF);
             String icon = t == Tab.OVERVIEW && c != null ? c.icon() : t.icon;
-            float iconScale = tabH >= 20 ? 1f : tabH >= 14 ? 0.8f : 0.6f;
-            Draw.item(g, icon, px + 11, ty + (tabH - 16 * iconScale) / 2f, iconScale);
-            if (tabH >= 14) Draw.text(g, (active ? "<white>" : "<gray>") + t.label, px + 30, ty + (tabH - 8) / 2);
-            else Draw.scaled(g, (active ? "<white>" : "<gray>") + t.label, px + 26, ty + (tabH - 6) / 2f, 0.75f, false);
+            // The icon is sized to the tab's height and the label shrinks to fit what's left, so nothing pokes out of the tab
+            float iconScale = Math.max(0.5f, Math.min(1f, (tabH - 2) / 16f));
+            Draw.item(g, icon, px + 9, ty + (tabH - 16 * iconScale) / 2f, iconScale);
+            int textX = px + 9 + Math.round(16 * iconScale) + 4;
+            Draw.textFit(g, (active ? "<white>" : "<gray>") + t.label, textX, ty + (tabH - 8) / 2, px + 6 + 84 - 3 - textX);
             final Tab target = t;
             buttons.add(new Btn(px + 6, ty, 84, tabH, "tab:" + target.name(), () -> switchTab(target)));
             ty += step;

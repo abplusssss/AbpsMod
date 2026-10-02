@@ -214,6 +214,22 @@ public final class Draw {
         scaled(g, markup, x, y + (1 - scale) * 4, scale, false);
     }
 
+    /** Centered text that shrinks to fit a width (never below 60%), and is shortened with "…" if it still doesn't fit. */
+    public static void centeredFit(GuiGraphicsExtractor g, String markup, int cx, int y, int width) {
+        int w = font().width(Text.mm(markup));
+        if (w <= width) {
+            centered(g, markup, cx, y);
+            return;
+        }
+        float scale = Math.max(0.6f, width / (float) Math.max(1, w));
+        if (w * scale > width) {
+            String p = fit(Text.strip(markup), width);
+            plain(g, p, cx - font().width(p) / 2, y, TEXT);
+            return;
+        }
+        scaled(g, markup, cx, y + (1 - scale) * 4, scale, true);
+    }
+
     public static boolean inside(double mx, double my, int x, int y, int w, int h) {
         return mx >= x && my >= y && mx < x + w && my < y + h;
     }

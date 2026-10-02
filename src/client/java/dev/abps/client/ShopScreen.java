@@ -87,7 +87,7 @@ public final class ShopScreen extends Screen {
     private void button(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h, String label, int color, boolean enabled, Runnable action) {
         boolean hover = enabled && Draw.inside(mx, my, x, y, w, h);
         Draw.button(g, x, y, w, h, color, hover, enabled);
-        Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 12 ? 1 : 0));
+        Draw.centeredFit(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 12 ? 1 : 0), w - 6);
         if (enabled) buttons.add(new Btn(x, y, w, h, Text.strip(label), action));
     }
 
