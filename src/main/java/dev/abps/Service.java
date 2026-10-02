@@ -631,7 +631,7 @@ public final class Service {
     // ================= Abilities =================
     /** Cooldown for this player, with their skill tree's cooldown nodes. */
     public long cooldownMs(AttributeClass c, int idx, PlayerData d) {
-        return (long) (cooldownMs(c, idx, d) * dev.abps.skills.Skills.cooldownMult(d, c));
+        return (long) (cooldownMs(c, idx, d.level) * dev.abps.skills.Skills.cooldownMult(d, c));
     }
 
     public long cooldownMs(AttributeClass c, int idx, int level) {
