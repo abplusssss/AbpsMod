@@ -47,6 +47,20 @@ public class AbpsMod implements ModInitializer {
 		shops = new dev.abps.shop.Shops(s, data.root());
 		service = new Service(s);
 		SelfTest.maybeRun(s);
+		checkForUpdate();
+	}
+
+	/** Dedicated servers look for a newer AbpsMod at start and every 6 hours (see ServerEvents), if the config allows it. */
+	public static void checkForUpdate() {
+		if (net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType() != net.fabricmc.api.EnvType.SERVER || !config.autoUpdate) return;
+		Updater.checkAsync(config.updateUrl, msg -> {
+			MinecraftServer s = server;
+			if (s != null) s.execute(() -> {
+				for (var p : s.getPlayerList().getPlayers()) {
+					if (dev.abps.command.Commands.isAdmin(p.createCommandSourceStack())) service.send(p, "<aqua>" + msg);
+				}
+			});
+		});
 	}
 
 	public static void stop() {

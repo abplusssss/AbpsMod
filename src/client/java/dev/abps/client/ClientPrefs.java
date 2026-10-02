@@ -28,6 +28,8 @@ public final class ClientPrefs {
     public boolean clearView = true;
     /** Effects cast by other players: 0 all of them, 1 their casts but not their hit cues, 2 none. Effects aimed at you always show. */
     public int othersFx = 0;
+    /** Download new AbpsMod versions and install them the next time the game starts. */
+    public boolean autoUpdate = true;
 
     public static ClientPrefs get() {
         if (instance == null) load();

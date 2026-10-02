@@ -19,6 +19,8 @@ public final class AbpsClient implements ClientModInitializer {
     /** Abilities 1 to 5, then the ultimate. */
     public static final KeyMapping[] ABILITY_KEYS = new KeyMapping[6];
     public static KeyMapping menuKey;
+    /** Shows or hides the HUD panel (level, ability keys and cooldowns, ultimate bar). */
+    public static KeyMapping hudKey;
 
     private static boolean jumpWasDown;
     private static boolean wasOnGround = true;
@@ -27,12 +29,14 @@ public final class AbpsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientPrefs.load();
+        if (ClientPrefs.get().autoUpdate) dev.abps.Updater.checkAsync(null, null);
         int[] defaults = {InputConstants.KEY_R, InputConstants.KEY_C, InputConstants.KEY_V, InputConstants.KEY_G, InputConstants.KEY_X, InputConstants.KEY_Z};
         String[] names = {"ability1", "ability2", "ability3", "ability4", "ability5", "ultimate"};
         for (int i = 0; i < 6; i++) {
             ABILITY_KEYS[i] = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod." + names[i], defaults[i], CATEGORY));
         }
         menuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod.menu", InputConstants.KEY_M, CATEGORY));
+        hudKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod.hud", InputConstants.KEY_H, CATEGORY));
 
         registerReceivers();
         dev.abps.client.fx.FxClient.init();
@@ -44,6 +48,12 @@ public final class AbpsClient implements ClientModInitializer {
             dev.abps.client.fx.FxSystem.clear();
         });
         ClientPlayConnectionEvents.JOIN.register((handler, sender, mc) -> {
+            if (dev.abps.Updater.ready() != null) {
+                mc.execute(() -> {
+                    if (mc.player != null) mc.player.sendSystemMessage(dev.abps.util.Text.mm("<aqua>AbpsMod " + dev.abps.Updater.ready()
+                            + " is downloaded. <gray>Restart Minecraft to use it."));
+                });
+            }
             ClientState.reset();
             vfxSent = false;
             dev.abps.client.fx.FxSystem.clear();
@@ -138,6 +148,13 @@ public final class AbpsClient implements ClientModInitializer {
             send("vfx_ready", "1");
         }
 
+        while (hudKey.consumeClick()) {
+            if (!connected() || ClientState.sync == null) continue;
+            boolean nowShown = !ClientState.sync.hud();
+            send("toggle_hud", "");
+            mc.player.sendOverlayMessage(net.minecraft.network.chat.Component.literal(nowShown ? "HUD panel shown" : "HUD panel hidden (press "
+                    + hudKey.getTranslatedKeyMessage().getString() + " to show it again)"));
+        }
         while (menuKey.consumeClick()) {
             if (mc.gui.screen() == null) mc.gui.setScreen(new MenuScreen("overview"));
         }

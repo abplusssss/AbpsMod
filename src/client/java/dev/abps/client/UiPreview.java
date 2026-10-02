@@ -28,6 +28,29 @@ public final class UiPreview {
         return -1;
     }
 
+    /**
+     * Clicks at a menu position through the game's real mouse handler, the same path a physical click takes, so the
+     * test catches problems like which number the game uses for the left button.
+     */
+    static void realClick(double guiX, double guiY, boolean right) {
+        Minecraft mc = Minecraft.getInstance();
+        var w = mc.getWindow();
+        try {
+            for (String f : new String[]{"xpos", "ypos"}) {
+                var field = net.minecraft.client.MouseHandler.class.getDeclaredField(f);
+                field.setAccessible(true);
+                double v = f.equals("xpos") ? guiX * w.getScreenWidth() / w.getGuiScaledWidth() : guiY * w.getScreenHeight() / w.getGuiScaledHeight();
+                field.setDouble(mc.mouseHandler, v);
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("could not move the test mouse", e);
+        }
+        var button = new net.minecraft.client.input.MouseButtonInfo(right ? com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT
+                : com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT, 0);
+        mc.mouseHandler.onButton(w.handle(), button, 1);
+        mc.mouseHandler.onButton(w.handle(), button, 0);
+    }
+
     private static void check(String what, boolean ok) {
         if (ok) passed++;
         else failed++;

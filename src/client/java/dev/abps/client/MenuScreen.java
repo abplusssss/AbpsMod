@@ -315,6 +315,13 @@ public final class MenuScreen extends Screen {
 
     private int news(GuiGraphicsExtractor g, int mx, int my, int y0) {
         int x = cx + 6, y = y0 + 4, w = cw - 16;
+        y = section(g, "New in " + dev.abps.Updater.current(), 0xFFD54F, x, y);
+        String[] latest = {
+                "<white>The mod now updates itself. Servers and players download new versions on their own; restart to use them.",
+                "<white>Press <yellow>" + AbpsClient.hudKey.getTranslatedKeyMessage().getString() + "</yellow> to hide or show the HUD panel (also in Settings).",
+                "<white>Shop buttons work with a real mouse again."};
+        for (String n : latest) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
+        y += 4;
         y = section(g, "5 new attributes", 0x00E5FF, x, y);
         for (String id : new String[]{"cryomancer", "chronomancer", "paladin", "voidwalker", "samurai"}) y = newClass(g, mx, my, x, y, w, id);
         y += 4;
@@ -556,7 +563,7 @@ public final class MenuScreen extends Screen {
         ClientPrefs prefs = ClientPrefs.get();
         int x = cx + 6, y = y0 + 4;
         y = section(g, "Display", 0x00E5FF, x, y);
-        y = toggle(g, mx, my, x, y, "Show the ability HUD", s.hud(), () -> AbpsClient.send("toggle_hud", ""));
+        y = toggle(g, mx, my, x, y, "Show the HUD panel (level, ability keys, ultimate bar). Key: " + AbpsClient.hudKey.getTranslatedKeyMessage().getString(), s.hud(), () -> AbpsClient.send("toggle_hud", ""));
         y = toggle(g, mx, my, x, y, "HUD on the right side", prefs.hudOnRight, () -> {
             prefs.hudOnRight = !prefs.hudOnRight;
             prefs.hudX = -1;
@@ -609,6 +616,13 @@ public final class MenuScreen extends Screen {
         }
         y += 22;
         y = toggle(g, mx, my, x, y, "Clear view (fade effects in front of your eyes)", prefs.clearView, () -> prefs.clearView = !prefs.clearView);
+        y = section(g, "Updates", 0x00E5FF, x, y + 4);
+        String ready = dev.abps.Updater.ready(), err = dev.abps.Updater.lastError();
+        Draw.textFit(g, "<gray>You have <white>" + dev.abps.Updater.current() + "</white>"
+                + (ready != null ? "  <aqua>" + ready + " is downloaded, restart to use it" : err != null ? "  <#FF8A80>last check failed" : ""), x, y + 2, cw - 16 - 104);
+        button(g, mx, my, x + cw - 16 - 100, y - 2, 100, 16, "<white>Check now", 0x00E5FF, true, () -> dev.abps.Updater.checkAsync(null, null));
+        y += 18;
+        y = toggle(g, mx, my, x, y, "Download updates automatically", prefs.autoUpdate, () -> prefs.autoUpdate = !prefs.autoUpdate);
         y = toggle(g, mx, my, x, y, "Screen shake", prefs.screenShake, () -> prefs.screenShake = !prefs.screenShake);
         y = toggle(g, mx, my, x, y, "Screen tints and flashes", prefs.screenTint, () -> prefs.screenTint = !prefs.screenTint);
         y = section(g, "Chat panel", 0x69F0AE, x, y + 4);
@@ -1126,7 +1140,7 @@ public final class MenuScreen extends Screen {
     boolean press(String label) {
         for (Btn b : List.copyOf(buttons)) {
             if (!b.label.startsWith(label)) continue;
-            mouseClicked(new MouseButtonEvent(b.x + b.w / 2.0, b.y + b.h / 2.0, new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+            UiPreview.realClick(b.x + b.w / 2.0, b.y + b.h / 2.0, false);
             return true;
         }
         return false;
@@ -1143,7 +1157,7 @@ public final class MenuScreen extends Screen {
         double fx = inContent ? e.x() : -9999, fy = inContent ? e.y() : -9999;
         boolean typed = shopName.click(fx, fy) | homeName.click(fx, fy);
         if (typed) return true;
-        if (e.button() == 0 || e.button() == 1) { // left or right click, so swapped mouse buttons still work
+        if (e.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT || e.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT) { // left or right click, so swapped mouse buttons still work
             for (Btn b : List.copyOf(buttons)) {
                 if (Draw.inside(e.x(), e.y(), b.x, b.y, b.w, b.h)) {
                     click();

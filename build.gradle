@@ -64,3 +64,26 @@ loom {
 		}
 	}
 }
+
+// ./gradlew dist builds the jar into dist/ with a version file. Servers and clients read dist/version.json from the
+// main branch on GitHub and update themselves, so pushing dist/ to main is how a new version goes out.
+tasks.register('dist') {
+	dependsOn tasks.named('jar')
+	def jarFile = tasks.named('jar').flatMap { it.archiveFile }
+	def outDir = layout.projectDirectory.dir('dist')
+	def ver = project.version.toString()
+	def mc = project.property('minecraft_version').toString()
+	doLast {
+		def out = outDir.asFile
+		out.mkdirs()
+		def jar = new File(out, 'AbpsMod.jar')
+		jar.bytes = jarFile.get().asFile.bytes
+		def sha = java.security.MessageDigest.getInstance('SHA-256').digest(jar.bytes).encodeHex().toString()
+		new File(out, 'version.json').text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([
+				version  : ver,
+				minecraft: mc,
+				url      : 'https://raw.githubusercontent.com/abplusssss/AbpsMod/main/dist/AbpsMod.jar',
+				sha256   : sha])) + '\n'
+		println "dist: AbpsMod ${ver} (${jar.length() >> 10} KB) sha256 ${sha}"
+	}
+}

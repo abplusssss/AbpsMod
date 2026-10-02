@@ -593,7 +593,7 @@ public final class ShopScreen extends Screen {
     boolean press(String label, int mouseButton) {
         for (Btn b : List.copyOf(buttons)) {
             if (!b.label.startsWith(label)) continue;
-            mouseClicked(new MouseButtonEvent(b.x + b.w / 2.0, b.y + b.h / 2.0, new net.minecraft.client.input.MouseButtonInfo(mouseButton, 0)), false);
+            UiPreview.realClick(b.x + b.w / 2.0, b.y + b.h / 2.0, mouseButton == 1);
             return true;
         }
         return false;
@@ -603,7 +603,7 @@ public final class ShopScreen extends Screen {
     boolean pressQty() {
         double[] c = qty.center();
         if (c == null) return false;
-        mouseClicked(new MouseButtonEvent(c[0], c[1], new net.minecraft.client.input.MouseButtonInfo(0, 0)), false);
+        UiPreview.realClick(c[0], c[1], false);
         return qty.focused();
     }
 
@@ -631,7 +631,7 @@ public final class ShopScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         // Right-click an inventory item in the add popup to price in it
-        if (e.button() == 1 && popup.equals("add")) {
+        if (e.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT && popup.equals("add")) {
             for (Btn b : List.copyOf(buttons)) {
                 if (!Draw.inside(e.x(), e.y(), b.x, b.y, b.w, b.h) || b.w != 17) continue;
                 int[] slot = new int[]{pickSlot};
@@ -646,7 +646,7 @@ public final class ShopScreen extends Screen {
         boolean typed = false;
         for (TextInput f : fields()) typed |= f.click(e.x(), e.y());
         if (typed) return true;
-        if (e.button() == 0) {
+        if (e.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             for (Btn b : List.copyOf(buttons)) {
                 if (Draw.inside(e.x(), e.y(), b.x, b.y, b.w, b.h)) {
                     click();

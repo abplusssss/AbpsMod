@@ -75,6 +75,9 @@ public final class ServerEvents {
                 if (p.hasDisconnected()) return;
                 AbpsMod.shops().onJoin(p);
                 dev.abps.Profiles.onJoin(p);
+                if (dev.abps.Updater.ready() != null && dev.abps.command.Commands.isAdmin(p.createCommandSourceStack())) {
+                    AbpsMod.service().send(p, "<aqua>AbpsMod " + dev.abps.Updater.ready() + " is downloaded. Restart the server to use it.");
+                }
             });
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -181,6 +184,7 @@ public final class ServerEvents {
         dev.abps.util.Vfx.theme(0);
         Tasks.tick();
         ticks++;
+        if (ticks % (20L * 60 * 60 * 6) == 0) AbpsMod.checkForUpdate();
         boolean slow = ticks % 5 == 0;
         Service s = AbpsMod.service();
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {

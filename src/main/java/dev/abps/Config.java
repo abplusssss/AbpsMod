@@ -96,6 +96,12 @@ public final class Config {
     /** The item new listings are priced in unless the owner picks another. */
     public String shopDefaultCurrency = "minecraft:diamond";
 
+    // ---- Updates ----
+    /** Download new AbpsMod versions from the project's GitHub and install them on the next restart. */
+    public boolean autoUpdate = true;
+    /** Where the version file is. Leave as it is unless you host your own builds. */
+    public String updateUrl = dev.abps.Updater.DEFAULT_URL;
+
     // ---- Kill streaks and bounties ----
     public boolean streaksEnabled = true;
     /** The kill streak at which a player gets a bounty on their head. */
