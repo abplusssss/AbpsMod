@@ -188,7 +188,7 @@ final class Decor {
     }
 
     /** Something standing against a wall. */
-    private static void wallProp(Builder b, MobKit.Theme theme, Random rnd, int x, int y, int z) {
+    static void wallProp(Builder b, MobKit.Theme theme, Random rnd, int x, int y, int z) {
         switch (theme) {
             case CRYPT -> {
                 switch (rnd.nextInt(6)) {
@@ -245,7 +245,7 @@ final class Decor {
     }
 
     /** A bigger piece standing on the floor. */
-    private static void floorPiece(Builder b, MobKit.Theme theme, DungeonDef.Palette pal, Random rnd, int x, int y, int z, int h) {
+    static void floorPiece(Builder b, MobKit.Theme theme, DungeonDef.Palette pal, Random rnd, int x, int y, int z, int h) {
         switch (theme) {
             case CRYPT -> {
                 if (rnd.nextBoolean()) {

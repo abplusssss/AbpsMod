@@ -203,7 +203,7 @@ public final class Run {
             Room r = new Room(t, min, w, h, d);
             rooms.add(r);
             boolean last = i == plan.size() - 1;
-            builder.room(min, w, h, d, palette, rnd, i > 0, !last, t != RoomType.START && t != RoomType.TREASURE);
+            Architect.room(builder, r, palette, rnd, i > 0, !last, t != RoomType.START && t != RoomType.TREASURE);
             if (t == RoomType.SHRINE) {
                 // Three pedestals, off the walkway: red might, green vigor, blue swiftness
                 int px = min.getX() + w / 2, pz = min.getZ() + d / 2 + 3;
@@ -217,11 +217,9 @@ public final class Run {
                 }
             }
             decorate(r);
-            Decor.room(builder, r, palette, rnd);
             x += w;
             if (!last) {
-                builder.corridor(x, origin.getY(), origin.getZ(), 6, palette, rnd);
-                Decor.corridor(builder, x, origin.getY(), origin.getZ(), 6, palette, rnd);
+                Architect.corridor(builder, x, origin.getY(), origin.getZ(), 6, palette, rnd);
                 x += 6;
             }
         }
@@ -240,27 +238,6 @@ public final class Run {
                 builder.set(cx + 1, y, cz, Blocks.GOLD_BLOCK.defaultBlockState());
                 builder.set(cx, y, cz - 1, Blocks.GOLD_BLOCK.defaultBlockState());
                 builder.set(cx, y, cz + 1, Blocks.GOLD_BLOCK.defaultBlockState());
-            }
-            case BOSS, ARENA -> {
-                // A raised ring in the middle and a ring of pillars around the edge
-                int rr = r.type == RoomType.BOSS ? 5 : 7;
-                for (int a = 0; a < 360; a += 6) {
-                    int px = cx + (int) Math.round(Math.cos(Math.toRadians(a)) * rr), pz = cz + (int) Math.round(Math.sin(Math.toRadians(a)) * rr);
-                    builder.set(px, y, pz, palette.trim());
-                }
-                int pr = r.w / 2 - 4;
-                for (int k = 0; k < 8; k++) {
-                    double a = Math.PI * 2 * k / 8;
-                    int px = cx + (int) Math.round(Math.cos(a) * pr), pz = cz + (int) Math.round(Math.sin(a) * pr);
-                    builder.fill(px, y + 1, pz, px, y + r.h - 2, pz, palette.pillar());
-                }
-            }
-            case COMBAT, ELITE -> {
-                for (int k = 0; k < 3; k++) {
-                    int px = r.min.getX() + 3 + rnd.nextInt(Math.max(1, r.w - 6)), pz = r.min.getZ() + 3 + rnd.nextInt(Math.max(1, r.d - 6));
-                    if (Math.abs(pz - r.midZ()) < 2) continue; // keep the path between the doors clear
-                    builder.fill(px, y + 1, pz, px, y + 1 + rnd.nextInt(2), pz, palette.wallAlt());
-                }
             }
             default -> {
             }
@@ -766,11 +743,11 @@ public final class Run {
         }
         if (brain != null) brain.remove();
         brains.clear();
-        for (Entity e : level.getEntitiesOfClass(Entity.class, new AABB(origin.getX() - 4, origin.getY() - 4, origin.getZ() - 40, maxX + 4, origin.getY() + 30, origin.getZ() + 40),
+        for (Entity e : level.getEntitiesOfClass(Entity.class, new AABB(origin.getX() - 4, origin.getY() - 4, origin.getZ() - 40, maxX + 4, origin.getY() + 34, origin.getZ() + 40),
                 e -> !(e instanceof ServerPlayer))) e.discard();
         // Tear down: one big queued fill, a few thousand blocks a tick
         Builder clear = new Builder();
-        clear.clear(origin.getX(), origin.getY(), origin.getZ() - 20, maxX + 1, origin.getY() + 15, origin.getZ() + 20);
+        clear.clear(origin.getX(), origin.getY() - 1, origin.getZ() - 24, maxX + 1, origin.getY() + 30, origin.getZ() + 24);
         Dungeons.teardown(slot, clear);
     }
 }

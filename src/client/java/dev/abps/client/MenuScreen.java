@@ -437,6 +437,7 @@ public final class MenuScreen extends Screen {
         y += 26;
         y = section(g, "Dungeons", 0xB388FF, x, y);
         String[] dungeons = {
+                "<white><gold>Rebuilt dungeon halls</gold>: round domed boss and arena halls with galleries, column rings, chandeliers and lantern circles; vaulted octagon rooms with lit lattice walls, grand gateways and arched corridors.",
                 "<white>Five dungeons: three story dungeons with a boss each, <light_purple>The Shifting Depths</light_purple> (new rooms and a random boss every run) and the <gold>Endless Arena</gold>.",
                 "<white>Go alone or with a party of up to 4. The party leader starts the run from the <yellow>Dungeons</yellow> tab.",
                 "<white>Bosses warn you first: a red ring or lane on the ground fills up, then hits. Get out of it!",
