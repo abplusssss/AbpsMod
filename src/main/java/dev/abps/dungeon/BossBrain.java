@@ -81,8 +81,18 @@ abstract class BossBrain {
             enraged = true;
             boss.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 600, 0));
             run.sound(SoundEvents.WITHER_SPAWN, 0.5f, 1.4f);
-            run.bar("<red><bold>" + run.boss.title + " is enraged!");
+            run.bar("<red><bold>" + run.boss.title + " is enraged!</bold> <gray>The room starts to crumble.");
             Dungeons.cue(run, Dungeons.CUE_ROAR, boss.position(), boss.position().add(0, 2, 0), boss, 0);
+            // Phase two: guards join the fight
+            MobKit.populate(run, room, 1 + run.partySize, () -> ground(boss.position().add(run.rnd.nextGaussian() * 4, 0, run.rnd.nextGaussian() * 4)));
+        }
+        // In phase two pieces of the ceiling fall: warned rings at random spots around the room
+        if (enraged && ticks % 70 == 35) {
+            for (int k = 0; k < 2 + run.partySize; k++) {
+                Vec3 at = ground(room.center().add((run.rnd.nextDouble() - 0.5) * (room.w - 6), 0, (run.rnd.nextDouble() - 0.5) * (room.d - 6)));
+                ringAttack(at, 2.2, 30, dmg(5), null);
+            }
+            run.sound(SoundEvents.DEEPSLATE_BREAK, 0.8f, 0.6f);
         }
         if (boss.getTarget() == null || !boss.getTarget().isAlive()) boss.setTarget(randomPlayer(ps));
         // Don't let the boss wander out of its room

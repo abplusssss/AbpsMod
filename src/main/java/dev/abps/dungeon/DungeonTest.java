@@ -247,6 +247,13 @@ public final class DungeonTest {
             return;
         }
         switch (r.type) {
+            case SHRINE -> {
+                // Pick the first blessing by standing on its pedestal
+                if (!r.pads.isEmpty()) {
+                    var pad = r.pads.getFirst();
+                    fake.teleportTo(run.level, pad.getX() + 0.5, pad.getY() + 1, pad.getZ() + 0.5, java.util.Set.<Relative>of(), 0, 0, false);
+                }
+            }
             case BOSS -> {
                 // Let the boss use its attacks for 8 seconds first, so the telegraphs and hits get tested too
                 LivingEntity boss = run.brain == null ? null : run.brain.boss();

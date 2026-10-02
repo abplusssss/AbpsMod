@@ -72,10 +72,30 @@ final class Loot {
         report(p, "Treasure", got);
     }
 
-    /** The end of a run. Faster, harder runs pay more. */
-    static void clear(Run run, ServerPlayer p, long timeMs) {
+    /** A small cache for each room fought through. size is 1 for a normal room, 2 for an elite, 3 for a champion. */
+    static void roomCache(Run run, ServerPlayer p, int size) {
+        List<String> got = new ArrayList<>();
+        give(p, new ItemStack(Items.GOLD_INGOT, 1 + run.rnd.nextInt(2 * size)), got);
+        if (run.rnd.nextDouble() < 0.25 * size) give(p, new ItemStack(Items.DIAMOND, 1), got);
+        if (run.rnd.nextDouble() < 0.3) give(p, new ItemStack(Items.GOLDEN_CARROT, 2 + run.rnd.nextInt(3)), got);
+        if (size >= 2) upgradeItems(p, size, got);
+        p.giveExperiencePoints(10 * size + run.rnd.nextInt(10));
+        if (size >= 3) customRoll(run, p, 0.35, 0, got);
+        report(p, "Room loot", got);
+    }
+
+    /** The end of a run. Faster, harder runs pay more, and a better grade adds more on top. */
+    static void clear(Run run, ServerPlayer p, long timeMs, String grade) {
         List<String> got = new ArrayList<>();
         int d = run.def.difficulty();
+        int bonus = switch (grade) {
+            case "S" -> 3;
+            case "A" -> 2;
+            case "B" -> 1;
+            default -> 0;
+        };
+        if (bonus > 0) give(p, new ItemStack(Items.DIAMOND, bonus), got);
+        if (bonus >= 2) give(p, new ItemStack(Items.EMERALD, 4 * bonus), got);
         give(p, new ItemStack(Items.DIAMOND, 2 + d * 2 + run.rnd.nextInt(3)), got);
         give(p, new ItemStack(Items.EMERALD, 4 + run.rnd.nextInt(6)), got);
         if (d >= 2) give(p, new ItemStack(Items.NETHERITE_SCRAP, d - 1), got);
@@ -83,8 +103,9 @@ final class Loot {
         upgradeItems(p, 4 + d * 2, got);
         p.giveExperienceLevels(5 + d * 3);
         got.add((5 + d * 3) + " levels of experience");
-        customRoll(run, p, 0.45 + d * 0.15, 1, got);
-        report(p, "Your loot", got);
+        customRoll(run, p, 0.45 + d * 0.15 + bonus * 0.1, 1, got);
+        if (grade.equals("S")) customRoll(run, p, 0.5, 2, got);
+        report(p, "Your loot (grade " + grade + ")", got);
     }
 
     /** Every 5 waves in the arena. */

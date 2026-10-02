@@ -182,7 +182,7 @@ final class MobKit {
         }
     }
 
-    private static void applyAffix(Mob m, Affix a) {
+    static void applyAffix(Mob m, Affix a) {
         switch (a) {
             case SWIFT -> m.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 3600, 1, false, true));
             case ARMORED -> m.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 20 * 3600, 1, false, true));

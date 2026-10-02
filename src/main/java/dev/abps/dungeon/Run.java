@@ -41,7 +41,21 @@ public final class Run {
 
     public enum State { BUILDING, ACTIVE, CLEARED, OVER }
 
-    public enum RoomType { START, COMBAT, ELITE, TRAP, TREASURE, BOSS, ARENA }
+    public enum RoomType { START, COMBAT, ELITE, TRAP, TREASURE, BOSS, ARENA, SHRINE, MINIBOSS }
+
+    /** Shrine blessings, one per run, for the whole party. */
+    enum Blessing {
+        MIGHT("Might", "<#FF5252>", 0xFF5252), VIGOR("Vigor", "<#69F0AE>", 0x69F0AE), SWIFTNESS("Swiftness", "<#40C4FF>", 0x40C4FF);
+
+        final String label, tag;
+        final int color;
+
+        Blessing(String label, String tag, int color) {
+            this.label = label;
+            this.tag = tag;
+            this.color = color;
+        }
+    }
 
     public static final String MOB_TAG = "abps_dungeon";
 
@@ -54,6 +68,8 @@ public final class Run {
         final Set<UUID> mobs = new HashSet<>();
         long startedAt;
         int trapStep;
+        /** Shrine pedestals: might, vigor, swiftness. */
+        final List<BlockPos> pads = new ArrayList<>();
 
         Room(RoomType type, BlockPos min, int w, int h, int d) {
             this.type = type;
@@ -114,6 +130,7 @@ public final class Run {
     long nextWaveAt;
     int partySize;
     BossBrain brain;
+    Blessing blessing;
     ServerBossEvent bar;
     int ticks;
     final int maxX;
@@ -149,16 +166,18 @@ public final class Run {
         switch (def.mode()) {
             case WAVES -> plan.add(RoomType.ARENA);
             case STORY -> {
-                plan.addAll(List.of(RoomType.START, RoomType.COMBAT, RoomType.TRAP, RoomType.COMBAT, RoomType.TREASURE, RoomType.ELITE));
+                plan.addAll(List.of(RoomType.START, RoomType.COMBAT, RoomType.TRAP, RoomType.COMBAT, RoomType.SHRINE, RoomType.TREASURE, RoomType.ELITE));
                 if (def.difficulty() >= 2) plan.add(3, RoomType.COMBAT);
+                if (def.difficulty() >= 2) plan.add(plan.size(), RoomType.MINIBOSS);
                 if (def.difficulty() >= 3) plan.add(6, RoomType.TRAP);
                 plan.add(RoomType.BOSS);
             }
             case RANDOM -> {
                 plan.add(RoomType.START);
                 int n = 4 + rnd.nextInt(4);
-                RoomType[] pool = {RoomType.COMBAT, RoomType.COMBAT, RoomType.COMBAT, RoomType.TRAP, RoomType.ELITE, RoomType.TREASURE};
+                RoomType[] pool = {RoomType.COMBAT, RoomType.COMBAT, RoomType.COMBAT, RoomType.TRAP, RoomType.ELITE, RoomType.TREASURE, RoomType.MINIBOSS};
                 for (int i = 0; i < n; i++) plan.add(pool[rnd.nextInt(pool.length)]);
+                plan.add(1 + rnd.nextInt(plan.size() - 1), RoomType.SHRINE);
                 plan.add(RoomType.BOSS);
             }
         }
@@ -169,7 +188,8 @@ public final class Run {
             switch (t) {
                 case START -> { w = 11; h = 7; d = 11; }
                 case TRAP -> { w = 23; h = 7; d = 11; }
-                case TREASURE -> { w = 11; h = 7; d = 11; }
+                case TREASURE, SHRINE -> { w = 11; h = 7; d = 11; }
+                case MINIBOSS -> { w = 19; h = 10; d = 19; }
                 case ELITE -> { w = 17; h = 10; d = 17; }
                 case BOSS -> { w = 29; h = 14; d = 29; }
                 case ARENA -> { w = 33; h = 12; d = 33; }
@@ -184,6 +204,18 @@ public final class Run {
             rooms.add(r);
             boolean last = i == plan.size() - 1;
             builder.room(min, w, h, d, palette, rnd, i > 0, !last, t != RoomType.START && t != RoomType.TREASURE);
+            if (t == RoomType.SHRINE) {
+                // Three pedestals, off the walkway: red might, green vigor, blue swiftness
+                int px = min.getX() + w / 2, pz = min.getZ() + d / 2 + 3;
+                BlockState[] tops = {Blocks.REDSTONE_BLOCK.defaultBlockState(), Blocks.EMERALD_BLOCK.defaultBlockState(), Blocks.LAPIS_BLOCK.defaultBlockState()};
+                for (int k = 0; k < 3; k++) {
+                    BlockPos pad = new BlockPos(px - 3 + k * 3, origin.getY(), pz);
+                    r.pads.add(pad);
+                    builder.set(pad, tops[k]);
+                    builder.set(pad.offset(0, 0, 1), palette.trim());
+                    builder.set(pad.offset(0, 1, 1), Blocks.CANDLE.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.LIT, true));
+                }
+            }
             decorate(r);
             Decor.room(builder, r, palette, rnd);
             x += w;
@@ -298,6 +330,7 @@ public final class Run {
         p.clearFire();
         p.removeAllEffects();
         p.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 60, 4));
+        applyBlessing(p);
         Vec3 at = room().checkpoint();
         if (def.mode() == DungeonDef.Mode.WAVES) at = room().center().add(0, 0, 4);
         p.teleportTo(level, at.x, at.y, at.z, java.util.Set.<Relative>of(), -90, 0, false);
@@ -380,6 +413,7 @@ public final class Run {
             return;
         }
         MobKit.tick(this, ps);
+        ambience();
         if (bar != null && brain != null) {
             LivingEntity b = brain.boss();
             if (b != null) bar.setProgress(Math.max(0, b.getHealth() / b.getMaxHealth()));
@@ -410,6 +444,7 @@ public final class Run {
         }
         switch (r.type) {
             case START, TREASURE -> clear(r);
+            case SHRINE -> shrine(r, ps);
             case TRAP -> trap(r, ps);
             case BOSS -> {
                 if (brain != null) brain.tick(ps);
@@ -445,6 +480,24 @@ public final class Run {
                 MobKit.populate(this, r, 1 + n, () -> randomSpot(r));
                 bar("<yellow>⚠ Watch the floor! Survive and reach the far door.");
             }
+            case SHRINE -> bar("<light_purple>✦ A shrine. Step on a pedestal to bless your party:</light_purple> <#FF5252>red Might</#FF5252>, "
+                    + "<#69F0AE>green Vigor</#69F0AE> or <#40C4FF>blue Swiftness</#40C4FF>.");
+            case MINIBOSS -> {
+                // A champion: a big custom mob with two traits, and guards
+                MobKit.Kind kind = MobKit.pick(this, MobKit.themeOf(palette));
+                MobKit.Affix a1 = MobKit.randomAffix(this), a2 = MobKit.randomAffix(this);
+                Mob champ = MobKit.spawn(this, kind, r.center().add(r.w * 0.2, 0, 0), r, a1, true);
+                if (champ != null) {
+                    MobKit.applyAffix(champ, a2);
+                    Mods.setBase(champ, Attributes.MAX_HEALTH, champ.getMaxHealth() * 2);
+                    champ.setHealth(champ.getMaxHealth());
+                    Mods.setBase(champ, Attributes.SCALE, kind.scale * 1.6);
+                    champ.setCustomName(dev.abps.util.Text.mm("<red><bold>Champion " + kind.title + "</bold> <gray>(" + a1.label + ", " + a2.label + ")"));
+                }
+                MobKit.populate(this, r, 2 + n, () -> randomSpot(r));
+                for (ServerPlayer p : online()) AbpsMod.service().banner(p, "<bold><red>CHAMPION</red></bold>", "<gray>" + kind.title, 0xFF5252, 40);
+                sound(SoundEvents.RAID_HORN, 0.6f, 0.8f);
+            }
             case TREASURE -> {
                 for (ServerPlayer p : online()) Loot.treasure(this, p);
                 Dungeons.cue(this, Dungeons.CUE_LOOT, r.center(), r.center().add(0, 1, 0), null, 0);
@@ -479,6 +532,10 @@ public final class Run {
         if (r.cleared) return;
         r.cleared = true;
         Builder.open(level, r.x1(), r.floor(), r.midZ());
+        if (r.type == RoomType.COMBAT || r.type == RoomType.ELITE || r.type == RoomType.MINIBOSS || r.type == RoomType.TRAP) {
+            // A little something for every room fought through
+            for (ServerPlayer p : online()) Loot.roomCache(this, p, r.type == RoomType.MINIBOSS ? 3 : r.type == RoomType.ELITE ? 2 : 1);
+        }
         if (r.type != RoomType.START) {
             Dungeons.cue(this, Dungeons.CUE_CLEAR, r.center(), new Vec3(r.x1(), r.floor() + 2, r.midZ() + 0.5), null, 0);
             sound(SoundEvents.IRON_DOOR_OPEN, 1f, 0.6f);
@@ -486,6 +543,55 @@ public final class Run {
             bar("<green>✔ Room cleared. The way ahead is open.");
         }
         current++;
+    }
+
+    /** Shrine: the first pedestal someone stands on blesses the whole party for the rest of the run. */
+    private void shrine(Room r, List<ServerPlayer> ps) {
+        for (ServerPlayer p : ps) {
+            BlockPos under = BlockPos.containing(p.getX(), r.floor(), p.getZ());
+            int k = r.pads.indexOf(under);
+            if (k < 0) continue;
+            blessing = Blessing.values()[k];
+            for (ServerPlayer m : online()) {
+                applyBlessing(m);
+                AbpsMod.service().banner(m, "<bold>" + blessing.tag + "Blessing of " + blessing.label + "</bold>", "<gray>for the rest of this run", blessing.color, 50);
+            }
+            Dungeons.cue(this, Dungeons.CUE_LOOT, Vec3.atBottomCenterOf(under.above()), Vec3.atBottomCenterOf(under.above()).add(0, 1, 0), null, 0);
+            sound(SoundEvents.BEACON_POWER_SELECT, 1f, 1.2f);
+            clear(r);
+            return;
+        }
+        // Nobody picked in 40 seconds: the shrine goes quiet and the door opens anyway
+        if (System.currentTimeMillis() - r.startedAt > 40_000) clear(r);
+    }
+
+    /** The shrine's blessing, put back on after being downed. */
+    void applyBlessing(ServerPlayer p) {
+        if (blessing == null) return;
+        int t = 20 * 60 * 15;
+        switch (blessing) {
+            case MIGHT -> p.addEffect(new MobEffectInstance(MobEffects.STRENGTH, t, 0, false, false, true));
+            case VIGOR -> {
+                p.addEffect(new MobEffectInstance(MobEffects.HEALTH_BOOST, t, 1, false, false, true));
+                p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1, false, false, true));
+            }
+            case SWIFTNESS -> {
+                p.addEffect(new MobEffectInstance(MobEffects.SPEED, t, 0, false, false, true));
+                p.addEffect(new MobEffectInstance(MobEffects.HASTE, t, 0, false, false, true));
+            }
+        }
+    }
+
+    /** Ambient sounds now and then, by theme. */
+    private void ambience() {
+        if (ticks % 300 != 0) return;
+        MobKit.Theme theme = MobKit.themeOf(palette);
+        switch (theme) {
+            case CRYPT -> sound(SoundEvents.WITHER_SKELETON_AMBIENT, 0.25f, 0.5f);
+            case FROST -> sound(SoundEvents.POWDER_SNOW_STEP, 0.4f, 0.5f);
+            case FORGE -> sound(SoundEvents.BLAZE_AMBIENT, 0.25f, 0.5f);
+            case DEPTHS -> sound(SoundEvents.WARDEN_HEARTBEAT, 0.4f, 0.8f);
+        }
     }
 
     /** Trap rooms: floor tiles light up, then burst a moment later. Survive long enough and the door opens. */
@@ -615,11 +721,23 @@ public final class Run {
         level.setBlock(new BlockPos(cx, r.floor(), cz), Blocks.BEACON.defaultBlockState(), 3);
         Dungeons.cue(this, Dungeons.CUE_WIN, c, c.add(0, 1, 0), null, 0);
         sound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+        // A grade from how fast it went and how often the party went down
+        long par = rooms.size() * 50_000L;
+        int score = (time < par * 0.7 ? 3 : time < par ? 2 : time < par * 1.5 ? 1 : 0) + (downs == 0 ? 2 : downs <= 2 ? 1 : 0);
+        String grade = score >= 5 ? "S" : score >= 4 ? "A" : score >= 2 ? "B" : "C";
+        String gradeTag = switch (grade) {
+            case "S" -> "<gradient:#FFD54F:#FF6D00><bold>S</bold></gradient>";
+            case "A" -> "<#69F0AE><bold>A</bold></#69F0AE>";
+            case "B" -> "<#40C4FF><bold>B</bold></#40C4FF>";
+            default -> "<gray><bold>C</bold></gray>";
+        };
         for (ServerPlayer p : online()) {
             AbpsMod.service().banner(p, "<bold><gradient:#FFD54F:#FF6D00>DUNGEON CLEARED</gradient></bold>", "<gray>" + def.name() + " in "
-                    + dev.abps.util.Text.time(time), 0xFFD54F, 80);
-            Loot.clear(this, p, time);
+                    + dev.abps.util.Text.time(time) + " · Grade " + gradeTag, 0xFFD54F, 80);
+            Loot.clear(this, p, time, grade);
         }
+        tell("<gray>Grade " + gradeTag + "<gray>: " + dev.abps.util.Text.time(time) + " with " + downs + " down" + (downs == 1 ? "" : "s")
+                + ". <dark_gray>(Faster and fewer downs means better loot.)");
         Dungeons.recordClear(this, time);
         tell("<gray>Step onto the light in the middle of the room to leave, or wait 90 seconds.");
     }

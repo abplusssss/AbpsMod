@@ -295,6 +295,8 @@ public final class Dungeons {
                 case TRAP -> room.started ? "Survive the traps" : "Enter the next room";
                 case TREASURE -> "Take the treasure";
                 case BOSS -> room.started ? "Defeat " + r.boss.title : "The boss waits ahead";
+                case SHRINE -> "Step on a pedestal to pick a blessing";
+                case MINIBOSS -> room.started ? "Defeat the champion (" + r.alive(room) + " left)" : "Enter the next room";
                 case ARENA -> "Survive wave " + Math.max(1, r.wave);
             };
         };

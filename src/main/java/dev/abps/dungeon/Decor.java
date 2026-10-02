@@ -120,7 +120,7 @@ final class Decor {
         }
 
         // Theme pieces on the floor, out of the walkway
-        int pieces = Math.max(2, r.w * r.d / 40);
+        int pieces = r.type == Run.RoomType.SHRINE ? 0 : Math.max(2, r.w * r.d / 40); // shrine pedestals stay clear
         for (int k = 0; k < pieces; k++) {
             int x = x0 + 3 + rnd.nextInt(Math.max(1, r.w - 6)), z = z0 + 3 + rnd.nextInt(Math.max(1, r.d - 6));
             if (path(r, x, z)) continue;
