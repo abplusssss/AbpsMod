@@ -163,9 +163,35 @@ public final class CustomItems {
                 ench(Enchantments.EFFICIENCY, 4, Enchantments.UNBREAKING, 3));
     }
 
+    // ------------------------------------------------------------------ creative menu
+
+    /** A tab in the creative inventory with every AbpsMod item in it. */
+    public static void registerTab() {
+        net.minecraft.world.item.CreativeModeTab tab = net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup.builder()
+                .title(Component.literal("AbpsMod"))
+                .icon(() -> {
+                    ItemStack icon = new ItemStack(Items.NETHERITE_SWORD);
+                    icon.set(DataComponents.ITEM_MODEL, AbpsMod.id("dragonbone_greatsword"));
+                    return icon;
+                })
+                .displayItems((params, output) -> {
+                    for (String id : ALL.keySet()) {
+                        ItemStack s = create(id, params.holders());
+                        if (!s.isEmpty()) output.accept(s);
+                    }
+                })
+                .build();
+        net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB, AbpsMod.id("items"), tab);
+    }
+
     // ------------------------------------------------------------------ making items
 
     public static ItemStack create(String id, ServerLevel level) {
+        return create(id, level.registryAccess());
+    }
+
+    /** Makes the item with nothing but registries, so the creative menu can build it on the client too. */
+    public static ItemStack create(String id, net.minecraft.core.HolderLookup.Provider registries) {
         Def def = ALL.get(id);
         if (def == null) return ItemStack.EMPTY;
         ItemStack s = new ItemStack(def.base);
@@ -180,7 +206,7 @@ public final class CustomItems {
         CompoundTag tag = new CompoundTag();
         tag.putString(TAG, id);
         CustomData.set(DataComponents.CUSTOM_DATA, s, tag);
-        var registry = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        var registry = registries.lookupOrThrow(Registries.ENCHANTMENT);
         for (Map.Entry<ResourceKey<Enchantment>, Integer> e : def.enchants.entrySet()) s.enchant(registry.getOrThrow(e.getKey()), e.getValue());
         if (!def.attributes.isEmpty()) {
             ItemAttributeModifiers mods = s.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);

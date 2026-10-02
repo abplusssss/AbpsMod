@@ -33,7 +33,7 @@ final class Architect {
     /** The blocks one theme is built from, a richer set than the palette. */
     record Style(BlockState wall, BlockState wallAlt, BlockState lattice, BlockState floor, BlockState floorAlt, BlockState floorDark,
                  BlockState ring, BlockState pillar, BlockState fancy, BlockState trim, BlockState glow, BlockState lantern,
-                 BlockState stairs, BlockState slab, BlockState rail, BlockState ceiling, BlockState fire) {
+                 BlockState stairs, BlockState slab, BlockState rail, BlockState ceiling, BlockState glass) {
     }
 
     private static BlockState d(net.minecraft.world.level.block.Block b) {
@@ -45,22 +45,22 @@ final class Architect {
             case FROST -> new Style(d(Blocks.QUARTZ_BRICKS), d(Blocks.PACKED_ICE), d(Blocks.BLUE_ICE), d(Blocks.SMOOTH_QUARTZ), d(Blocks.CALCITE),
                     d(Blocks.PACKED_ICE), d(Blocks.BLUE_ICE), d(Blocks.QUARTZ_PILLAR), d(Blocks.CHISELED_QUARTZ_BLOCK), d(Blocks.QUARTZ_BLOCK),
                     d(Blocks.SEA_LANTERN), d(Blocks.SOUL_LANTERN), d(Blocks.QUARTZ_STAIRS), d(Blocks.SMOOTH_QUARTZ_SLAB), d(Blocks.IRON_BARS),
-                    d(Blocks.PACKED_ICE), d(Blocks.SOUL_CAMPFIRE));
+                    d(Blocks.PACKED_ICE), Blocks.STAINED_GLASS.lightBlue().defaultBlockState());
             case FORGE -> new Style(d(Blocks.NETHER_BRICKS), d(Blocks.CRACKED_NETHER_BRICKS), d(Blocks.RED_NETHER_BRICKS),
                     d(Blocks.POLISHED_BLACKSTONE_BRICKS), d(Blocks.BLACKSTONE), d(Blocks.POLISHED_BLACKSTONE), d(Blocks.GILDED_BLACKSTONE),
                     d(Blocks.POLISHED_BASALT), d(Blocks.CHISELED_POLISHED_BLACKSTONE), d(Blocks.CHISELED_NETHER_BRICKS), d(Blocks.SHROOMLIGHT),
                     d(Blocks.LANTERN), d(Blocks.NETHER_BRICK_STAIRS), d(Blocks.POLISHED_BLACKSTONE_BRICK_SLAB), d(Blocks.NETHER_BRICK_WALL),
-                    d(Blocks.BLACKSTONE), d(Blocks.CAMPFIRE));
+                    d(Blocks.BLACKSTONE), Blocks.STAINED_GLASS.orange().defaultBlockState());
             case DEPTHS -> new Style(d(Blocks.DEEPSLATE_BRICKS), d(Blocks.CRACKED_DEEPSLATE_BRICKS), d(Blocks.POLISHED_DEEPSLATE),
                     d(Blocks.DEEPSLATE_TILES), d(Blocks.POLISHED_DEEPSLATE), d(Blocks.COBBLED_DEEPSLATE), d(Blocks.SCULK), d(Blocks.POLISHED_DEEPSLATE),
                     d(Blocks.CHISELED_DEEPSLATE), d(Blocks.CHISELED_DEEPSLATE), d(Blocks.OCHRE_FROGLIGHT), d(Blocks.SOUL_LANTERN),
                     d(Blocks.DEEPSLATE_BRICK_STAIRS), d(Blocks.DEEPSLATE_TILE_SLAB), d(Blocks.DEEPSLATE_BRICK_WALL), d(Blocks.DEEPSLATE_TILES),
-                    d(Blocks.SOUL_CAMPFIRE));
+                    Blocks.STAINED_GLASS.purple().defaultBlockState());
             default -> new Style(d(Blocks.STONE_BRICKS), d(Blocks.MOSSY_STONE_BRICKS), d(Blocks.DEEPSLATE_BRICKS), d(Blocks.DEEPSLATE_TILES),
                     d(Blocks.POLISHED_DEEPSLATE), d(Blocks.COBBLED_DEEPSLATE), d(Blocks.CHISELED_DEEPSLATE), d(Blocks.POLISHED_DEEPSLATE),
                     d(Blocks.CHISELED_STONE_BRICKS), d(Blocks.CHISELED_STONE_BRICKS), d(Blocks.VERDANT_FROGLIGHT), d(Blocks.SOUL_LANTERN),
                     d(Blocks.STONE_BRICK_STAIRS), d(Blocks.STONE_BRICK_SLAB), d(Blocks.STONE_BRICK_WALL), d(Blocks.DEEPSLATE_BRICKS),
-                    d(Blocks.SOUL_CAMPFIRE));
+                    Blocks.STAINED_GLASS.cyan().defaultBlockState());
         };
     }
 
@@ -95,6 +95,24 @@ final class Architect {
     }
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
+
+    /** A lamp post standing on (x, y, z): a carved base, a slim post, a glowing head and a lantern on top. */
+    private static void lamp(Builder b, Style st, int x, int y, int z) {
+        b.set(x, y, z, st.fancy());
+        b.set(x, y + 1, z, st.rail());
+        b.set(x, y + 2, z, st.glow());
+        b.set(x, y + 3, z, standing(st.lantern()));
+    }
+
+    /** Steps round the foot of a column at (x, y, z), each rising toward the column. */
+    private static void base(Builder b, Shape sh, Style st, int x, int y, int z) {
+        int[][] o = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        Direction[] up = {Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH};
+        for (int k = 0; k < 4; k++) {
+            int nx = x + o[k][0], nz = z + o[k][1];
+            if (sh.in(nx, nz) && !sh.path(nx, nz)) b.set(nx, y, nz, step(st, up[k]));
+        }
+    }
 
     // ------------------------------------------------------------------ shape
 
@@ -204,8 +222,8 @@ final class Architect {
         switch (r.type) {
             case BOSS -> throne(b, sh, st);
             case START -> {
-                b.set(sh.x0 + 2, sh.y0 + 1, sh.mid - 3, lit(st.fire()));
-                b.set(sh.x0 + 2, sh.y0 + 1, sh.mid + 3, lit(st.fire()));
+                lamp(b, st, sh.x0 + 2, sh.y0 + 1, sh.mid - 3);
+                lamp(b, st, sh.x0 + 2, sh.y0 + 1, sh.mid + 3);
             }
             default -> {
             }
@@ -249,11 +267,15 @@ final class Architect {
                 // The open neighbour this wall block faces, and how high it is open
                 int faceTop = -1;
                 boolean alongX = false;
+                int ox = 0, oz = 0, open = 0;
                 int[][] n = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
                 for (int[] o : n) {
                     if (sh.in(x + o[0], z + o[1])) {
                         faceTop = Math.max(faceTop, sh.top(x + o[0], z + o[1]));
                         if (o[0] == 0) alongX = true;
+                        ox = o[0];
+                        oz = o[1];
+                        open++;
                     }
                 }
                 if (faceTop < 0) continue;
@@ -264,7 +286,16 @@ final class Architect {
                 } else {
                     u = alongX ? x - sh.x0 : z - sh.z0;
                 }
-                for (int y = sh.y0 + 1; y <= faceTop + 1; y++) b.set(x, y, z, face(sh, st, rnd, u, y));
+                for (int y = sh.y0 + 1; y <= faceTop + 1; y++) {
+                    BlockState f = face(sh, st, rnd, u, y);
+                    // The heart of each lattice diamond is a stained glass window lit from behind
+                    if (f == st.glow() && open == 1 && !sh.in(x - ox, z - oz)) {
+                        b.set(x, y, z, st.glass());
+                        b.set(x - ox, y, z - oz, st.glow());
+                    } else {
+                        b.set(x, y, z, f);
+                    }
+                }
             }
         }
         // A corbelled lip under the cornice on straight walls
@@ -277,6 +308,21 @@ final class Architect {
                     if (side == null || sh.door(x, z) || sh.top(x, z) < y) continue;
                     b.set(x, y, z, corbel(st, side));
                 }
+            }
+        }
+        // Lantern sconces on every other column: a corbel with a lantern hung under it
+        int sy = sh.y0 + 4;
+        if (sh.spring - 1 <= sy + 1) return;
+        for (int x = sh.x0 + 1; x < sh.x1; x++) {
+            for (int z = sh.z0 + 1; z < sh.z1; z++) {
+                Direction side = sh.wallSide(x, z);
+                if (side == null || sh.door(x, z) || sh.path(x, z)) continue;
+                int u;
+                if (sh.round) u = (int) Math.round(Math.atan2(z - sh.cz, x - sh.cx) * Math.min(sh.rx, sh.rz));
+                else u = side.getAxis() == Direction.Axis.Z ? x - sh.x0 : z - sh.z0;
+                if (Math.floorMod(u, 8) != 0) continue;
+                b.set(x, sy, z, corbel(st, side));
+                b.set(x, sy - 1, z, hanging(st.lantern()));
             }
         }
     }
@@ -308,6 +354,7 @@ final class Architect {
                     if (dist < 1.6) f = st.glow();
                     else if (dist < 3.2) f = st.fancy();
                     else if (band == (int) (rr * 0.45)) f = st.ring();
+                    else if (dist < rr * 0.45 && Math.abs(((Math.toDegrees(Math.atan2(z - sh.cz, x - sh.cx)) % 45) + 45) % 45 - 22.5) > 18.5) f = st.trim();
                     else if (dist > rr - 1.5) f = st.floorDark();
                     else if (dist > rr - 2.8) f = st.trim();
                     else if (band % 3 == 0) f = st.floorDark();
@@ -420,6 +467,7 @@ final class Architect {
             if (sh.path(x, z) || !sh.in(x, z)) continue;
             int top = sh.top(x, z);
             b.set(x, sh.y0 + 1, z, st.fancy());
+            base(b, sh, st, x, sh.y0 + 1, z);
             b.fill(x, sh.y0 + 2, z, x, top - 1, z, st.pillar());
             b.set(x, top, z, st.fancy());
             // A glowing band halfway up and lanterns hung from the capital
@@ -507,19 +555,19 @@ final class Architect {
                         if (!sh.in(x, z) || sh.path(x, z)) continue;
                         int top = sh.top(x, z);
                         b.set(x, sh.y0 + 1, z, st.fancy());
+                        base(b, sh, st, x, sh.y0 + 1, z);
                         b.fill(x, sh.y0 + 2, z, x, top - 1, z, st.pillar());
                         b.set(x, top, z, st.fancy());
                         b.set(x, sh.y0 + 3, z, st.glow());
                     }
                 }
             } else {
-                // Braziers on raised plinths either side of the runner
+                // Lamp posts on raised plinths either side of the runner
                 for (int x = sh.x0 + 4; x <= sh.x1 - 4; x += Math.max(4, len / 3)) {
                     for (int side = -1; side <= 1; side += 2) {
                         int z = sh.mid + side * off;
                         if (!sh.in(x, z) || sh.path(x, z)) continue;
-                        b.set(x, sh.y0 + 1, z, st.fancy());
-                        b.set(x, sh.y0 + 2, z, lit(st.fire()));
+                        lamp(b, st, x, sh.y0 + 1, z);
                         for (int[] o : new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
                             if (sh.in(x + o[0], z + o[1]) && !sh.path(x + o[0], z + o[1]))
                                 b.set(x + o[0], sh.y0 + 1, z + o[1], step(st, o[0] == 1 ? Direction.WEST : o[0] == -1 ? Direction.EAST : o[1] == 1 ? Direction.NORTH : Direction.SOUTH));
@@ -586,8 +634,7 @@ final class Architect {
         b.set(x, y + 2, m - 1, st.fancy());
         b.set(x, y + 2, m + 1, st.fancy());
         for (int side = -1; side <= 1; side += 2) {
-            b.set(x - 1, y + 2, m + side * 3, st.fancy());
-            b.set(x - 1, y + 3, m + side * 3, lit(st.fire()));
+            lamp(b, st, x - 1, y + 1, m + side * 3);
         }
     }
 

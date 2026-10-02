@@ -131,7 +131,7 @@ public final class MenuScreen extends Screen {
     private void button(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h, String label, int color, boolean enabled, Runnable action) {
         boolean hover = enabled && Draw.inside(mx, my, x, y, w, h);
         Draw.button(g, x, y, w, h, color, hover, enabled);
-        Draw.centeredFit(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 12 ? 1 : 0), w - 6);
+        Draw.centeredFit(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 16 ? 1 : 0), w - 8);
         if (enabled) buttons.add(new Btn(x, y, w, h, Text.strip(label), action));
     }
 
@@ -278,7 +278,9 @@ public final class MenuScreen extends Screen {
         Draw.panel(g, x, y, 44, 44, Draw.argb(Text.lerp(c.color(), c.color2(), p), 0x40));
         Draw.framed(g, x + 2, y + 2, 40, 40, 0xE0101018, Draw.opaque(c.color()));
         Draw.item(g, c.icon(), x + 6, y + 6, 2f);
-        Draw.scaled(g, "<bold>" + Draw.gradient(c.color(), c.color2(), c.name()) + "</bold>", x + 52, y + 2, 2f, false);
+        String title = "<bold>" + Draw.gradient(c.color(), c.color2(), c.name()) + "</bold>";
+        float ts = Math.min(2f, (cw - 70) / (float) Math.max(1, Draw.font().width(Text.mm(title))));
+        Draw.scaled(g, title, x + 52, y + 2 + (2f - ts) * 4, ts, false);
         Draw.wrapped(g, "<gray><italic>" + c.tagline(), x + 52, y + 22, cw - 66, Draw.MUTED);
 
         y += 52;
@@ -363,7 +365,7 @@ public final class MenuScreen extends Screen {
     /** Two cards side by side, PvP and Gatherer: which attribute each role has, which one is in use, and buttons to switch or reroll. */
     private int roleSlots(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c, int x, int y) {
         y = section(g, "Your roles", 0x40C4FF, x, y);
-        int w = cw - 16, cardW = (w - 6) / 2, cardH = 52;
+        int w = cw - 16, cardW = (w - 6) / 2, cardH = 56;
         String[] ids = {"pvp", "gatherer"};
         String[] labels = {"PvP", "Gatherer"};
         int[] cols = {0xFF5252, 0x69F0AE};
@@ -390,13 +392,13 @@ public final class MenuScreen extends Screen {
                 Draw.textFit(g, "<gray>Rolling...", bx + 8, y + 22, cardW - 14);
             }
             int half = (cardW - 19) / 2;
-            int by = y + cardH - 15;
+            int by = y + cardH - 18;
             if (active) {
-                Draw.textFit(g, "<dark_gray>" + (key.isEmpty() ? "" : "Switch: <gray>" + key), bx + 8, by + 3, half);
-                button(g, mx, my, bx + cardW - half - 6, by, half, 12, "<white>🎲 Reroll", 0xC62828, true, () -> confirm = "reroll");
+                Draw.textFit(g, "<dark_gray>" + (key.isEmpty() ? "" : "Switch: <gray>" + key), bx + 8, by + 4, half);
+                button(g, mx, my, bx + cardW - half - 6, by, half, 14, "<white>🎲 Reroll", 0xC62828, true, () -> confirm = "reroll");
             } else {
-                button(g, mx, my, bx + 8, by, half, 12, "<white><bold>⇄ Switch", 0x1E88E5, info != null, () -> AbpsClient.send("switchrole", ""));
-                button(g, mx, my, bx + cardW - half - 6, by, half, 12, "<white>🎲 Reroll", 0xC62828, info != null, () -> confirm = "reroll_other");
+                button(g, mx, my, bx + 8, by, half, 14, "<white>⇄ Switch", 0x1E88E5, info != null, () -> AbpsClient.send("switchrole", ""));
+                button(g, mx, my, bx + cardW - half - 6, by, half, 14, "<white>🎲 Reroll", 0xC62828, info != null, () -> confirm = "reroll_other");
             }
         }
         return y + cardH + 8;
@@ -491,7 +493,7 @@ public final class MenuScreen extends Screen {
             String desc = c.descsByLevel().get(lvlIdx).get(i - 1);
             int textX = x + 36, textW = w - 36 - 8;
             // Name row, the description, then a row for the key, the cooldown and the preview button
-            int h = Math.max(46, 16 + Draw.wrappedHeight(desc, textW) + 18);
+            int h = Math.max(48, 16 + Draw.wrappedHeight(desc, textW) + 21);
             int accent = ult ? Text.lerp(c.color(), c.color2(), Draw.pulse(0.6f)) : unlocked ? c.color() : 0x4A4A56;
             Draw.card(g, x, y, w, h, accent, ult || unlocked);
             // Icon in a slot
@@ -503,16 +505,16 @@ public final class MenuScreen extends Screen {
             Draw.textFit(g, name, textX, y + 6, textW);
             Draw.wrapped(g, desc, textX, y + 17, textW, unlocked || ult ? Draw.MUTED : Draw.DIM);
             // Bottom row
-            int by = y + h - 15;
+            int by = y + h - 17;
             String key = Hud.keyLabel(i);
             int kw = Math.max(13, Draw.font().width(key) + 6);
-            Draw.framed(g, textX, by, kw, 11, 0xFF1C1C24, 0xFF4A4A56);
-            Draw.plain(g, key, textX + (kw - Draw.font().width(key)) / 2, by + 2, 0xFFFFE57F);
+            Draw.framed(g, textX, by + 1, kw, 12, 0xFF1C1C24, 0xFF4A4A56);
+            Draw.plain(g, key, textX + (kw - Draw.font().width(key)) / 2, by + 3, 0xFFFFE57F);
             String meta = ult ? "<gray>Charges by " + ("gatherer".equals(c.role()) ? "gathering" : "hitting players")
                     : !unlocked ? "<#FF8A80>Locked · take it in the Skill Tree" : "<gray>" + Text.time(s.cdTotal()[i]) + " cooldown";
-            Draw.textFit(g, meta, textX + kw + 5, by + 2, textW - kw - 5 - 62);
+            Draw.textFit(g, meta, textX + kw + 5, by + 3, textW - kw - 5 - 66);
             final int slot = i;
-            button(g, mx, my, x + w - 64, by - 1, 56, 13, "<white>▶ Preview", c.color(), true, () -> preview(c.id(), slot));
+            button(g, mx, my, x + w - 66, by, 58, 14, "<white>▶ Preview", c.color(), true, () -> preview(c.id(), slot));
             y += h + 4;
         }
         Draw.wrapped(g, "<dark_gray>Change keys in Options > Controls > Key Binds > AbpsMod.", x, y + 2, w, Draw.DIM);
@@ -639,7 +641,7 @@ public final class MenuScreen extends Screen {
         if (classPick.isEmpty()) classPick = ClientState.sync != null && !ClientState.sync.classId().isEmpty()
                 ? ClientState.sync.classId() : ClientState.catalog.keySet().iterator().next();
         int x = cx + 6, y = y0 + 4;
-        int listW = 104;
+        int listW = 108;
         // Role filter: all, PvP or Gatherer
         String[][] filters = {{"", "All"}, {"pvp", "PvP"}, {"gatherer", "Gather"}};
         int fw = (listW - 4) / 3;
@@ -647,7 +649,7 @@ public final class MenuScreen extends Screen {
             final String f = filters[k][0];
             boolean on = roleFilter.equals(f);
             int col = k == 1 ? 0xFF5252 : k == 2 ? 0x69F0AE : 0x7C4DFF;
-            button(g, mx, my, x + k * (fw + 2), y, fw, 14, (on ? "<white><bold>" : "<gray>") + filters[k][1], on ? col : 0x55555F, true, () -> roleFilter = f);
+            button(g, mx, my, x + k * (fw + 2), y, fw, 15, (on ? "<white>" : "<gray>") + filters[k][1], on ? col : 0x55555F, true, () -> roleFilter = f);
         }
         y += 18;
         for (Net.ClassInfo info : ClientState.catalog.values()) {
@@ -657,7 +659,7 @@ public final class MenuScreen extends Screen {
             Draw.panel(g, x, y, listW, 20, picked ? Draw.argb(info.color(), 0x55) : hover ? 0x30FFFFFF : 0x60000000);
             if (picked) g.fill(x, y + 3, x + 2, y + 17, Draw.opaque(info.color()));
             Draw.item(g, info.icon(), x + 4, y + 2, 1f);
-            Draw.text(g, Draw.gradient(info.color(), info.color2(), info.name()), x + 23, y + 6);
+            Draw.textFit(g, Draw.gradient(info.color(), info.color2(), info.name()), x + 23, y + 6, listW - 27);
             final String id = info.id();
             buttons.add(new Btn(x, y, listW, 20, () -> classPick = id));
             y += 22;
@@ -669,13 +671,15 @@ public final class MenuScreen extends Screen {
         int dx = x + listW + 8, dw = cw - 16 - listW - 8;
         int yy = y0 + 4;
         Draw.item(g, info.icon(), dx, yy, 1.5f);
-        Draw.scaled(g, "<bold>" + Draw.gradient(info.color(), info.color2(), info.name()) + "</bold>", dx + 28, yy + 1, 1.5f, false);
+        String big = "<bold>" + Draw.gradient(info.color(), info.color2(), info.name()) + "</bold>";
+        float bigScale = Math.min(1.5f, (dw - 30) / (float) Math.max(1, Draw.font().width(Text.mm(big))));
+        Draw.scaled(g, big, dx + 28, yy + 1 + (1.5f - bigScale) * 4, bigScale, false);
         String badge = switch (info.role()) {
             case "gatherer" -> "<#69F0AE>Gatherer</#69F0AE>";
             case "admin" -> "<#FFD54F>Operators only</#FFD54F>";
             default -> "<#FF5252>PvP</#FF5252>";
         };
-        Draw.scaled(g, badge + " <dark_gray>·</dark_gray> <gray>" + info.players() + " player" + (info.players() == 1 ? "" : "s") + " have this", dx + 28, yy + 15, 0.75f, false);
+        Draw.textFit(g, badge + " <dark_gray>·</dark_gray> <gray>" + info.players() + " player" + (info.players() == 1 ? "" : "s") + " have this", dx + 28, yy + 15, dw - 30);
         yy += 28;
         yy += Draw.wrapped(g, "<gray><italic>" + info.tagline(), dx, yy, dw, Draw.MUTED) + 4;
         Draw.text(g, "<bold><white>Abilities", dx, yy);
@@ -687,8 +691,8 @@ public final class MenuScreen extends Screen {
             String n = i == 6 ? "<gold>★ " + info.abilityNames().get(5) + "</gold> <dark_gray>(ultimate)" : "<white>" + info.abilityNames().get(i - 1);
             final int slot = i;
             final String cid = info.id();
-            button(g, mx, my, dx + dw - 22, yy - 1, 22, 10, "<white>▶", info.color(), true, () -> preview(cid, slot));
-            yy += Draw.wrapped(g, n, dx + 12, yy, dw - 36, Draw.TEXT) + 1;
+            button(g, mx, my, dx + dw - 24, yy - 2, 24, 12, "<white>▶", info.color(), true, () -> preview(cid, slot));
+            yy += Math.max(13, Draw.wrapped(g, n, dx + 12, yy, dw - 40, Draw.TEXT) + 3);
         }
         yy += 4;
         Draw.text(g, "<bold><#69F0AE>Passives</#69F0AE></bold> <dark_gray>(at level 1)", dx, yy);
@@ -752,7 +756,7 @@ public final class MenuScreen extends Screen {
             };
             Draw.text(g, medal, x + 5, y + 6);
             if (info != null) Draw.item(g, info.icon(), x + 26, y + 2, 1f);
-            Draw.text(g, "<white>" + e.name() + (mine ? " <gray>(you)" : ""), x + 46, y + 6);
+            Draw.textFit(g, "<white>" + e.name() + (mine ? " <gray>(you)" : ""), x + 46, y + 6, cw - 22 - 46 - Draw.font().width(Text.mm((info == null ? "" : info.name() + " ") + "Lv " + e.level())) - 6);
             String right = (info == null ? "" : Draw.gradient(col, col2, info.name()) + " ") + "<white>Lv " + e.level();
             Draw.text(g, right, x + cw - 22 - Draw.font().width(Text.mm(right)), y + 6);
             y += 22;
@@ -880,8 +884,8 @@ public final class MenuScreen extends Screen {
     private int keyRow(GuiGraphicsExtractor g, int x, int y, int w, String key, String title, String note, int color) {
         Draw.panel(g, x, y, w, 24, 0x60000000);
         keycap(g, x + 4, y + 3, key, color);
-        Draw.text(g, "<white>" + title, x + 70, y + 4);
-        Draw.text(g, "<gray>" + note, x + 70, y + 14);
+        Draw.textFit(g, "<white>" + title, x + 70, y + 4, w - 74);
+        Draw.textFit(g, "<gray>" + note, x + 70, y + 14, w - 74);
         return y + 26;
     }
 
@@ -1172,14 +1176,14 @@ public final class MenuScreen extends Screen {
         Draw.framed(g, x, y, w, boxH, 0xE0101018, 0xFF2E7D5B);
         java.util.UUID me = Minecraft.getInstance().player == null ? null : Minecraft.getInstance().player.getUUID();
         if (list.hasShop()) {
-            Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Your shop is open</gradient></bold>", x + 8, y + 7);
-            Draw.text(g, "<gray>Stock it and collect earnings.", x + 8, y + 19);
+            Draw.textFit(g, "<bold><gradient:#69F0AE:#00E5FF>Your shop is open</gradient></bold>", x + 8, y + 7, w - 112);
+            Draw.textFit(g, "<gray>Stock it and collect earnings.", x + 8, y + 19, w - 112);
             button(g, mx, my, x + w - 96, y + 12, 88, 20, "<white><bold>Manage shop", 0x69F0AE, true, () -> {
                 waitingShop = me;
                 AbpsClient.send("shop", "open|" + me);
             });
         } else {
-            Draw.text(g, "<bold><gradient:#69F0AE:#00E5FF>Open your own shop", x + 8, y + 6);
+            Draw.textFit(g, "<bold><gradient:#69F0AE:#00E5FF>Open your own shop", x + 8, y + 6, w - 16);
             Draw.textFit(g, (list.canCreate() ? "<gray>Costs " : "<#FF8A80>You need ") + list.createCost(), x + 8, y + 18, w - 16);
             shopName.draw(g, x + 8, y + 31, w - 112, 18, 0x69F0AE, "Shop name (optional)");
             // Always clickable: if you can't pay, the server says exactly what's missing
@@ -1252,7 +1256,7 @@ public final class MenuScreen extends Screen {
             y += 25;
         }
         if (t.homes().isEmpty()) {
-            Draw.text(g, "<gray>No homes yet. Name one below and set it where you stand.", x, y + 2);
+            Draw.textFit(g, "<gray>No homes yet. Name one below and set it where you stand.", x, y + 2, cw - 16);
             y += 14;
         }
         boolean full = t.homes().size() >= t.maxHomes();
@@ -1279,7 +1283,7 @@ public final class MenuScreen extends Screen {
         // Everyone online
         y = section(g, "Players online (" + t.online().size() + ")", 0x7C4DFF, x, y);
         if (t.online().isEmpty()) {
-            Draw.text(g, "<gray>Nobody else is online.", x, y + 2);
+            Draw.textFit(g, "<gray>Nobody else is online.", x, y + 2, cw - 16);
             y += 14;
         }
         for (String name : t.online()) {
@@ -1350,8 +1354,8 @@ public final class MenuScreen extends Screen {
         for (int k = 0; k < pr.labels().size(); k++) {
             int cxp = x + (k % cols) * (cardW + gap), cyp = y + (k / cols) * 34;
             Draw.framed(g, cxp, cyp, cardW, 30, 0xE0101016, Draw.argb(Text.lerp(c1, c2, k / (float) pr.labels().size()), 0x90));
-            Draw.scaled(g, "<gray>" + pr.labels().get(k), cxp + 6, cyp + 5, 0.75f, false);
-            Draw.text(g, "<white><bold>" + pr.values().get(k), cxp + 6, cyp + 16);
+            Draw.textFit(g, "<gray>" + pr.labels().get(k), cxp + 6, cyp + 5, cardW - 10);
+            Draw.textFit(g, "<white><bold>" + pr.values().get(k), cxp + 6, cyp + 16, cardW - 10);
         }
         y += ((pr.labels().size() + cols - 1) / cols) * 34 + 6;
 
@@ -1429,7 +1433,7 @@ public final class MenuScreen extends Screen {
                 acts.add(() -> AbpsClient.send("dungeon", "invite|" + n));
             }
             if (labels.isEmpty()) {
-                Draw.text(g, "<gray>Nobody else is online to invite.", x, y + 2);
+                Draw.textFit(g, "<gray>Nobody else is online to invite.", x, y + 2, cw - 16);
                 y += 14;
             } else {
                 Draw.text(g, "<gray>Invite:", x, y + 4);
