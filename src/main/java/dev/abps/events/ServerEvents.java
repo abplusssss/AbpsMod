@@ -122,7 +122,10 @@ public final class ServerEvents {
         PlayerBlockBreakEvents.AFTER.register((level, player, pos, state, blockEntity) -> {
             if (player instanceof ServerPlayer p && AbpsMod.running()) {
                 AttributeClass c = cls(p);
-                if (c != null) c.afterBlockBreak(p, data(p), (ServerLevel) level, pos, state);
+                if (c != null) {
+                    c.afterBlockBreak(p, data(p), (ServerLevel) level, pos, state);
+                    if (c.role() == dev.abps.classes.Role.GATHERER && !p.isCreative()) AbpsMod.service().addGatherCharge(p, data(p), c.gatherCharge(state));
+                }
                 dev.abps.items.CustomItems.afterBreak(p, (ServerLevel) level, pos, state);
             }
         });
@@ -316,6 +319,11 @@ public final class ServerEvents {
                 s.sync(p, true);
             }
             case "toggle_powers" -> s.setPowersOff(p, !d.powersOff);
+            case "role" -> {
+                dev.abps.classes.Role r = dev.abps.classes.Role.of(arg);
+                if (r != null) s.chooseRole(p, r);
+            }
+            case "switchrole" -> s.confirmSwitchRole(p);
             case "toggle_aura" -> {
                 d.pyroAura = !d.pyroAura;
                 AbpsMod.data().save(p, d);

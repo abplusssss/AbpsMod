@@ -165,12 +165,13 @@ public final class Service {
             if (cfg().rollOnFirstJoin) {
                 Tasks.later(40, () -> {
                     if (p.isRemoved() || cls(data(p)) != null) return;
-                    send(p, "<yellow>Welcome! Rolling your first attribute...");
-                    roll(p, true);
+                    send(p, "<yellow>Welcome! First, pick your role.");
+                    askRole(p);
                 });
             }
         } else {
-            c.applyStatic(p, d);
+            if (d.role.isEmpty()) d.role = c.adminOnly() ? dev.abps.classes.Role.PVP.id : c.role().id;
+            if (!d.powersOff) c.applyStatic(p, d);
             AbpsMod.state().updateLeaderboard(p.getUUID(), p.getName().getString(), d.classId, d.level);
             if (cfg().joinMessage) Tasks.later(30, () -> {
                 if (!p.isRemoved()) welcome(p);
@@ -212,6 +213,7 @@ public final class Service {
         if (old != null) old.cleanup(p, d);
         d.resetRuntime();
         d.classId = c == null ? null : c.id();
+        if (c != null && !c.adminOnly()) d.role = c.role().id;
         d.level = Math.max(1, Math.min(cfg().maxLevel, level));
         d.ultCharge = 0;
         reapply(p);
@@ -228,10 +230,102 @@ public final class Service {
     }
 
     public AttributeClass randomClass(String excludeId) {
+        return randomClass(excludeId, null);
+    }
+
+    /** A random attribute of this role (any role if null), never the excluded one or an operator-only one. */
+    public AttributeClass randomClass(String excludeId, dev.abps.classes.Role role) {
         List<AttributeClass> pool = new ArrayList<>();
-        for (AttributeClass c : Classes.all()) if (!c.id().equals(excludeId) && !c.adminOnly()) pool.add(c);
+        for (AttributeClass c : Classes.all()) {
+            if (!c.id().equals(excludeId) && !c.adminOnly() && (role == null || c.role() == role)) pool.add(c);
+        }
+        if (pool.isEmpty()) for (AttributeClass c : Classes.all()) if (!c.adminOnly() && (role == null || c.role() == role)) pool.add(c);
         if (pool.isEmpty()) for (AttributeClass c : Classes.all()) if (!c.adminOnly()) pool.add(c);
         return pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
+    }
+
+    /** The role a player rolls in: the one they picked, else the one their attribute has, else PvP. */
+    public dev.abps.classes.Role roleOf(PlayerData d) {
+        dev.abps.classes.Role r = dev.abps.classes.Role.of(d.role);
+        if (r != null) return r;
+        AttributeClass c = cls(d);
+        return c != null && !c.adminOnly() ? c.role() : dev.abps.classes.Role.PVP;
+    }
+
+    // ================= Roles =================
+
+    /** Asks a new player to pick PvP or Gatherer: a menu popup with the mod, clickable chat buttons without it. */
+    public void askRole(ServerPlayer p) {
+        if (hasMod(p)) {
+            ServerPlayNetworking.send(p, new Net.OpenMenuPayload("choose_role"));
+            return;
+        }
+        raw(p, LINE);
+        raw(p, " <gold><bold>Pick your role</bold>");
+        for (dev.abps.classes.Role r : dev.abps.classes.Role.values()) {
+            raw(p, " " + dev.abps.util.Text.colorTag(r.color) + "<bold>" + r.label + "</bold> <gray>" + r.blurb);
+        }
+        MutableComponent pvp = button("<#FF5252><bold>[ PvP ]</bold>", "<gray>Fighting attributes", () -> chooseRole(p, dev.abps.classes.Role.PVP));
+        MutableComponent gath = button("<#69F0AE><bold>[ Gatherer ]</bold>", "<gray>Farming, mining, chopping, fishing, exploring",
+                () -> chooseRole(p, dev.abps.classes.Role.GATHERER));
+        p.sendSystemMessage(Text.mm("    ").append(pvp).append(Text.mm("     ")).append(gath));
+        raw(p, LINE);
+    }
+
+    /** First pick: sets the role and rolls an attribute from it. Does nothing once they already have an attribute. */
+    public void chooseRole(ServerPlayer p, dev.abps.classes.Role role) {
+        PlayerData d = data(p);
+        if (cls(d) != null || d.rolling || p.isRemoved()) return;
+        d.role = role.id;
+        AbpsMod.data().save(p, d);
+        send(p, "<gray>You picked " + dev.abps.util.Text.colorTag(role.color) + "<bold>" + role.label + "</bold><gray>. Rolling your attribute...");
+        roll(p, true);
+    }
+
+    public void promptSwitchRole(ServerPlayer p) {
+        PlayerData d = data(p);
+        if (hasMod(p)) {
+            ServerPlayNetworking.send(p, new Net.OpenMenuPayload("switch_role"));
+            return;
+        }
+        dev.abps.classes.Role to = roleOf(d).other();
+        raw(p, LINE);
+        raw(p, " <gold><bold>Switch to " + to.label + "?</bold>");
+        raw(p, " <gray>" + to.blurb);
+        raw(p, " <red>You roll a new " + to.label + " attribute and lose your levels and XP, like a reroll.");
+        raw(p, " <gray>Price: " + cfg().rerollCost().describe(p));
+        p.sendSystemMessage(buttons("Switch", "Pay and switch role", () -> confirmSwitchRole(p)));
+        raw(p, LINE);
+    }
+
+    /** Pays the reroll price, moves to the other role and rolls an attribute from it. */
+    public void confirmSwitchRole(ServerPlayer p) {
+        PlayerData d = data(p);
+        if (d.rolling || p.isRemoved()) return;
+        if (cls(d) == null) {
+            askRole(p);
+            return;
+        }
+        Cost cost = cfg().rerollCost();
+        if (!cost.canAfford(p)) {
+            send(p, "<red>You can't afford this. You need " + cost.describe(p) + "<red>.");
+            Fx.sound(level(p), p, SoundEvents.VILLAGER_NO, 1f, 1f);
+            return;
+        }
+        cost.take(p);
+        p.setExperienceLevels(0);
+        p.setExperiencePoints(0);
+        d.role = roleOf(d).other().id;
+        d.rerolls++;
+        roll(p, true);
+    }
+
+    /** Gatherers fill their ultimate by gathering. amount is a fraction of a full charge. */
+    public void addGatherCharge(ServerPlayer p, PlayerData d, double amount) {
+        AttributeClass c = active(d);
+        if (amount <= 0 || c == null || d.ultCharge >= 1 || System.currentTimeMillis() < d.ultLockUntil) return;
+        d.ultCharge = Math.min(1, d.ultCharge + amount);
+        notifyUltReady(p, d, c);
     }
 
     /** Gives a random attribute at level 1. */
@@ -242,7 +336,7 @@ public final class Service {
     /** Rolls a random attribute at this level. */
     public void roll(ServerPlayer p, boolean animate, int level) {
         PlayerData d = data(p);
-        AttributeClass result = randomClass(cfg().rerollNoRepeat ? d.classId : null);
+        AttributeClass result = randomClass(cfg().rerollNoRepeat ? d.classId : null, roleOf(d));
         setAttribute(p, result, Math.max(1, Math.min(cfg().maxLevel, level)));
         if (!animate) {
             rollResult(p, result);
@@ -582,11 +676,17 @@ public final class Service {
     public void addUltCharge(ServerPlayer p, PlayerData d, float damage, boolean victimIsPlayer) {
         if (damage <= 0 || d.ultCharge >= 1 || cls(d) == null) return;
         if (System.currentTimeMillis() < d.ultLockUntil) return;
-        double worth = victimIsPlayer ? 1 : cfg().ultimateMobDamageFactor;
+        AttributeClass cl = cls(d);
+        // Gatherers aren't meant to fight players, so monsters charge them fully
+        boolean gatherer = cl != null && cl.role() == dev.abps.classes.Role.GATHERER;
+        double worth = victimIsPlayer || gatherer ? 1 : cfg().ultimateMobDamageFactor;
         d.ultCharge = Math.min(1, d.ultCharge + damage * worth / cfg().ultimateDamageToCharge);
-        if (d.ultCharge >= 1 && !d.ultReadyNotified) {
+        notifyUltReady(p, d, cl);
+    }
+
+    private void notifyUltReady(ServerPlayer p, PlayerData d, AttributeClass c) {
+        if (d.ultCharge >= 1 && !d.ultReadyNotified && c != null) {
             d.ultReadyNotified = true;
-            AttributeClass c = cls(d);
             banner(p, c.gradient("<bold>ULTIMATE READY</bold>"), "<gray>" + c.abilityName(AttributeClass.ULTIMATE) + " <dark_gray>(" + keyName(p, AttributeClass.ULTIMATE) + ")", c.rgb(), 40);
             Fx.sound(level(p), p, SoundEvents.BEACON_POWER_SELECT, 1f, 1.5f);
         }
@@ -695,7 +795,8 @@ public final class Service {
             for (int i = 1; i <= 5; i++) cds.add(c.baseCooldown(i));
             list.add(new Net.ClassInfo(c.id(), c.name(), c.rgb(), c.rgb2(), c.symbol(), c.tagline(),
                     net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(c.icon()).toString(),
-                    passives, c.negatives(), c.mastery(), names, descs, cds, AbpsMod.state().count(c.id())));
+                    passives, c.negatives(), c.mastery(), names, descs, cds, AbpsMod.state().count(c.id()),
+                    c.adminOnly() ? "admin" : c.role().id));
         }
         ServerPlayNetworking.send(p, new Net.CatalogPayload(list));
     }

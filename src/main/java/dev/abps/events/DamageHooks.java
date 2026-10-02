@@ -69,6 +69,8 @@ public final class DamageHooks {
                 }
                 m *= out;
             }
+            // Gatherers aren't built for fighting players
+            if (c != null && c.role() == dev.abps.classes.Role.GATHERER && victim instanceof ServerPlayer) m *= dev.abps.classes.Role.GATHERER_PVP_DAMAGE;
         }
         if (victim instanceof ServerPlayer vp) {
             PlayerData d = data(vp);

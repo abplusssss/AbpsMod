@@ -52,6 +52,12 @@ public final class Miner extends AttributeClass {
     @Override public String symbol() { return "⛏"; }
     @Override public String tagline() { return "Dig deep and dig fast."; }
     @Override public String mastery() { return "Raw iron, gold and copper drop as ingots."; }
+    @Override public Role role() { return Role.GATHERER; }
+
+    @Override
+    public double gatherCharge(BlockState state) {
+        return isOre(state) ? 0.01 : state.is(BlockTags.MINEABLE_WITH_PICKAXE) ? 0.0008 : 0;
+    }
 
     private double oreSpeed(int lvl) { return lerp(lvl, 0.50, 1.20); }
     private double stoneSpeed(int lvl) { return lerp(lvl, 0.40, 0.90); }

@@ -55,6 +55,7 @@ public final class MenuScreen extends Screen {
     private int roadLevel = -1;
     private String classPick = "";
     private String boardFilter = "";
+    private String roleFilter = "";
     private long openedAt = System.currentTimeMillis();
 
     // Admin tab state
@@ -88,6 +89,8 @@ public final class MenuScreen extends Screen {
             case "profile" -> this.tab = Tab.PROFILE;
             case "confirm_upgrade" -> confirm = "upgrade";
             case "confirm_reroll" -> confirm = "reroll";
+            case "switch_role" -> confirm = "switch_role";
+            case "choose_role" -> this.tab = Tab.OVERVIEW; // Overview shows the role cards until an attribute is rolled
             default -> {
             }
         }
@@ -194,6 +197,8 @@ public final class MenuScreen extends Screen {
         // Content
         if (s == null || !AbpsClient.connected()) {
             Draw.centered(g, "<gray>This server doesn't run AbpsMod, or it's still loading.", cx + cw / 2, cy + ch / 2 - 4);
+        } else if (s.classId().isEmpty() && tab == Tab.OVERVIEW) {
+            roleCards(g, mx, my);
         } else if (c == null && tab != Tab.CLASSES && tab != Tab.TOP && tab != Tab.SETTINGS && tab != Tab.ADMIN && tab != Tab.KEYBINDS
                 && tab != Tab.SHOPS && tab != Tab.TRAVEL && tab != Tab.PROFILE && tab != Tab.NEWS && tab != Tab.DUNGEONS) {
             Draw.centered(g, "<gray>Loading your attribute...", cx + cw / 2, cy + ch / 2 - 4);
@@ -272,16 +277,23 @@ public final class MenuScreen extends Screen {
         y += 11;
 
         // Buttons
-        int bw = (cw - 22) / 2;
+        int bw = (cw - 16 - 12) / 3;
         button(g, mx, my, x, y, bw, 18, max ? "Max level" : "⬆ Upgrade", 0x69F0AE, !max, () -> confirm = "upgrade");
         button(g, mx, my, x + bw + 6, y, bw, 18, "🎲 Reroll", 0xFF5252, true, () -> confirm = "reroll");
+        String other = "gatherer".equals(c.role()) ? "PvP" : "Gatherer";
+        button(g, mx, my, x + 2 * (bw + 6), y, bw, 18, "⇄ Be " + other, 0x40C4FF, !"admin".equals(c.role()), () -> confirm = "switch_role");
         y += 22;
         if (!max) y += Draw.wrapped(g, "<gray>Next level: </gray>" + s.upgradeCost(), x, y, cw - 16, Draw.MUTED);
         y += 6;
 
         // Stats
-        Draw.text(g, "<gray>Abilities used:</gray> <white>" + s.abilitiesUsed() + "</white>   <gray>Rerolls:</gray> <white>" + s.rerolls()
-                + "</white>   <gray>Players with this class:</gray> <white>" + c.players() + "</white>", x, y);
+        String role = switch (c.role()) {
+            case "gatherer" -> "<#69F0AE>Gatherer</#69F0AE>";
+            case "admin" -> "<#FFD54F>Operator</#FFD54F>";
+            default -> "<#FF5252>PvP</#FF5252>";
+        };
+        Draw.textFit(g, "<gray>Role:</gray> " + role + "   <gray>Abilities used:</gray> <white>" + s.abilitiesUsed() + "</white>   <gray>Rerolls:</gray> <white>"
+                + s.rerolls() + "</white>   <gray>Players:</gray> <white>" + c.players() + "</white>", x, y, cw - 16);
         y += 16;
 
         y = section(g, "Passives", c.color(), x, y);
@@ -294,6 +306,29 @@ public final class MenuScreen extends Screen {
         y = section(g, "Mastery (Level " + s.maxLevel() + ")", 0xFFD54F, x, y);
         y += Draw.wrapped(g, (max ? "<#FFD54F>★</#FFD54F> " : "<dark_gray>🔒</dark_gray> <gray>") + c.mastery(), x, y, cw - 16, Draw.TEXT);
         return y - y0 + 8;
+    }
+
+    /** For players without an attribute yet: two big cards to pick PvP or Gatherer. */
+    private void roleCards(GuiGraphicsExtractor g, int mx, int my) {
+        int x = cx + 6, w = cw - 16, y = cy + 6;
+        Draw.scaled(g, "<bold><gradient:#FFD54F:#FF8F00>Pick your role</gradient></bold>", cx + cw / 2f, y, 1.5f, true);
+        y += 18;
+        y += Draw.wrapped(g, "<gray>Your attribute is rolled from the role you pick. You can switch later (it costs a reroll).", x, y, w, Draw.MUTED) + 6;
+        int cardW = (w - 8) / 2, cardH = Math.min(ch - (y - cy) - 8, 130);
+        String[][] roles = {
+                {"pvp", "PvP", "minecraft:netherite_sword", "Built for fighting other players. Strong abilities, ultimates charged by hitting players."},
+                {"gatherer", "Gatherer", "minecraft:diamond_pickaxe", "Built for getting items and progressing: farming, mining, chopping, fishing and exploring. Ultimates charge as you gather. Less damage to players."}};
+        for (int k = 0; k < 2; k++) {
+            int col = k == 0 ? 0xFF5252 : 0x69F0AE;
+            int bx = x + k * (cardW + 8);
+            boolean hover = Draw.inside(mx, my, bx, y, cardW, cardH);
+            Draw.framed(g, bx, y, cardW, cardH, hover ? 0xF0181820 : 0xE0101016, Draw.opaque(hover ? Text.lerp(col, 0xFFFFFF, 0.3f) : col));
+            Draw.item(g, roles[k][2], bx + cardW / 2f - 16, y + 8, 2f);
+            Draw.scaled(g, "<bold>" + Draw.gradient(col, Text.lerp(col, 0xFFFFFF, 0.5f), roles[k][1]) + "</bold>", bx + cardW / 2f, y + 44, 1.5f, true);
+            Draw.wrapped(g, "<gray>" + roles[k][3], bx + 8, y + 60, cardW - 16, Draw.MUTED);
+            final String id = roles[k][0];
+            buttons.add(new Btn(bx, y, cardW, cardH, "role:" + id, () -> AbpsClient.send("role", id)));
+        }
     }
 
     private int section(GuiGraphicsExtractor g, String title, int color, int x, int y) {
@@ -464,7 +499,18 @@ public final class MenuScreen extends Screen {
                 ? ClientState.sync.classId() : ClientState.catalog.keySet().iterator().next();
         int x = cx + 6, y = y0 + 4;
         int listW = 104;
+        // Role filter: all, PvP or Gatherer
+        String[][] filters = {{"", "All"}, {"pvp", "PvP"}, {"gatherer", "Gather"}};
+        int fw = (listW - 4) / 3;
+        for (int k = 0; k < 3; k++) {
+            final String f = filters[k][0];
+            boolean on = roleFilter.equals(f);
+            int col = k == 1 ? 0xFF5252 : k == 2 ? 0x69F0AE : 0x7C4DFF;
+            button(g, mx, my, x + k * (fw + 2), y, fw, 14, (on ? "<white><bold>" : "<gray>") + filters[k][1], on ? col : 0x55555F, true, () -> roleFilter = f);
+        }
+        y += 18;
         for (Net.ClassInfo info : ClientState.catalog.values()) {
+            if (!roleFilter.isEmpty() && !roleFilter.equals(info.role())) continue;
             boolean picked = info.id().equals(classPick);
             boolean hover = Draw.inside(mx, my, x, y, listW, 20);
             Draw.panel(g, x, y, listW, 20, picked ? Draw.argb(info.color(), 0x55) : hover ? 0x30FFFFFF : 0x60000000);
@@ -483,7 +529,12 @@ public final class MenuScreen extends Screen {
         int yy = y0 + 4;
         Draw.item(g, info.icon(), dx, yy, 1.5f);
         Draw.scaled(g, "<bold>" + Draw.gradient(info.color(), info.color2(), info.name()) + "</bold>", dx + 28, yy + 1, 1.5f, false);
-        Draw.scaled(g, "<gray>" + info.players() + " player" + (info.players() == 1 ? "" : "s") + " have this", dx + 28, yy + 15, 0.75f, false);
+        String badge = switch (info.role()) {
+            case "gatherer" -> "<#69F0AE>Gatherer</#69F0AE>";
+            case "admin" -> "<#FFD54F>Operators only</#FFD54F>";
+            default -> "<#FF5252>PvP</#FF5252>";
+        };
+        Draw.scaled(g, badge + " <dark_gray>·</dark_gray> <gray>" + info.players() + " player" + (info.players() == 1 ? "" : "s") + " have this", dx + 28, yy + 15, 0.75f, false);
         yy += 28;
         yy += Draw.wrapped(g, "<gray><italic>" + info.tagline(), dx, yy, dw, Draw.MUTED) + 4;
         Draw.text(g, "<bold><white>Abilities", dx, yy);
@@ -892,13 +943,23 @@ public final class MenuScreen extends Screen {
 
     private void popup(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c) {
         g.fill(px, py, px + pw, py + ph, 0xA0000000);
-        boolean reroll = confirm.equals("reroll");
-        int w = Math.min(pw - 40, 260), h = reroll ? 146 : 130;
+        boolean reroll = confirm.equals("reroll"), switching = confirm.equals("switch_role");
+        int w = Math.min(pw - 40, 260), h = reroll || switching ? 150 : 130;
         int x = px + (pw - w) / 2, y = py + (ph - h) / 2;
-        int col = reroll ? 0xFF5252 : 0x69F0AE;
+        int col = reroll ? 0xFF5252 : switching ? 0x40C4FF : 0x69F0AE;
         Draw.window(g, x, y, w, h, col, Text.lerp(col, 0x000000, 0.4f), 0xF8100F16);
         int yy = y + 8;
-        if (reroll) {
+        if (switching) {
+            boolean toPvp = "gatherer".equals(c.role());
+            Draw.scaled(g, "<bold><gradient:#40C4FF:#B2EBF2>Switch to " + (toPvp ? "PvP" : "Gatherer") + "?</gradient></bold>", x + w / 2f, yy, 1.25f, true);
+            yy += 16;
+            yy += Draw.wrapped(g, toPvp ? "<gray>PvP attributes are built for fighting other players."
+                    : "<gray>Gatherer attributes are built for getting items: farming, mining, chopping, fishing and exploring. They deal less damage to players.",
+                    x + 10, yy, w - 20, Draw.TEXT) + 3;
+            yy += Draw.wrapped(g, "<red><bold>You roll a new attribute and lose all " + s.level() + " levels and your XP, like a reroll.", x + 10, yy, w - 20, Draw.TEXT) + 3;
+            yy += Draw.wrapped(g, "<gray>Price: </gray>" + s.rerollCost(), x + 10, yy, w - 20, Draw.MUTED) + 2;
+            if (!s.canReroll()) Draw.text(g, "<red>You can't afford this yet.", x + 10, yy);
+        } else if (reroll) {
             Draw.scaled(g, "<bold><gradient:#FF5252:#FFAB40>Reroll your attribute?</gradient></bold>", x + w / 2f, yy, 1.25f, true);
             yy += 16;
             yy += Draw.wrapped(g, "<gray>You get a random new attribute. <red><bold>You lose all " + s.level()
@@ -918,11 +979,11 @@ public final class MenuScreen extends Screen {
             if (!s.canUpgrade()) Draw.text(g, "<red>You can't afford this yet.", x + 10, yy);
         }
         int by = y + h - 26, bw = (w - 30) / 2;
-        boolean can = reroll ? s.canReroll() : s.canUpgrade();
-        button(g, mx, my, x + 10, by, bw, 18, reroll ? "<white><bold>Reroll" : "<white><bold>Upgrade", col, can, () -> {
-            AbpsClient.send(reroll ? "reroll" : "upgrade", "");
+        boolean can = reroll || switching ? s.canReroll() : s.canUpgrade();
+        button(g, mx, my, x + 10, by, bw, 18, switching ? "<white><bold>Switch" : reroll ? "<white><bold>Reroll" : "<white><bold>Upgrade", col, can, () -> {
+            AbpsClient.send(switching ? "switchrole" : reroll ? "reroll" : "upgrade", "");
             confirm = "";
-            if (reroll) onClose();
+            if (reroll || switching) onClose();
         });
         button(g, mx, my, x + 20 + bw, by, bw, 18, "Cancel", 0x777781, true, () -> confirm = "");
     }

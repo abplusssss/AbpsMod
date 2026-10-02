@@ -12,6 +12,10 @@ import dev.abps.classes.Voidwalker;
 import dev.abps.classes.Miner;
 import dev.abps.classes.Necromancer;
 import dev.abps.classes.Overlord;
+import dev.abps.classes.Angler;
+import dev.abps.classes.Explorer;
+import dev.abps.classes.Harvester;
+import dev.abps.classes.Lumberjack;
 import dev.abps.classes.Pyromancer;
 import dev.abps.classes.Shark;
 import dev.abps.classes.Tank;
@@ -48,6 +52,11 @@ public final class Classes {
         add(new Paladin());
         add(new Voidwalker());
         add(new Samurai());
+        // Gatherers
+        add(new Harvester());
+        add(new Lumberjack());
+        add(new Angler());
+        add(new Explorer());
         add(new Overlord());
     }
 

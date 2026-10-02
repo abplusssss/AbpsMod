@@ -47,6 +47,8 @@ public final class PlayerData {
     public String title = "";
     /** Turns your attribute off completely: no abilities, passives or weaknesses until you turn it back on. */
     public boolean powersOff = false;
+    /** "pvp" or "gatherer": which pool rerolls come from. Empty until the player picks one. */
+    public String role = "";
     /** Pyromancer: the heat aura that sets enemies near you on fire. */
     public boolean pyroAura = true;
 

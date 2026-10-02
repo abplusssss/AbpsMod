@@ -209,6 +209,7 @@ final class Signatures {
             case Skin.SAMURAI -> SigSamurai.play(c);
             case SigDungeon.THEME -> SigDungeon.play(c);
             case SigOverlord.THEME -> SigOverlord.play(c);
+            case SigGather.HARVESTER, SigGather.LUMBERJACK, SigGather.ANGLER, SigGather.EXPLORER -> SigGather.play(c);
             default -> {
             }
         }

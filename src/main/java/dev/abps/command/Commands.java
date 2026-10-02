@@ -97,6 +97,8 @@ public final class Commands {
         add(new Entry("Party", "[invite <name> | accept | decline | leave | kick <name>]", "Your dungeon party (up to 4 players).", "dungeon", "team", "group", "dparty"));
         add(new Entry("Powers", "[on | off]", "Turns your whole attribute off or back on (abilities, passives and weaknesses).", "attr",
                 "power", "abilities", "togglepowers", "nopowers", "vanillamode"));
+        add(new Entry("Role", "[pvp | gatherer]", "Shows your role, picks one, or switches to the other (costs a reroll).", "attr",
+                "roles", "switchrole", "job", "path"));
         add(new Entry("Aura", "[on | off]", "Pyromancer: turns your heat aura off or back on.", "attr", "heataura", "flameaura", "fireaura"));
         add(new Entry("Title", "[name | off]", "Shows or picks the title next to your name.", "dungeon", "titles", "settitle"));
         // Shops, rewards and profile
@@ -398,6 +400,26 @@ public final class Commands {
                             Service.send(s, "<aqua>Your party:</aqua> <white>" + String.join(", ", names));
                         }
                     }
+                }
+            }
+            case "Role" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                PlayerData d = sv.data(p);
+                dev.abps.classes.Role now = sv.roleOf(d);
+                dev.abps.classes.Role want = args.length > 0 ? dev.abps.classes.Role.of(args[0]) : null;
+                if (sv.cls(d) == null) {
+                    if (want != null) sv.chooseRole(p, want);
+                    else sv.askRole(p);
+                    return;
+                }
+                if (want == null) {
+                    Service.send(s, "<gray>Your role is " + Text.colorTag(now.color) + "<bold>" + now.label + "</bold><gray>. " + now.blurb
+                            + " Use <yellow>!Role " + now.other().id + "</yellow> to switch (costs a reroll).");
+                } else if (want == now) {
+                    Service.send(s, "<gray>You're already " + now.label + ".");
+                } else {
+                    sv.promptSwitchRole(p);
                 }
             }
             case "Powers" -> {

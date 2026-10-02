@@ -136,7 +136,7 @@ public final class Net {
     public record ClassInfo(String id, String name, int color, int color2, String symbol, String tagline, String icon,
                             List<List<String>> passivesByLevel, List<String> negatives, String mastery,
                             List<String> abilityNames, List<List<String>> descsByLevel, List<Double> baseCooldowns,
-                            int players) {
+                            int players, String role) {
 
         static void write(RegistryFriendlyByteBuf buf, ClassInfo c) {
             buf.writeUtf(c.id);
@@ -156,6 +156,7 @@ public final class Net {
             buf.writeVarInt(c.baseCooldowns.size());
             for (double d : c.baseCooldowns) buf.writeDouble(d);
             buf.writeVarInt(c.players);
+            buf.writeUtf(c.role);
         }
 
         static ClassInfo read(RegistryFriendlyByteBuf buf) {
@@ -175,7 +176,7 @@ public final class Net {
             List<Double> cds = new ArrayList<>(k);
             for (int i = 0; i < k; i++) cds.add(buf.readDouble());
             return new ClassInfo(id, name, color, color2, symbol, tagline, icon, passives, negatives, mastery,
-                    abilities, descs, cds, buf.readVarInt());
+                    abilities, descs, cds, buf.readVarInt(), buf.readUtf());
         }
     }
 

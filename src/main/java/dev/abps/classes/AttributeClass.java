@@ -131,6 +131,16 @@ public abstract class AttributeClass {
 
     protected abstract boolean ability4(ServerPlayer p, PlayerData d);
 
+    /** PvP or Gatherer. See {@link Role}. */
+    public Role role() {
+        return Role.PVP;
+    }
+
+    /** Gatherers: how much of the ultimate breaking this block fills (1 is a full charge). */
+    public double gatherCharge(BlockState state) {
+        return 0;
+    }
+
     /** Attributes only operators can have. They are never rolled and only operators see them in the menu. */
     public boolean adminOnly() {
         return false;
