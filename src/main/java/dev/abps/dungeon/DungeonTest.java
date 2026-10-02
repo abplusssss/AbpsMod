@@ -252,7 +252,6 @@ public final class DungeonTest {
                 LivingEntity boss = run.brain == null ? null : run.brain.boss();
                 killAll(run, r, fake, boss);
                 if (boss != null && boss.isAlive() && System.currentTimeMillis() - r.startedAt > 8000) {
-                    boss.invulnerableTime = 0;
                     boss.hurtServer(run.level, fake.damageSources().playerAttack(fake), 120f);
                 }
             }
@@ -264,7 +263,6 @@ public final class DungeonTest {
         for (UUID id : new ArrayList<>(r.mobs)) {
             Entity e = run.level.getEntity(id);
             if (e == null || e == spare || !(e instanceof LivingEntity le) || !le.isAlive()) continue;
-            le.invulnerableTime = 0;
             le.hurtServer(run.level, fake.damageSources().playerAttack(fake), 10_000f);
             if (le.isAlive()) le.kill(run.level);
         }
