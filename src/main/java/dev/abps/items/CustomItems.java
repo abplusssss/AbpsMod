@@ -167,7 +167,7 @@ public final class CustomItems {
 
     /** A tab in the creative inventory with every AbpsMod item in it. */
     public static void registerTab() {
-        net.minecraft.world.item.CreativeModeTab tab = net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup.builder()
+        net.minecraft.world.item.CreativeModeTab tab = tabBuilder()
                 .title(Component.literal("AbpsMod"))
                 .icon(() -> {
                     ItemStack icon = new ItemStack(Items.NETHERITE_SWORD);
@@ -182,6 +182,24 @@ public final class CustomItems {
                 })
                 .build();
         net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB, AbpsMod.id("items"), tab);
+    }
+
+    /**
+     * Fabric's tab builder (it puts modded tabs on their own pages). Its package was renamed between versions, so it
+     * is looked up by name; if neither name exists, vanilla's own builder is used.
+     */
+    private static net.minecraft.world.item.CreativeModeTab.Builder tabBuilder() {
+        String[][] candidates = {{"net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab", "builder"},
+                {"net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup", "builder"}};
+        for (String[] c : candidates) {
+            try {
+                Object b = Class.forName(c[0]).getMethod(c[1]).invoke(null);
+                if (b instanceof net.minecraft.world.item.CreativeModeTab.Builder builder) return builder;
+            } catch (ReflectiveOperationException | LinkageError ignored) {
+                // try the next name
+            }
+        }
+        return net.minecraft.world.item.CreativeModeTab.builder(net.minecraft.world.item.CreativeModeTab.Row.TOP, 0);
     }
 
     // ------------------------------------------------------------------ making items
