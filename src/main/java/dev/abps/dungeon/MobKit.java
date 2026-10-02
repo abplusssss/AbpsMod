@@ -23,8 +23,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * The dungeon's own monsters. Each is a vanilla mob dressed up (gear, size, stats, a name) with a small brain
- * that gives it real moves: charges, leaps, slams, bolts, summons, webs, blinks and auras. Big moves are warned
+ * The dungeon's own monsters. Each has a body of its own ({@link Rig}, built from {@link RigModels}) over an
+ * invisible vanilla mob that gives it a hitbox and AI, and a small brain that gives it real moves: charges, leaps,
+ * slams, bolts, summons, webs, blinks and auras. Big moves are warned
  * on the ground first, the same way bosses do it. Elites can also roll a trait, like Explosive or Frenzied.
  */
 final class MobKit {
@@ -125,6 +126,12 @@ final class MobKit {
         dress(m, kind);
         if (affix != null) applyAffix(m, affix);
         if (elite) m.setGlowingTag(true);
+        // Its own body: the vanilla mob underneath turns invisible and only gives the hitbox and the AI
+        Rig.Model model = RigModels.of(kind);
+        if (model != null) {
+            run.rigs.put(m.getUUID(), Rig.attach(run.level, m, model, (float) (kind.scale * (elite ? 1.25 : 1)), elite ? 0xFFC107 : -1));
+            if (kind == Kind.SCULK_LURKER) run.rigs.get(m.getUUID()).hidden = true;
+        }
         Brain b = new Brain(m.getUUID(), kind, affix, room);
         b.cdA = 40 + run.rnd.nextInt(60);
         b.cdB = 60 + run.rnd.nextInt(80);
@@ -137,46 +144,34 @@ final class MobKit {
         m.setDropChance(slot, 0);
     }
 
-    /** Gear that makes each kind look like itself. */
+    /**
+     * Stats that make each kind fight like itself. Their looks come from their {@link Rig} body, so instead of
+     * real armor and weapons (which would float in the air around an invisible mob) they get the same armor and
+     * damage as attributes.
+     */
     private static void dress(Mob m, Kind k) {
         switch (k) {
             case GRAVE_KNIGHT -> {
-                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
-                wear(m, EquipmentSlot.CHEST, new ItemStack(Items.IRON_CHESTPLATE));
-                wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
-                wear(m, EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
-            }
-            case BONE_CALLER -> {
-                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.SKELETON_SKULL));
-                wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.BONE));
+                Mods.setBase(m, Attributes.ARMOR, 10);
+                if (m.getAttribute(Attributes.ATTACK_DAMAGE) != null) Mods.scaleBase(m, Attributes.ATTACK_DAMAGE, 2.0);
             }
             case GHOUL -> m.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 3600, 1, false, false));
-            case FROST_WRAITH -> {
-                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.ICE));
-                m.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 3600, 0, false, false));
-            }
+            case FROST_WRAITH -> m.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 3600, 0, false, false));
             case ICE_BRUTE -> {
-                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.PACKED_ICE));
-                wear(m, EquipmentSlot.CHEST, new ItemStack(Items.DIAMOND_CHESTPLATE));
+                Mods.setBase(m, Attributes.ARMOR, 10);
                 Mods.setBase(m, Attributes.KNOCKBACK_RESISTANCE, 0.8);
                 Mods.scaleBase(m, Attributes.MOVEMENT_SPEED, 0.8);
             }
             case MAGMA_BRUTE -> {
-                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.MAGMA_BLOCK));
-                wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.GOLDEN_AXE));
                 m.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 20 * 3600, 0, false, false));
+                if (m.getAttribute(Attributes.ATTACK_DAMAGE) != null) Mods.scaleBase(m, Attributes.ATTACK_DAMAGE, 1.6);
             }
             case EMBER_IMP -> m.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 3600, 1, false, false));
             case FORGE_WARDEN -> {
-                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.NETHERITE_HELMET));
-                wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.NETHERITE_AXE));
+                Mods.setBase(m, Attributes.ARMOR, 6);
                 Mods.setBase(m, Attributes.KNOCKBACK_RESISTANCE, 0.6);
+                if (m.getAttribute(Attributes.ATTACK_DAMAGE) != null) Mods.scaleBase(m, Attributes.ATTACK_DAMAGE, 1.8);
             }
-            case SCULK_LURKER -> {
-                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.SCULK));
-                m.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 20 * 3600, 0, false, false));
-            }
-            case SHADE -> m.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 20 * 3600, 0, false, false));
             default -> {
             }
         }
@@ -255,8 +250,15 @@ final class MobKit {
                     p.igniteForSeconds(2);
                 }
             }
-            if (--b.cdA <= 0) b.cdA = moveA(run, b, m, t, ps);
-            if (--b.cdB <= 0) b.cdB = moveB(run, b, m, t, ps);
+            Rig rig = run.rigs.get(b.id);
+            if (--b.cdA <= 0) {
+                b.cdA = moveA(run, b, m, t, ps);
+                if (b.cdA > 30 && rig != null) rig.act(); // a real move, not a "not yet": raise the arms
+            }
+            if (--b.cdB <= 0) {
+                b.cdB = moveB(run, b, m, t, ps);
+                if (b.cdB > 30 && rig != null) rig.act();
+            }
             passive(run, b, m, t, ps);
         }
     }
@@ -309,6 +311,7 @@ final class MobKit {
                 if (b.kind == Kind.SCULK_LURKER && !b.revealed) {
                     b.revealed = true;
                     m.removeEffect(MobEffects.INVISIBILITY);
+                    if (run.rigs.get(m.getUUID()) != null) run.rigs.get(m.getUUID()).reveal();
                     run.sound(SoundEvents.WARDEN_EMERGE, 0.5f, 1.6f);
                 }
                 Vec3 v = t.position().subtract(m.position());
@@ -448,6 +451,7 @@ final class MobKit {
         if (b.kind == Kind.SCULK_LURKER && !b.revealed && m.distanceTo(t) < 4) {
             b.revealed = true;
             m.removeEffect(MobEffects.INVISIBILITY);
+                    if (run.rigs.get(m.getUUID()) != null) run.rigs.get(m.getUUID()).reveal();
             run.sound(SoundEvents.WARDEN_EMERGE, 0.5f, 1.6f);
         }
     }
@@ -457,7 +461,7 @@ final class MobKit {
         Theme theme = themeOf(run.palette);
         int made = 0;
         for (int k = 0; k < count; k++) {
-            boolean custom = run.rnd.nextDouble() < 0.55;
+            boolean custom = true; // every dungeon monster has its own body now
             Affix affix = run.def.difficulty() >= 2 && run.rnd.nextDouble() < 0.12 * run.def.difficulty() ? randomAffix(run) : null;
             Mob m = custom ? spawn(run, pick(run, theme), spot.get(), room, affix, false) : run.spawn(run.pick(), spot.get(), 1, null, room);
             if (m != null) made++;

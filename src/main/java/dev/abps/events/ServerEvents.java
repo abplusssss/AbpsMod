@@ -161,6 +161,7 @@ public final class ServerEvents {
             if (!AbpsMod.running()) return;
             // Summons and visuals never survive a restart
             if ((entity.entityTags().contains("abps_fx") && !dev.abps.util.Vfx.isLive(entity))
+                    || (entity.entityTags().contains(dev.abps.dungeon.Rig.TAG) && !dev.abps.dungeon.Rig.isLive(entity))
                     || entity.entityTags().contains(Targets.MINION_TAG) && Targets.minionOwner(entity) == null) {
                 entity.discard();
                 return;
