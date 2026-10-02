@@ -185,9 +185,11 @@ public final class Run {
             boolean last = i == plan.size() - 1;
             builder.room(min, w, h, d, palette, rnd, i > 0, !last, t != RoomType.START && t != RoomType.TREASURE);
             decorate(r);
+            Decor.room(builder, r, palette, rnd);
             x += w;
             if (!last) {
                 builder.corridor(x, origin.getY(), origin.getZ(), 6, palette, rnd);
+                Decor.corridor(builder, x, origin.getY(), origin.getZ(), 6, palette, rnd);
                 x += 6;
             }
         }
