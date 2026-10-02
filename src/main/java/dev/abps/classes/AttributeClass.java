@@ -131,6 +131,11 @@ public abstract class AttributeClass {
 
     protected abstract boolean ability4(ServerPlayer p, PlayerData d);
 
+    /** Attributes only operators can have. They are never rolled and only operators see them in the menu. */
+    public boolean adminOnly() {
+        return false;
+    }
+
     /** How many normal abilities this attribute has (4 or 5). The ultimate is always extra. */
     public int abilityCount() {
         return 4;

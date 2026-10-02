@@ -30,7 +30,9 @@ public final class FxKind {
      */
     public static final int THEME_ARCHER = 1, THEME_ASSASSIN = 2, THEME_BERSERKER = 3, THEME_MINER = 5,
             THEME_NECROMANCER = 6, THEME_PYROMANCER = 7, THEME_SHARK = 8, THEME_TANK = 9, THEME_VAMPIRE = 10, THEME_WINDWALKER = 11,
-            THEME_CRYO = 12, THEME_CHRONO = 13, THEME_PALADIN = 14, THEME_VOID = 15, THEME_SAMURAI = 16;
+            THEME_CRYO = 12, THEME_CHRONO = 13, THEME_PALADIN = 14, THEME_VOID = 15, THEME_SAMURAI = 16,
+            // 17 is dungeons
+            THEME_OVERLORD = 18, THEME_HARVESTER = 19, THEME_LUMBERJACK = 20, THEME_ANGLER = 21, THEME_EXPLORER = 22;
 
     public static int theme(String classId) {
         return switch (classId) {
@@ -49,6 +51,11 @@ public final class FxKind {
             case "paladin" -> THEME_PALADIN;
             case "voidwalker" -> THEME_VOID;
             case "samurai" -> THEME_SAMURAI;
+            case "overlord" -> THEME_OVERLORD;
+            case "harvester" -> THEME_HARVESTER;
+            case "lumberjack" -> THEME_LUMBERJACK;
+            case "angler" -> THEME_ANGLER;
+            case "explorer" -> THEME_EXPLORER;
             default -> 0;
         };
     }

@@ -229,8 +229,8 @@ public final class Service {
 
     public AttributeClass randomClass(String excludeId) {
         List<AttributeClass> pool = new ArrayList<>();
-        for (AttributeClass c : Classes.all()) if (!c.id().equals(excludeId)) pool.add(c);
-        if (pool.isEmpty()) pool.addAll(Classes.all());
+        for (AttributeClass c : Classes.all()) if (!c.id().equals(excludeId) && !c.adminOnly()) pool.add(c);
+        if (pool.isEmpty()) for (AttributeClass c : Classes.all()) if (!c.adminOnly()) pool.add(c);
         return pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
     }
 
@@ -678,7 +678,9 @@ public final class Service {
         if (!hasMod(p)) return;
         List<Net.ClassInfo> list = new ArrayList<>();
         int max = cfg().maxLevel;
+        boolean admin = dev.abps.command.Commands.isAdmin(p.createCommandSourceStack());
         for (AttributeClass c : Classes.all()) {
+            if (c.adminOnly() && !admin) continue; // only operators see the operator-only attribute
             List<List<String>> passives = new ArrayList<>();
             List<List<String>> descs = new ArrayList<>();
             for (int lvl = 1; lvl <= max; lvl++) {

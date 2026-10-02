@@ -265,6 +265,11 @@ public final class Draw {
             case "paladin" -> new String[]{"golden_sword", "glowstone_dust", "golden_horse_armor", "golden_apple", "beacon"};
             case "voidwalker" -> new String[]{"ender_pearl", "shulker_shell", "ender_eye", "phantom_membrane", "dragon_egg"};
             case "samurai" -> new String[]{"iron_sword", "bamboo", "shield", "blaze_powder", "netherite_sword"};
+            case "overlord" -> new String[]{"lightning_rod", "wither_skeleton_skull", "ender_pearl", "clock", "nether_star"};
+            case "harvester" -> new String[]{"wheat", "iron_hoe", "bone_meal", "golden_carrot", "hay_block"};
+            case "lumberjack" -> new String[]{"iron_axe", "oak_sapling", "oak_log", "leather_chestplate", "diamond_axe"};
+            case "angler" -> new String[]{"fishing_rod", "cod", "nautilus_shell", "prismarine_shard", "heart_of_the_sea"};
+            case "explorer" -> new String[]{"compass", "spyglass", "map", "leather_boots", "filled_map"};
             case "shark" -> new String[]{"trident", "prismarine_crystals", "heart_of_the_sea", "nautilus_shell", "conduit", "nether_star"};
             default -> new String[]{"barrier", "barrier", "barrier", "barrier", "nether_star"};
         };

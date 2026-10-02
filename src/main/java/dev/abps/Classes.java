@@ -11,6 +11,7 @@ import dev.abps.classes.Samurai;
 import dev.abps.classes.Voidwalker;
 import dev.abps.classes.Miner;
 import dev.abps.classes.Necromancer;
+import dev.abps.classes.Overlord;
 import dev.abps.classes.Pyromancer;
 import dev.abps.classes.Shark;
 import dev.abps.classes.Tank;
@@ -47,6 +48,7 @@ public final class Classes {
         add(new Paladin());
         add(new Voidwalker());
         add(new Samurai());
+        add(new Overlord());
     }
 
     private static void add(AttributeClass c) {

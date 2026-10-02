@@ -208,6 +208,7 @@ final class Signatures {
             case Skin.VOID -> SigVoid.play(c);
             case Skin.SAMURAI -> SigSamurai.play(c);
             case SigDungeon.THEME -> SigDungeon.play(c);
+            case SigOverlord.THEME -> SigOverlord.play(c);
             default -> {
             }
         }

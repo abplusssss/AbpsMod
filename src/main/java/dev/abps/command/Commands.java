@@ -694,6 +694,7 @@ public final class Commands {
         Service.raw(s, Service.LINE);
         Service.raw(s, " <gradient:#FFD54F:#FF8F00><bold>All Attributes</bold></gradient> <dark_gray>(hover for info)");
         for (AttributeClass c : Classes.all()) {
+            if (c.adminOnly() && !isAdmin(s)) continue;
             MutableComponent line = Text.mm("  " + c.colored(c.symbol()) + " " + c.display() + " <dark_gray>- <gray>" + c.tagline());
             line.withStyle(st -> st.withHoverEvent(new HoverEvent.ShowText(Text.mm(service().classHover(c, 1)))));
             s.sendSystemMessage(line);
@@ -787,6 +788,10 @@ public final class Commands {
             return;
         }
         for (ServerPlayer t : targets(s, args, false)) {
+            if (c.adminOnly() && !isAdmin(t.createCommandSourceStack())) {
+                Service.send(s, "<red>" + t.getName().getString() + " isn't an operator, so they can't be " + c.name() + ".");
+                continue;
+            }
             service().setAttribute(t, c, 1);
             service().send(t, "You were given " + c.display() + "<gray>.");
             if (t != s.getPlayer()) Service.send(s, "<green>Gave " + t.getName().getString() + " " + c.name() + ".");
