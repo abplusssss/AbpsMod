@@ -175,11 +175,15 @@ public final class MenuScreen extends Screen {
             boolean active = t == tab;
             boolean hover = Draw.inside(mx, my, px + 6, ty, 84, tabH);
             // The open tab is a raised button in the class color, the others sit flat until hovered
-            if (active) Draw.button(g, px + 6, ty, 84, tabH, c1, false, true);
-            else if (hover) {
-                // Same 1px edge on all four sides
-                g.fill(px + 6, ty, px + 90, ty + tabH, 0x60FFFFFF);
-                g.fill(px + 7, ty + 1, px + 89, ty + tabH - 1, 0xFF24232C);
+            if (active) {
+                // A dark tinted slot with the class color down its left edge
+                g.fill(px + 6, ty, px + 90, ty + tabH, Draw.opaque(Draw.deep(c1, 0.16f)));
+                g.fill(px + 6, ty, px + 90, ty + 1, Draw.opaque(Draw.deep(c1, 0.32f)));
+                g.fill(px + 6, ty + tabH - 1, px + 90, ty + tabH, 0xFF08080C);
+                g.fill(px + 6, ty, px + 8, ty + tabH, Draw.opaque(c1));
+            } else if (hover) {
+                g.fill(px + 6, ty, px + 90, ty + tabH, 0x1CFFFFFF);
+                g.fill(px + 6, ty, px + 7, ty + tabH, 0x50FFFFFF);
             }
             String icon = t == Tab.OVERVIEW && c != null ? c.icon() : t.icon;
             // The icon is sized to the tab's height and the label shrinks to fit what's left, so nothing pokes out of the tab
@@ -187,7 +191,7 @@ public final class MenuScreen extends Screen {
             float iconScale = Math.max(0.4f, Math.min(1f, (tabH - 4) / 16f));
             Draw.item(g, icon, px + 9, ty + (tabH - 16 * iconScale) / 2f, iconScale);
             int textX = px + 9 + Math.round(16 * iconScale) + 4;
-            Draw.textFit(g, (active ? "<white>" : "<gray>") + t.label, textX, ty + (tabH - 8) / 2, px + 6 + 84 - 3 - textX);
+            Draw.textFit(g, (active ? "<white><bold>" : hover ? "<white>" : "<gray>") + t.label, textX, ty + (tabH - 8) / 2, px + 6 + 84 - 3 - textX);
             final Tab target = t;
             buttons.add(new Btn(px + 6, ty, 84, tabH, "tab:" + target.name(), () -> switchTab(target)));
             ty += step;
@@ -234,15 +238,19 @@ public final class MenuScreen extends Screen {
                 contentHeight = ch;
             }
             g.disableScissor();
-            // Scroll bar
+            // Soft fades where the content scrolls under the edges, instead of text cut in half
+            if (scroll > 0) g.fillGradient(cx, cy, cx + cw, cy + 10, 0xF00E0D14, 0x000E0D14);
+            if (contentHeight > ch && scroll < contentHeight - ch - 1) g.fillGradient(cx, cy + ch - 10, cx + cw, cy + ch, 0x000E0D14, 0xF00E0D14);
+            // Scroll bar: a thin track with a rounded thumb
             if (contentHeight > ch) {
                 float frac = (float) ch / contentHeight;
-                int barH = Math.max(12, (int) (ch * frac));
+                int barH = Math.max(14, (int) (ch * frac));
                 int barY = cy + (int) ((ch - barH) * (scroll / Math.max(1, contentHeight - ch)));
-                g.fill(px + pw - 6, cy, px + pw - 2, cy + ch, 0x80000000);
-                g.fill(px + pw - 6, barY, px + pw - 2, barY + barH, Draw.opaque(Text.lerp(c1, 0x000000, 0.25f)));
-                g.fill(px + pw - 6, barY, px + pw - 3, barY + barH - 1, Draw.opaque(c1));
-                g.fill(px + pw - 6, barY, px + pw - 3, barY + 1, Draw.opaque(Text.lerp(c1, 0xFFFFFF, 0.4f)));
+                g.fill(px + pw - 5, cy, px + pw - 3, cy + ch, 0x50000000);
+                int thumb = Draw.opaque(Draw.deep(c1, 0.55f));
+                g.fill(px + pw - 6, barY + 1, px + pw - 2, barY + barH - 1, thumb);
+                g.fill(px + pw - 5, barY, px + pw - 3, barY + barH, thumb);
+                g.fill(px + pw - 5, barY + 1, px + pw - 4, barY + barH - 1, Draw.opaque(Draw.deep(c1, 0.75f)));
             }
             // Buttons hidden by the scroll area should not be clickable
             buttons.removeIf(b -> b.x >= cx && (b.y + b.h <= cy || b.y >= cy + ch));
@@ -282,8 +290,10 @@ public final class MenuScreen extends Screen {
         y += 11;
 
         // Buy a level
-        button(g, mx, my, x, y, cw - 16, 18, max ? "Max level" : "⬆ Buy a skill point", 0x69F0AE, !max, () -> confirm = "upgrade");
-        y += 22;
+        if (!max) {
+            button(g, mx, my, x, y, cw - 16, 18, "<white><bold>⬆ Buy a skill point", 0x2E7D32, true, () -> confirm = "upgrade");
+            y += 22;
+        }
         if (!max) y += Draw.wrapped(g, "<gray>Next level: </gray>" + s.upgradeCost(), x, y, cw - 16, Draw.MUTED);
         y += 6;
 
@@ -341,7 +351,7 @@ public final class MenuScreen extends Screen {
             int col = k == 0 ? 0xFF5252 : 0x69F0AE;
             int bx = x + k * (cardW + 8);
             boolean hover = Draw.inside(mx, my, bx, y, cardW, cardH);
-            Draw.framed(g, bx, y, cardW, cardH, hover ? 0xF0181820 : 0xE0101016, Draw.opaque(hover ? Text.lerp(col, 0xFFFFFF, 0.3f) : col));
+            Draw.card(g, bx, y, cardW, cardH, hover ? Text.lerp(col, 0xFFFFFF, 0.3f) : col, hover);
             Draw.item(g, roles[k][2], bx + cardW / 2f - 16, y + 8, 2f);
             Draw.scaled(g, "<bold>" + Draw.gradient(col, Text.lerp(col, 0xFFFFFF, 0.5f), roles[k][1]) + "</bold>", bx + cardW / 2f, y + 44, 1.5f, true);
             Draw.wrapped(g, "<gray>" + roles[k][3], bx + 8, y + 60, cardW - 16, Draw.MUTED);
@@ -353,7 +363,7 @@ public final class MenuScreen extends Screen {
     /** Two cards side by side, PvP and Gatherer: which attribute each role has, which one is in use, and buttons to switch or reroll. */
     private int roleSlots(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c, int x, int y) {
         y = section(g, "Your roles", 0x40C4FF, x, y);
-        int w = cw - 16, cardW = (w - 6) / 2, cardH = 46;
+        int w = cw - 16, cardW = (w - 6) / 2, cardH = 52;
         String[] ids = {"pvp", "gatherer"};
         String[] labels = {"PvP", "Gatherer"};
         int[] cols = {0xFF5252, 0x69F0AE};
@@ -363,21 +373,30 @@ public final class MenuScreen extends Screen {
             Net.ClassInfo info = active ? c : ClientState.catalog.get(s.otherClass());
             int lvl = active ? s.level() : s.otherLevel();
             int bx = x + k * (cardW + 6), col = cols[k];
-            Draw.framed(g, bx, y, cardW, cardH, active ? Draw.argb(col, 0x30) : 0xE0101016, Draw.opaque(active ? col : Text.lerp(col, 0x000000, 0.45f)));
-            Draw.textFit(g, "<bold>" + Draw.gradient(col, Text.lerp(col, 0xFFFFFF, 0.5f), labels[k]) + "</bold>" + (active ? " <white>· playing" : ""), bx + 6, y + 5, cardW - 12);
-            if (info != null) {
-                Draw.item(g, info.icon(), bx + 6, y + 16, 1f);
-                Draw.textFit(g, "<bold>" + Draw.gradient(info.color(), info.color2(), info.name()) + "</bold> <gray>Lv " + lvl, bx + 26, y + 20, cardW - 32);
-            } else {
-                Draw.textFit(g, "<gray>Rolling...", bx + 6, y + 20, cardW - 12);
-            }
-            int half = (cardW - 15) / 2;
+            Draw.card(g, bx, y, cardW, cardH, col, active);
+            // Role name on the left, a small "in use" tag on the right
+            Draw.text(g, "<bold><" + Draw.hex(col) + ">" + labels[k] + "</" + Draw.hex(col) + "></bold>", bx + 8, y + 5);
             if (active) {
-                Draw.textFit(g, "<dark_gray>" + (key.isEmpty() ? "" : "Switch key: " + key), bx + 6, y + 35, half + 2);
-                button(g, mx, my, bx + cardW - half - 5, y + 31, half, 12, "<white>🎲 Reroll", 0xFF5252, true, () -> confirm = "reroll");
+                int tw = Draw.font().width("IN USE") + 6;
+                g.fill(bx + cardW - tw - 5, y + 4, bx + cardW - 5, y + 14, Draw.opaque(Draw.deep(col, 0.30f)));
+                Draw.plain(g, "IN USE", bx + cardW - tw - 2, y + 5, 0xFFFFFFFF);
+            }
+            if (info != null) {
+                Draw.framed(g, bx + 7, y + 16, 18, 18, 0xFF0A0A10, 0xFF2E2E38);
+                Draw.item(g, info.icon(), bx + 8, y + 17, 1f);
+                Draw.textFit(g, "<white><bold>" + info.name() + "</bold>", bx + 29, y + 17, cardW - 34);
+                Draw.textFit(g, "<gray>Level " + lvl, bx + 29, y + 27, cardW - 34);
             } else {
-                button(g, mx, my, bx + 5, y + 31, half, 12, "<white><bold>⇄ Switch", col, info != null, () -> AbpsClient.send("switchrole", ""));
-                button(g, mx, my, bx + cardW - half - 5, y + 31, half, 12, "<white>🎲 Reroll", 0xFF5252, info != null, () -> confirm = "reroll_other");
+                Draw.textFit(g, "<gray>Rolling...", bx + 8, y + 22, cardW - 14);
+            }
+            int half = (cardW - 19) / 2;
+            int by = y + cardH - 15;
+            if (active) {
+                Draw.textFit(g, "<dark_gray>" + (key.isEmpty() ? "" : "Switch: <gray>" + key), bx + 8, by + 3, half);
+                button(g, mx, my, bx + cardW - half - 6, by, half, 12, "<white>🎲 Reroll", 0xC62828, true, () -> confirm = "reroll");
+            } else {
+                button(g, mx, my, bx + 8, by, half, 12, "<white><bold>⇄ Switch", 0x1E88E5, info != null, () -> AbpsClient.send("switchrole", ""));
+                button(g, mx, my, bx + cardW - half - 6, by, half, 12, "<white>🎲 Reroll", 0xC62828, info != null, () -> confirm = "reroll_other");
             }
         }
         return y + cardH + 8;
@@ -461,7 +480,7 @@ public final class MenuScreen extends Screen {
     }
 
     private int abilities(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c, int y0) {
-        int x = cx + 6, y = y0 + 4;
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
         int lvlIdx = Math.max(0, Math.min(c.descsByLevel().size() - 1, s.level() - 1));
         int count = ClientState.abilityCount(c);
         for (int i = 1; i <= 6; i++) {
@@ -469,27 +488,33 @@ public final class MenuScreen extends Screen {
             boolean ult = i == ClientState.ULTIMATE;
             boolean unlocked = ClientState.unlocked(i);
             String desc = c.descsByLevel().get(lvlIdx).get(i - 1);
-            int textW = cw - 16 - 34 - 6;
-            int h = Math.max(44, 14 + Draw.wrappedHeight(desc, textW) + 6);
-            int border = ult ? Text.lerp(c.color(), c.color2(), Draw.pulse(0.6f)) : unlocked ? c.color() : 0x3A3A44;
-            Draw.framed(g, x, y, cw - 16, h, ult ? 0xE0181420 : 0xE0121218, Draw.argb(border, 0xFF));
-            Draw.framed(g, x + 5, y + 5, 24, 24, 0xFF0A0A10, Draw.argb(border, 0xA0));
-            Draw.item(g, Draw.abilityIcon(c.id(), i), x + 9, y + 9, 1f);
-            String name = (ult ? "<bold>" + Draw.gradient(c.color(), c.color2(), "★ " + c.abilityNames().get(5)) + "</bold>"
-                    : (unlocked ? "<white><bold>" : "<gray>") + c.abilityNames().get(i - 1));
-            Draw.text(g, name, x + 34, y + 5);
-            String meta = "<dark_gray>[</dark_gray><yellow>" + Hud.keyLabel(i) + "</yellow><dark_gray>]</dark_gray> ";
-            if (ult) meta += "<gray>Charges by hitting players</gray>";
-            else if (!unlocked) meta += "<red>Locked: take it in the Skill Tree</red>";
-            else meta += "<gray>" + Text.time(s.cdTotal()[i]) + " cooldown</gray>";
-            int mw = Draw.font().width(Text.mm(meta));
-            Draw.scaled(g, meta, x + cw - 20 - mw * 0.75f, y + 6, 0.75f, false);
-            Draw.wrapped(g, desc, x + 34, y + 17, textW, unlocked ? Draw.MUTED : Draw.DIM);
+            int textX = x + 36, textW = w - 36 - 8;
+            // Name row, the description, then a row for the key, the cooldown and the preview button
+            int h = Math.max(46, 16 + Draw.wrappedHeight(desc, textW) + 18);
+            int accent = ult ? Text.lerp(c.color(), c.color2(), Draw.pulse(0.6f)) : unlocked ? c.color() : 0x4A4A56;
+            Draw.card(g, x, y, w, h, accent, ult || unlocked);
+            // Icon in a slot
+            Draw.framed(g, x + 8, y + 6, 22, 22, 0xFF0A0A10, unlocked || ult ? Draw.opaque(Draw.deep(accent, 0.45f)) : 0xFF2A2A32);
+            Draw.item(g, Draw.abilityIcon(c.id(), i), x + 11, y + 9, 1f);
+            if (!unlocked && !ult) g.fill(x + 9, y + 7, x + 29, y + 27, 0x90000000);
+            String name = ult ? "<bold>" + Draw.gradient(c.color(), c.color2(), "★ " + c.abilityNames().get(5)) + "</bold>"
+                    : (unlocked ? "<white><bold>" : "<gray>") + c.abilityNames().get(i - 1);
+            Draw.textFit(g, name, textX, y + 6, textW);
+            Draw.wrapped(g, desc, textX, y + 17, textW, unlocked || ult ? Draw.MUTED : Draw.DIM);
+            // Bottom row
+            int by = y + h - 15;
+            String key = Hud.keyLabel(i);
+            int kw = Math.max(13, Draw.font().width(key) + 6);
+            Draw.framed(g, textX, by, kw, 11, 0xFF1C1C24, 0xFF4A4A56);
+            Draw.plain(g, key, textX + (kw - Draw.font().width(key)) / 2, by + 2, 0xFFFFE57F);
+            String meta = ult ? "<gray>Charges by " + ("gatherer".equals(c.role()) ? "gathering" : "hitting players")
+                    : !unlocked ? "<#FF8A80>Locked · take it in the Skill Tree" : "<gray>" + Text.time(s.cdTotal()[i]) + " cooldown";
+            Draw.textFit(g, meta, textX + kw + 5, by + 2, textW - kw - 5 - 62);
             final int slot = i;
-            button(g, mx, my, x + 5, y + 31, 24, 10, "<white>▶", c.color(), true, () -> preview(c.id(), slot));
+            button(g, mx, my, x + w - 64, by - 1, 56, 13, "<white>▶ Preview", c.color(), true, () -> preview(c.id(), slot));
             y += h + 4;
         }
-        Draw.wrapped(g, "<dark_gray>Change keys in Options > Controls > Key Binds > AbpsMod.", x, y + 2, cw - 16, Draw.DIM);
+        Draw.wrapped(g, "<dark_gray>Change keys in Options > Controls > Key Binds > AbpsMod.", x, y + 2, w, Draw.DIM);
         return y - y0 + 18;
     }
 
@@ -513,9 +538,9 @@ public final class MenuScreen extends Screen {
         // Header: points, buy one, reset
         Draw.text(g, "<gray>Skill points:</gray> " + (points > 0 ? "<gold><bold>" + points + "</bold></gold>" : "<white>0"), x, y + 5);
         int bw = 86;
-        button(g, mx, my, x + w - bw * 2 - 4, y, bw, 18, max ? "Max level" : "<white>⬆ Buy a point", 0x69F0AE, !max, () -> confirm = "upgrade");
+        if (!max) button(g, mx, my, x + w - bw * 2 - 4, y, bw, 18, "<white>⬆ Buy a point", 0x2E7D32, true, () -> confirm = "upgrade");
         boolean armed = "respec".equals(pendingRespec) && System.currentTimeMillis() - respecAt < 3000;
-        button(g, mx, my, x + w - bw, y, bw, 18, armed ? "<white><bold>Sure? Free" : "<white>↺ Reset", 0xFF8A65, !owned.isEmpty(), () -> {
+        button(g, mx, my, x + w - bw, y, bw, 18, armed ? "<white><bold>Sure? Free" : "<white>↺ Reset", 0xBF360C, !owned.isEmpty(), () -> {
             if (armed) {
                 pendingRespec = "";
                 AbpsClient.send("respec", "");
@@ -593,7 +618,7 @@ public final class MenuScreen extends Screen {
             g.setTooltipForNextFrame(Draw.font().split(Text.mm(tip.toString()), 180), mx, my);
         }
         y = gy + 5 * sy + node + 8;
-        y += Draw.wrapped(g, "<gray>Each level is one skill point and makes your passives stronger. There are more skills than points, so pick a build."
+        y += Draw.wrapped(g, "<gray>Levelling up gives skill points and makes your passives stronger. At max level you have enough for the whole tree."
                 + " Resetting is free when you're not in a fight.", x, y, w, Draw.MUTED) + 4;
         Draw.wrapped(g, "<gold>★ Level " + s.maxLevel() + " Mastery:</gold> " + c.mastery(), x, y, w, Draw.TEXT);
         return y - y0 + 24;

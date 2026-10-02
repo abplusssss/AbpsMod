@@ -59,7 +59,12 @@ public final class Draw {
      */
     public static void framed(GuiGraphicsExtractor g, int x, int y, int w, int h, int fill, int border) {
         if (w <= 0 || h <= 0) return;
-        g.fill(x, y, x + w, y + h, border);
+        // The edge is drawn as four strips, not one filled box under the body, so a see-through body never picks up
+        // the edge's color (which used to tint whole cards the same color as their text)
+        g.fill(x, y, x + w, y + 1, border);
+        g.fill(x, y + h - 1, x + w, y + h, border);
+        g.fill(x, y + 1, x + 1, y + h - 1, border);
+        g.fill(x + w - 1, y + 1, x + w, y + h - 1, border);
         g.fill(x + 1, y + 1, x + w - 1, y + h - 1, fill);
         if (w > 6 && h > 6) {
             g.fill(x + 1, y + 1, x + w - 1, y + 2, 0x48000000);
@@ -92,14 +97,43 @@ public final class Draw {
     public static void button(GuiGraphicsExtractor g, int x, int y, int w, int h, int color, boolean hover, boolean enabled) {
         if (w <= 0 || h <= 0) return;
         g.fill(x, y, x + w, y + h, enabled && hover ? 0xFFFFFFFF : 0xFF000000);
-        int base = enabled ? Text.lerp(0x55555E, color & 0xFFFFFF, 0.45f) : 0x26262C;
-        if (enabled && hover) base = Text.lerp(base, 0xFFFFFF, 0.15f);
+        // The body is the color brought to the same darkness whatever it is, so white text reads on gold and yellow
+        // buttons as well as it does on blue ones
+        int base = enabled ? deep(color, 0.26f) : 0x26262C;
+        if (enabled && hover) base = Text.lerp(base, 0xFFFFFF, 0.12f);
         g.fill(x + 1, y + 1, x + w - 1, y + h - 1, opaque(base));
         if (!enabled || h < 5) return;
         g.fill(x + 1, y + 1, x + w - 1, y + 2, opaque(Text.lerp(base, 0xFFFFFF, 0.35f)));
         g.fill(x + 1, y + 2, x + 2, y + h - 2, opaque(Text.lerp(base, 0xFFFFFF, 0.18f)));
         g.fill(x + w - 2, y + 2, x + w - 1, y + h - 2, opaque(Text.lerp(base, 0x000000, 0.3f)));
         g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, opaque(Text.lerp(base, 0x000000, 0.5f)));
+    }
+
+    /** How bright a color looks, 0 to 1. */
+    public static float luma(int rgb) {
+        return (0.299f * ((rgb >> 16) & 255) + 0.587f * ((rgb >> 8) & 255) + 0.114f * (rgb & 255)) / 255f;
+    }
+
+    /** The same hue brought to a set brightness, so text on top of it always has the same contrast. */
+    public static int deep(int rgb, float target) {
+        rgb &= 0xFFFFFF;
+        float l = luma(rgb);
+        if (l <= 0.001f) return Text.lerp(rgb, 0x808080, target);
+        if (l > target) {
+            float k = target / l;
+            return ((int) (((rgb >> 16) & 255) * k) << 16) | ((int) (((rgb >> 8) & 255) * k) << 8) | (int) ((rgb & 255) * k);
+        }
+        return Text.lerp(rgb, 0xFFFFFF, Math.min(1f, (target - l) / Math.max(0.001f, 1 - l)));
+    }
+
+    /** A dark card with a colored strip down its left side: the main card style in the menu. */
+    public static void card(GuiGraphicsExtractor g, int x, int y, int w, int h, int accent, boolean strong) {
+        if (w <= 0 || h <= 0) return;
+        g.fill(x, y, x + w, y + h, 0xFF000000);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, opaque(Text.lerp(0x15151C, accent & 0xFFFFFF, strong ? 0.10f : 0.04f)));
+        g.fill(x + 1, y + 1, x + w - 1, y + 2, opaque(Text.lerp(0x24242E, accent & 0xFFFFFF, strong ? 0.25f : 0.08f)));
+        g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, 0xFF0B0B10);
+        g.fill(x + 1, y + 1, x + 3, y + h - 1, opaque(strong ? accent : deep(accent, 0.22f)));
     }
 
     /** A thin line with a dark line under it, so it looks pressed into the window. */
