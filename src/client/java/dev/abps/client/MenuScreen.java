@@ -350,14 +350,25 @@ public final class MenuScreen extends Screen {
 
     private int news(GuiGraphicsExtractor g, int mx, int my, int y0) {
         int x = cx + 6, y = y0 + 4, w = cw - 16;
-        y = section(g, "New in " + dev.abps.Updater.current() + ": Dungeons", 0xB388FF, x, y);
+        y = section(g, "New in " + dev.abps.Updater.current(), 0xFFD54F, x, y);
+        String[] big = {
+                "<white><gold>Skill Tree</gold> replaces straight upgrades. Every level is a point: unlock abilities and pick damage, utility or defense skills. Reset it for free.",
+                "<white><green>Roles</green>: pick <#FF5252>PvP</#FF5252> or <#69F0AE>Gatherer</#69F0AE>. Four new gatherer attributes: Harvester, Lumberjack, Angler and Explorer.",
+                "<white>Real <gold>custom weapons and tools</gold> with their own look and a right-click power: staffs, a warhammer, daggers, a greatsword, a spear, a chakram, a drill and more.",
+                "<white>Turn your whole attribute off (Settings or <yellow>!Powers off</yellow>), and Pyromancers can turn off their heat aura (<yellow>!Aura off</yellow>)."};
+        for (String n : big) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
+        button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Skill Tree", 0xFFD54F, true, () -> switchTab(Tab.SKILLS));
+        y += 26;
+        y = section(g, "Dungeons", 0xB388FF, x, y);
         String[] dungeons = {
                 "<white>Five dungeons: three story dungeons with a boss each, <light_purple>The Shifting Depths</light_purple> (new rooms and a random boss every run) and the <gold>Endless Arena</gold>.",
                 "<white>Go alone or with a party of up to 4. The party leader starts the run from the <yellow>Dungeons</yellow> tab.",
                 "<white>Bosses warn you first: a red ring or lane on the ground fills up, then hits. Get out of it!",
                 "<white>Falling in a dungeon downs you instead of killing you. The party shares a few downs.",
                 "<white>15 dungeon items with special powers, best times, top 5 boards and titles to show next to your name.",
-                "<white>Ruined stone arches appear in new land. Walk through one to start The Shifting Depths."};
+                "<white>Ruined stone arches appear in new land. Walk through one to start The Shifting Depths.",
+                "<white>13 dungeon monsters with their own moves, elites with traits, champion rooms and shrines that bless your party.",
+                "<white>Much more detailed rooms, a second boss phase, loot for every room and an S/A/B/C grade at the end."};
         for (String n : dungeons) y += Draw.wrapped(g, "<light_purple>•</light_purple> " + n, x, y, w, Draw.TEXT) + 3;
         button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Dungeons", 0xB388FF, true, () -> switchTab(Tab.DUNGEONS));
         y += 26;
