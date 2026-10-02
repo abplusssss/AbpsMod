@@ -48,7 +48,7 @@ public final class ServerEvents {
     }
 
     private static AttributeClass cls(ServerPlayer p) {
-        return AbpsMod.service().cls(data(p));
+        return AbpsMod.service().active(data(p));
     }
 
     public static void register() {
@@ -208,7 +208,7 @@ public final class ServerEvents {
             Teleports.tick(p, d);
             if (ticks % 20 == 0) d.playSeconds++;
             if (!slow) continue;
-            AttributeClass c = s.cls(d);
+            AttributeClass c = s.active(d);
             if (c == null) {
                 if (Service.hasMod(p) && ticks % 20 == 0) s.sync(p, false);
                 continue;
@@ -247,7 +247,7 @@ public final class ServerEvents {
                 d.lastMeleeTime = d.lastHitTime;
             }
             s.addUltCharge(p, d, taken, victim instanceof ServerPlayer);
-            AttributeClass c = s.cls(d);
+            AttributeClass c = s.active(d);
             if (c != null && hit != null && !Targets.abilityDamage) c.afterHit(p, d, victim, taken, hit);
             if (hit != null && !Targets.abilityDamage) dev.abps.items.CustomItems.afterHit(p, victim, taken, hit);
             if (victim instanceof ServerPlayer vp) Combat.tag(p, vp);
@@ -255,7 +255,7 @@ public final class ServerEvents {
             // Necromancer minions heal their owner
             UUID owner = Targets.minionOwner(src);
             ServerPlayer op = owner == null ? null : AbpsMod.server().getPlayerList().getPlayer(owner);
-            if (op != null && s.cls(data(op)) instanceof Necromancer necro) {
+            if (op != null && s.active(data(op)) instanceof Necromancer necro) {
                 necro.minionDealt(op, data(op), taken);
                 s.addUltCharge(op, data(op), taken * 0.5f, victim instanceof ServerPlayer);
             }
@@ -263,7 +263,7 @@ public final class ServerEvents {
 
         if (victim instanceof ServerPlayer vp) {
             PlayerData d = data(vp);
-            AttributeClass c = s.cls(d);
+            AttributeClass c = s.active(d);
             if (c != null) c.afterDamaged(vp, d, source, taken);
         }
     }
@@ -315,6 +315,13 @@ public final class ServerEvents {
                 AbpsMod.data().save(p, d);
                 s.sync(p, true);
             }
+            case "toggle_powers" -> s.setPowersOff(p, !d.powersOff);
+            case "toggle_aura" -> {
+                d.pyroAura = !d.pyroAura;
+                AbpsMod.data().save(p, d);
+                s.send(p, d.pyroAura ? "<gold>Heat aura on: <gray>enemies near you catch fire." : "<gray>Heat aura off: <gray>enemies near you won't catch fire.");
+                s.sync(p, true);
+            }
             case "toggle_panel" -> {
                 d.sidebar = !d.sidebar;
                 AbpsMod.data().save(p, d);
@@ -324,7 +331,7 @@ public final class ServerEvents {
             case "catalog" -> s.sendCatalog(p);
             case "vfx_ready" -> s.setVfxReady(p, "1".equals(arg));
             case "airjump" -> {
-                AttributeClass c = s.cls(d);
+                AttributeClass c = s.active(d);
                 if (c != null && !p.onGround() && !p.getAbilities().flying && !p.isInWater()) c.onAirJump(p, d);
             }
             case "admin" -> {

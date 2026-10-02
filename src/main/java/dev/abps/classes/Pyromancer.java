@@ -61,7 +61,7 @@ public final class Pyromancer extends AttributeClass {
                 "Take " + pct(fireResist(lvl)) + " less fire damage and " + pct(lavaResist(lvl)) + " less lava damage",
                 pct(igniteChance(lvl)) + " chance to set targets on fire when you hit them",
                 "Deal +" + pct(burnBonus(lvl)) + " damage to burning targets",
-                "Heat aura: enemies within 4 blocks of you catch fire",
+                "Heat aura: enemies within 4 blocks of you catch fire (turn it off in Settings or with !Aura off)",
                 "Burning enemies explode when they die for " + num(popDamage(lvl)) + " damage",
                 "Your arrows are on fire and you burn for half as long",
                 "Deal +" + pct(netherBonus(lvl)) + " damage in the Nether");
@@ -112,11 +112,14 @@ public final class Pyromancer extends AttributeClass {
 
     @Override
     public void tick(ServerPlayer p, PlayerData d) {
-        if (d.tickCount % 8 == 0) fallbackOnly(() -> dev.abps.util.Vfx.groundRing(level(p), p.position(), 3.8, 4.0, 14, dev.abps.util.Vfx.tint(0xFF6D00), 0.06f, 10, 0xFF6D00));
+        if (d.pyroAura && d.tickCount % 8 == 0) fallbackOnly(() -> dev.abps.util.Vfx.groundRing(level(p), p.position(), 3.8, 4.0, 14, dev.abps.util.Vfx.tint(0xFF6D00), 0.06f, 10, 0xFF6D00));
         if (d.tickCount % 8 != 0) return; // every 2 seconds
         ServerLevel level = level(p);
-        for (LivingEntity e : Targets.enemiesNear(p, p.position(), 4)) {
-            if (e.getRemainingFireTicks() < 40) e.igniteForSeconds(3);
+        // The heat aura can be switched off in Settings (or !Aura off), for building near friends and pets
+        if (d.pyroAura) {
+            for (LivingEntity e : Targets.enemiesNear(p, p.position(), 4)) {
+                if (e.getRemainingFireTicks() < 40) e.igniteForSeconds(3);
+            }
         }
         GameType gm = p.gameMode();
         if (gm != GameType.SURVIVAL && gm != GameType.ADVENTURE) return;

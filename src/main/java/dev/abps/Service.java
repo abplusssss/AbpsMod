@@ -55,6 +55,24 @@ public final class Service {
         return c;
     }
 
+    /** The attribute whose powers are working right now: null while the player has turned their powers off. */
+    public AttributeClass active(PlayerData d) {
+        return d.powersOff ? null : cls(d);
+    }
+
+    /** Turns all of a player's attribute powers off or back on. */
+    public void setPowersOff(ServerPlayer p, boolean off) {
+        PlayerData d = data(p);
+        if (d.powersOff == off) return;
+        AttributeClass c = cls(d);
+        if (off && c != null) c.cleanup(p, d);
+        d.powersOff = off;
+        reapply(p);
+        AbpsMod.data().save(p, d);
+        send(p, off ? "<gray>Your attribute powers are <red>off</red>. Abilities, passives and weaknesses do nothing until you turn them back on."
+                : "<green>Your attribute powers are back on.");
+    }
+
     public AttributeClass cls(ServerPlayer p) {
         return cls(AbpsMod.data().get(p));
     }
@@ -181,7 +199,7 @@ public final class Service {
     public void reapply(ServerPlayer p) {
         PlayerData d = data(p);
         Mods.clearAll(p);
-        AttributeClass c = cls(d);
+        AttributeClass c = active(d);
         if (c != null) c.applyStatic(p, d);
         updateTags(p);
         sync(p, true);
@@ -477,6 +495,11 @@ public final class Service {
             return;
         }
         if (d.rolling || idx < 1 || idx > AttributeClass.ULTIMATE || !p.isAlive() || p.isSpectator()) return;
+        if (d.powersOff) {
+            actionBar(p, tag("⏻ POWERS OFF", "#9E9E9E", "#E0E0E0") + " <gray>Turn them on in Settings or with <white>!Powers on");
+            denied(p);
+            return;
+        }
         if (idx != AttributeClass.ULTIMATE && idx > c.abilityCount()) return;
         if (idx == AttributeClass.ULTIMATE) {
             castUltimate(p, d, c);
@@ -633,11 +656,13 @@ public final class Service {
                 (float) d.ultCharge, Math.max(0, d.ultLockUntil - now), Math.max(0, d.combatUntil - now), d.noCooldown,
                 d.abilitiesUsed, d.rerolls, max ? "" : up.describe(p), !max && up.canAfford(p), re.describe(p),
                 re.canAfford(p), d.hud, d.sidebar, cfg().cooldownReductionAtMax,
-                dev.abps.command.Commands.isAdmin(p.createCommandSourceStack()));
+                dev.abps.command.Commands.isAdmin(p.createCommandSourceStack()),
+                (d.powersOff ? Net.SyncPayload.POWERS_OFF : 0) | (d.pyroAura ? Net.SyncPayload.PYRO_AURA : 0));
         // Only send when something the player can see changed (cooldowns tick down on the client)
         int hash = Objects.hash(payload.classId(), payload.level(), Arrays.hashCode(roundUp(left)), Math.round(d.ultCharge * 200),
                 payload.ultLockLeft() / 1000, payload.combatLeft() / 1000, payload.noCooldown(), payload.upgradeCost(),
-                payload.canUpgrade(), payload.rerollCost(), payload.canReroll(), payload.hud(), payload.panel(), d.abilitiesUsed, payload.admin());
+                payload.canUpgrade(), payload.rerollCost(), payload.canReroll(), payload.hud(), payload.panel(), d.abilitiesUsed, payload.admin(),
+                payload.flags());
         if (!force && hash == d.lastSyncHash) return;
         d.lastSyncHash = hash;
         ServerPlayNetworking.send(p, payload);

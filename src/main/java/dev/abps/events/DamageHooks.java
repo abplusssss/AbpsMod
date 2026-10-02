@@ -40,7 +40,7 @@ public final class DamageHooks {
     }
 
     private static AttributeClass cls(PlayerData d) {
-        return AbpsMod.service().cls(d);
+        return AbpsMod.service().active(d);
     }
 
     /** Resolves who dealt the hit and how. Null if it wasn't a player. */

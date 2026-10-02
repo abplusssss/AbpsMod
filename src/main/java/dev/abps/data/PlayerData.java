@@ -45,6 +45,10 @@ public final class PlayerData {
     public int bestWave;
     public java.util.List<String> titles = new java.util.ArrayList<>();
     public String title = "";
+    /** Turns your attribute off completely: no abilities, passives or weaknesses until you turn it back on. */
+    public boolean powersOff = false;
+    /** Pyromancer: the heat aura that sets enemies near you on fire. */
+    public boolean pyroAura = true;
 
     // ---- Runtime only ----
     public transient long[] cooldownEnd = new long[7];

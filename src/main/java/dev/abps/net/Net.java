@@ -72,7 +72,7 @@ public final class Net {
                               float ultCharge, long ultLockLeft, long combatLeft, boolean noCooldown,
                               int abilitiesUsed, int rerolls, String upgradeCost, boolean canUpgrade,
                               String rerollCost, boolean canReroll, boolean hud, boolean panel, double cooldownCut,
-                              boolean admin)
+                              boolean admin, int flags)
             implements CustomPacketPayload {
         public static final Type<SyncPayload> TYPE = newType("sync");
         public static final StreamCodec<RegistryFriendlyByteBuf, SyncPayload> CODEC = CustomPacketPayload.codec(
@@ -97,6 +97,7 @@ public final class Net {
                     buf.writeBoolean(p.panel);
                     buf.writeDouble(p.cooldownCut);
                     buf.writeBoolean(p.admin);
+                    buf.writeVarInt(p.flags);
                 },
                 buf -> {
                     String classId = buf.readUtf();
@@ -111,8 +112,19 @@ public final class Net {
                     return new SyncPayload(classId, level, maxLevel, unlock, left, total, buf.readFloat(),
                             buf.readVarLong(), buf.readVarLong(), buf.readBoolean(), buf.readVarInt(), buf.readVarInt(),
                             buf.readUtf(), buf.readBoolean(), buf.readUtf(), buf.readBoolean(), buf.readBoolean(),
-                            buf.readBoolean(), buf.readDouble(), buf.readBoolean());
+                            buf.readBoolean(), buf.readDouble(), buf.readBoolean(), buf.readVarInt());
                 });
+
+        /** Bits in flags. */
+        public static final int POWERS_OFF = 1, PYRO_AURA = 2;
+
+        public boolean powersOff() {
+            return (flags & POWERS_OFF) != 0;
+        }
+
+        public boolean pyroAura() {
+            return (flags & PYRO_AURA) != 0;
+        }
 
         @Override
         public Type<SyncPayload> type() {

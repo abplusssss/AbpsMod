@@ -130,6 +130,12 @@ public final class Hud implements HudElement {
         int uy = slotY + 38;
         ultimate(g, s, c, x + 5, uy, WIDTH - 10);
 
+        if (s.powersOff()) {
+            // Everything greyed out with a label, so it's clear why nothing works
+            g.fill(x + 1, y + 21, x + WIDTH - 1, y + 82, 0xC0101014);
+            Draw.centered(g, "<gray>⏻ Powers off", x + WIDTH / 2, y + 40);
+            Draw.scaled(g, "<dark_gray>Settings or !Powers on", x + WIDTH / 2f, y + 52, 0.75f, true);
+        }
         if (combat > 0) {
             int cy = y + 84;
             float pulse = Draw.pulse(1.5f);

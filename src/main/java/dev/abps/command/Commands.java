@@ -95,6 +95,9 @@ public final class Commands {
         // Dungeons
         add(new Entry("Dungeon", "[start <id> | leave | list]", "Opens the dungeons, starts a run or leaves one.", "dungeon", "dungeons", "dg", "raid", "dungeonrun"));
         add(new Entry("Party", "[invite <name> | accept | decline | leave | kick <name>]", "Your dungeon party (up to 4 players).", "dungeon", "team", "group", "dparty"));
+        add(new Entry("Powers", "[on | off]", "Turns your whole attribute off or back on (abilities, passives and weaknesses).", "attr",
+                "power", "abilities", "togglepowers", "nopowers", "vanillamode"));
+        add(new Entry("Aura", "[on | off]", "Pyromancer: turns your heat aura off or back on.", "attr", "heataura", "flameaura", "fireaura"));
         add(new Entry("Title", "[name | off]", "Shows or picks the title next to your name.", "dungeon", "titles", "settitle"));
         // Shops, rewards and profile
         add(new Entry("Shop", "", "Opens the player shops.", "extra", "shops", "market", "pshop", "playershops"));
@@ -396,6 +399,33 @@ public final class Commands {
                         }
                     }
                 }
+            }
+            case "Powers" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                PlayerData d = sv.data(p);
+                String op = args.length > 0 ? args[0].toLowerCase(Locale.ROOT) : "";
+                boolean off = switch (op) {
+                    case "off", "disable", "0", "false" -> true;
+                    case "on", "enable", "1", "true" -> false;
+                    default -> !d.powersOff;
+                };
+                sv.setPowersOff(p, off);
+            }
+            case "Aura" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p == null) return;
+                PlayerData d = sv.data(p);
+                String op = args.length > 0 ? args[0].toLowerCase(Locale.ROOT) : "";
+                d.pyroAura = switch (op) {
+                    case "off", "disable", "0", "false" -> false;
+                    case "on", "enable", "1", "true" -> true;
+                    default -> !d.pyroAura;
+                };
+                AbpsMod.data().save(p, d);
+                sv.sync(p, true);
+                Service.send(s, d.pyroAura ? "<gold>Heat aura on.</gold> <gray>Enemies near you catch fire (Pyromancer only)."
+                        : "<gray>Heat aura off. Enemies near you won't catch fire.");
             }
             case "Title" -> {
                 ServerPlayer p = needPlayer(s);

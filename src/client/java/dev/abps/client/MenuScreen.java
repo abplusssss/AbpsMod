@@ -172,10 +172,15 @@ public final class MenuScreen extends Screen {
             boolean hover = Draw.inside(mx, my, px + 6, ty, 84, tabH);
             // The open tab is a raised button in the class color, the others sit flat until hovered
             if (active) Draw.button(g, px + 6, ty, 84, tabH, c1, false, true);
-            else if (hover) Draw.framed(g, px + 6, ty, 84, tabH, 0x28FFFFFF, 0x50FFFFFF);
+            else if (hover) {
+                // Same 1px edge on all four sides
+                g.fill(px + 6, ty, px + 90, ty + tabH, 0x60FFFFFF);
+                g.fill(px + 7, ty + 1, px + 89, ty + tabH - 1, 0xFF24232C);
+            }
             String icon = t == Tab.OVERVIEW && c != null ? c.icon() : t.icon;
             // The icon is sized to the tab's height and the label shrinks to fit what's left, so nothing pokes out of the tab
-            float iconScale = Math.max(0.5f, Math.min(1f, (tabH - 2) / 16f));
+            // Two pixels clear of the edge on every side
+            float iconScale = Math.max(0.4f, Math.min(1f, (tabH - 4) / 16f));
             Draw.item(g, icon, px + 9, ty + (tabH - 16 * iconScale) / 2f, iconScale);
             int textX = px + 9 + Math.round(16 * iconScale) + 4;
             Draw.textFit(g, (active ? "<white>" : "<gray>") + t.label, textX, ty + (tabH - 8) / 2, px + 6 + 84 - 3 - textX);
@@ -573,7 +578,13 @@ public final class MenuScreen extends Screen {
     private int settings(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, int y0) {
         ClientPrefs prefs = ClientPrefs.get();
         int x = cx + 6, y = y0 + 4;
-        y = section(g, "Display", 0x00E5FF, x, y);
+        y = section(g, "Your attribute", 0xFF9800, x, y);
+        y = toggle(g, mx, my, x, y, "Use my attribute powers (off = no abilities, passives or weaknesses)", !s.powersOff(),
+                () -> AbpsClient.send("toggle_powers", ""));
+        if ("pyromancer".equals(s.classId())) {
+            y = toggle(g, mx, my, x, y, "Heat aura (enemies near you catch fire)", s.pyroAura(), () -> AbpsClient.send("toggle_aura", ""));
+        }
+        y = section(g, "Display", 0x00E5FF, x, y + 4);
         y = toggle(g, mx, my, x, y, "Show the HUD panel (level, ability keys, ultimate bar). Key: " + AbpsClient.hudKey.getTranslatedKeyMessage().getString(), s.hud(), () -> AbpsClient.send("toggle_hud", ""));
         y = toggle(g, mx, my, x, y, "HUD on the right side", prefs.hudOnRight, () -> {
             prefs.hudOnRight = !prefs.hudOnRight;
