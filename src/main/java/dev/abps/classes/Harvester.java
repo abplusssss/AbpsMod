@@ -120,7 +120,7 @@ public final class Harvester extends AttributeClass {
     // ---- helpers ----
 
     /** A crop that is fully grown and can be harvested. */
-    static boolean ripe(BlockState s) {
+    public static boolean ripe(BlockState s) {
         if (s.getBlock() instanceof CropBlock crop) return crop.isMaxAge(s);
         if (s.getBlock() instanceof NetherWartBlock) return s.getValue(NetherWartBlock.AGE) >= 3;
         return false;
@@ -131,14 +131,14 @@ public final class Harvester extends AttributeClass {
     }
 
     /** The same crop at age 0. */
-    static BlockState replanted(BlockState s) {
+    public static BlockState replanted(BlockState s) {
         if (s.getBlock() instanceof CropBlock crop) return crop.getStateForAge(0);
         if (s.getBlock() instanceof NetherWartBlock) return s.setValue(NetherWartBlock.AGE, 0);
         return s;
     }
 
     /** Grows a block one bone meal's worth, like using bone meal on it but free. */
-    static boolean grow(ServerLevel level, BlockPos pos) {
+    public static boolean grow(ServerLevel level, BlockPos pos) {
         return BoneMealItem.growCrop(new ItemStack(Items.BONE_MEAL), level, pos);
     }
 

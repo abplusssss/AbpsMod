@@ -20,9 +20,11 @@ final class Loot {
     private Loot() {
     }
 
-    private static final String[] RARE = {"bloodfang", "frostbite", "timberfall", "quarry_pick", "earthmover"};
-    private static final String[] EPIC = {"stormcaller", "sunblade", "earthsplitter", "molten_pick", "bulwark", "windrunners"};
-    private static final String[] LEGENDARY = {"voidrender", "reaper", "veinripper", "phoenix_feather"};
+    private static final String[] RARE = {"bloodfang", "frostbite", "timberfall", "quarry_pick", "earthmover", "prospector_pick", "harvest_scythe"};
+    private static final String[] EPIC = {"stormcaller", "sunblade", "earthsplitter", "molten_pick", "bulwark", "windrunners", "ember_staff", "frost_staff",
+            "shadow_daggers", "tide_spear", "echo_chakram", "gravedigger"};
+    private static final String[] LEGENDARY = {"voidrender", "reaper", "veinripper", "phoenix_feather", "thunder_hammer", "soul_staff",
+            "dragonbone_greatsword", "titan_drill"};
 
     private static void give(ServerPlayer p, ItemStack s, List<String> got) {
         if (s.isEmpty()) return;

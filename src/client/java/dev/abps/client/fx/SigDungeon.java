@@ -48,6 +48,16 @@ final class SigDungeon {
             case FLAME_WAVE -> flameWave(c);
             case ROAR -> roar(c);
             case GATE -> gate(c);
+            case 30 -> thunder(c);
+            case 31 -> fireBolt(c);
+            case 32 -> frostBolt(c);
+            case 33 -> soulDrain(c);
+            case 34 -> shadowDash(c);
+            case 35 -> whirlwind(c);
+            case 36 -> lunge(c);
+            case 37 -> chakram(c);
+            case 38 -> orePulse(c);
+            case 39 -> harvestSweep(c);
             default -> {
             }
         }
@@ -301,5 +311,122 @@ final class SigDungeon {
                 Brush.glow(o, 2f, 12, c.c1);
             });
         }
+    }
+
+    // ------------------------------------------------------------------ dungeon weapons and tools (cues 30 to 39)
+
+    /** Thunderlord Hammer: a ring of lightning round you; with extra 1, a bolt from the sky onto one enemy. */
+    private static void thunder(Ctx c) {
+        Paint blue = Paint.light(c.c1, 1.3f), white = Paint.light(c.c2, 1.1f);
+        if (c.ticks == 1) {
+            Brush.bolt(c.pos, c.aim, 0.35f, 8, 0.8, blue);
+            Brush.bolt(c.pos.add(gauss() * 0.4, 0, gauss() * 0.4), c.aim, 0.14f, 6, 1.1, white);
+            Brush.glow(c.aim.add(0, 0.5, 0), 1f, 6, c.c1);
+            return;
+        }
+        Brush.shock(c.pos.add(0, 0.08, 0), Brush.UP, 0.5, 5.5, 0.4f, 12, blue);
+        Brush.shock(c.pos.add(0, 0.2, 0), Brush.UP, 0.3, 4.5, 0.15f, 10, white);
+        Brush.raysUp(c.pos.add(0, 0.1, 0), 10, 2.5, 0.09f, 9, white);
+        for (int k = 0; k < 6; k++) {
+            double a = Math.PI * 2 * k / 6;
+            Vec3 g = c.pos.add(Math.cos(a) * 4, 0.1, Math.sin(a) * 4);
+            Brush.bolt(c.pos.add(0, 0.6, 0), g, 0.12f, 6, 0.6, blue);
+        }
+    }
+
+    /** Ember Staff: a flaming bolt with a hot core, bursting into flames where it lands. */
+    private static void fireBolt(Ctx c) {
+        Paint outer = Paint.light(c.c1, 1.3f), core = Paint.light(c.c2, 1.1f);
+        Vec3 to = c.focus();
+        int ticks = (int) Math.max(2, Math.min(7, c.pos.distanceTo(to) / 4));
+        Brush.comet(c.pos, to, ticks, 0.35f, outer, () -> {
+            Brush.fire(to, 0.3, 4, 0.45f, c.c1, c.c2);
+            Brush.rays(to, 7, 1.4, 0.08f, 7, core);
+            Brush.glow(to, 1.2f, 8, c.c1);
+            Brush.embers(to, 8, 0.15, c.c1);
+        });
+        Brush.comet(c.pos, to, ticks, 0.12f, core, null);
+    }
+
+    /** Frost Staff: a spinning ice lance that shatters into spikes. */
+    private static void frostBolt(Ctx c) {
+        Vec3 to = c.focus();
+        int ticks = (int) Math.max(2, Math.min(7, c.pos.distanceTo(to) / 4));
+        Brush.comet(c.pos, to, ticks, 0.26f, SigCryo.FROST, () -> SigCryo.impact(to, 0.9f));
+        Brush.comet(c.pos, to, ticks, 0.09f, SigCryo.SNOW, null);
+    }
+
+    /** Soulreaver Staff: a live tether to the target with souls flowing back to you. */
+    private static void soulDrain(Ctx c) {
+        Entity t = c.target(), me = c.caster();
+        java.util.function.Supplier<Vec3> a = () -> me == null || me.isRemoved() ? c.pos : me.position().add(0, 1.1, 0);
+        java.util.function.Supplier<Vec3> b = () -> t == null || t.isRemoved() ? c.aim : t.position().add(0, t.getBbHeight() * 0.5, 0);
+        Brush.tether(a, b, 0.18f, 16, 0.4, 0.25, Paint.ink(0x061412, c.c1));
+        Brush.tether(a, b, 0.07f, 14, 0.3, 0.15, Paint.light(c.c2, 1f));
+        for (int k = 0; k < 4; k++) at(k * 3, () -> Brush.comet(b.get(), a.get(), 6, 0.12f, Paint.light(c.c1, 1.1f), null));
+        Brush.glow(b.get(), 0.8f, 8, c.c1);
+    }
+
+    /** Shadowfang Daggers: a streak of dark ink where you dashed, with two cuts. */
+    private static void shadowDash(Ctx c) {
+        Paint ink = Paint.ink(0x0C0A12, c.c2);
+        Brush.comet(c.pos, c.aim, 4, 0.5f, ink, null);
+        Brush.comet(c.pos, c.aim, 4, 0.14f, Paint.light(c.c2, 1f), null);
+        Vec3 dir = c.aim.subtract(c.pos);
+        Brush.cut(c.pos.add(dir.scale(0.4)), dir, 1.0, 0.3f, 8, 1, ink);
+        Brush.cut(c.pos.add(dir.scale(0.7)), dir, 1.0, 0.3f, 8, -1, ink);
+        Brush.mist(c.pos.subtract(0, 0.8, 0), 0.4, 6, 0x120E1A, 0.6f, 0.9f, 16);
+    }
+
+    /** Dragonbone Greatsword: two full sweeps round you and a shockwave. */
+    private static void whirlwind(Ctx c) {
+        Vec3 waist = c.pos.add(0, 0.9, 0);
+        Paint bone = Paint.light(c.c1, 1.2f), blood = Paint.light(c.c2, 1.1f);
+        bone.on(Ribbon.arc(waist, new Vec3(1, 0, 0), Brush.UP, 3.5, Math.PI * 2, 4, 1)).width(0.7f).time(12, 8).hold(0.2f).tailChase(0.8f).sparks(2).play();
+        blood.on(Ribbon.arc(waist.add(0, 0.3, 0), new Vec3(-1, 0, 0), Brush.UP, 3.0, Math.PI * 2, 4, 1)).width(0.3f).time(12, 8).hold(0.2f).tailChase(0.8f)
+                .sparks(0).play();
+        Brush.shock(c.pos.add(0, 0.08, 0), Brush.UP, 0.5, 4.5, 0.3f, 12, bone);
+    }
+
+    /** Tidebreaker Spear: a spiral of water along the lunge. */
+    private static void lunge(Ctx c) {
+        Vec3 start = c.pos, end = c.aim;
+        Vec3 d = end.subtract(start);
+        if (d.lengthSqr() < 1e-4) return;
+        Vec3 n = d.normalize();
+        Vec3[] uv = axes(n);
+        Paint sea = Paint.light(c.c1, 1.2f);
+        sea.on(Ribbon.curve((s, t) -> start.add(d.scale(s)).add(uv[0].scale(Math.cos(s * 10) * 0.45)).add(uv[1].scale(Math.sin(s * 10) * 0.45)),
+                (s, t) -> Brush.faceCam(start.add(d.scale(s)), n))).width(0.18f).time(10, 5).hold(0.2f).tailChase(1f).sparks(0).play();
+        Brush.comet(start, end, 4, 0.3f, Paint.light(c.c2, 1f), () -> Brush.ring(end, n, 0.8, 0.14f, 10, 2, sea));
+    }
+
+    /** Echo Chakram: a spinning ring flies out and back along the throw. */
+    private static void chakram(Ctx c) {
+        Vec3 start = c.pos, far = c.aim;
+        Vec3 n = far.subtract(start).lengthSqr() < 1e-4 ? c.look : far.subtract(start).normalize();
+        Paint edge = Paint.light(c.c1, 1.2f), glow = Paint.light(c.c2, 1.2f);
+        during(0, 24, t -> {
+            double f = t < 12 ? (t + 1) / 12.0 : (24 - t) / 12.0;
+            Vec3 at = start.lerp(far, f);
+            if (t % 2 == 0) Brush.ring(at, Brush.UP, 0.5, 0.12f, 4, 6, t % 4 == 0 ? edge : glow);
+        });
+        Brush.comet(start, far, 12, 0.08f, glow, () -> Brush.comet(far, start, 12, 0.08f, glow, null));
+    }
+
+    /** Prospector's Pick: a gold ring sweeping out through the rock. */
+    private static void orePulse(Ctx c) {
+        double r = Math.max(4, c.ticks);
+        Brush.shock(c.pos.add(0, 1, 0), Brush.UP, 0.5, r, 0.25f, 16, Paint.light(c.c1, 1.1f));
+        Brush.dome(c.pos.add(0, 1, 0), 0.5, r * 0.6, 0.1f, 14, Paint.light(c.c2, 0.6f));
+    }
+
+    /** Harvest Scythe: a golden sweep around you at crop height. */
+    private static void harvestSweep(Ctx c) {
+        double r = Math.max(3, c.ticks) + 0.5;
+        Paint grain = Paint.light(c.c1, 1.2f);
+        grain.on(Ribbon.arc(c.pos.add(0, 0.5, 0), Brush.flat(c.look), Brush.UP, r, Math.PI * 2, 3, 1)).width(0.5f).time(12, 8).hold(0.2f).tailChase(0.8f)
+                .sparks(2).play();
+        Brush.raysUp(c.pos.add(0, 0.2, 0), 10, r * 0.5, 0.07f, 10, Paint.light(c.c2, 0.9f));
     }
 }

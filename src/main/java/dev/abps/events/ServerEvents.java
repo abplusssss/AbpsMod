@@ -141,6 +141,8 @@ public final class ServerEvents {
                 AttributeClass c = cls(p);
                 ItemStack stack = p.getItemInHand(hand);
                 if (c != null && !c.allowUseItem(p, data(p), stack)) return InteractionResult.FAIL;
+                // Custom dungeon weapons and tools have a right-click power
+                if (dev.abps.items.CustomItems.use(p, stack)) return InteractionResult.SUCCESS;
             }
             return InteractionResult.PASS;
         });
