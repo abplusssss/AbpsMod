@@ -10,7 +10,7 @@ import java.util.Map;
  * same few facts, so they always agree: how many abilities the attribute has, their names, and its role.
  *
  * Each level you buy is one skill point. Points go into nodes; a node can be taken once its parent (or one of its
- * parents) is taken. There are more nodes than points, so every player picks a build.
+ * parents) is taken. Points grow with level; at max level there are enough to take every node.
  *
  * Layout: the Awakening root sits at the top of the middle column. Under it the ability trunk unlocks abilities 2 to
  * 5. To the left is Offense (or Prosperity for gatherers), then Utility on the right of the trunk, then Defense.

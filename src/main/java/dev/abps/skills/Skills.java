@@ -30,9 +30,23 @@ public final class Skills {
         return SkillTree.build(c.abilityCount(), names, c.adminOnly() ? "pvp" : c.role().id);
     }
 
-    /** Points bought but not spent yet. Every level after the first is one point. */
+    /**
+     * Points earned at this level. They grow evenly with level so that reaching max level gives exactly enough to take
+     * every node in the tree.
+     */
+    public static int earned(PlayerData d) {
+        AttributeClass c = AbpsMod.service().cls(d);
+        int total = 0;
+        if (c != null) for (Node n : tree(c)) if (n.kind() != Kind.ROOT) total++;
+        if (total == 0) total = 30;
+        int max = AbpsMod.config().maxLevel;
+        int lv = Math.max(1, Math.min(max, d.level));
+        return (int) Math.ceil((lv - 1) * (double) total / (max - 1));
+    }
+
+    /** Points earned but not spent yet. */
     public static int points(PlayerData d) {
-        return Math.max(0, d.level - 1 - d.skills.size());
+        return Math.max(0, earned(d) - d.skills.size());
     }
 
     public static boolean owns(PlayerData d, String id) {
@@ -119,7 +133,7 @@ public final class Skills {
 
     /** After the level goes down (admin command), drops the newest nodes until they fit. */
     public static void trim(PlayerData d) {
-        while (d.skills.size() > Math.max(0, d.level - 1)) d.skills.removeLast();
+        while (d.skills.size() > earned(d)) d.skills.removeLast();
     }
 
     // ------------------------------------------------------------------ effects

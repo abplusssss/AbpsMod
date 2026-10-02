@@ -762,7 +762,7 @@ public final class Commands {
                 s.sendSystemMessage(line);
             }
         }
-        Service.raw(s, "  <gray>Every level is one point and makes your passives stronger. Level " + AbpsMod.config().maxLevel + ": <gold>Mastery <gray>- " + c.mastery());
+        Service.raw(s, "  <gray>Every level gives skill points and makes your passives stronger; max level fills the whole tree. Level " + AbpsMod.config().maxLevel + ": <gold>Mastery <gray>- " + c.mastery());
         Service.raw(s, Service.LINE);
     }
 

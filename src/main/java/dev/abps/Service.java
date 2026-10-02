@@ -571,7 +571,7 @@ public final class Service {
         Cost cost = cfg().upgradeCost(d.level, cls(d));
         raw(p, LINE);
         raw(p, " <gold><bold>Buy a skill point</bold> <gray>(" + c.name() + ")");
-        raw(p, " <gray>Level " + d.level + " <dark_gray>→ <green>Level " + next + "</green><gray>: one more point for your Skill Tree.");
+        raw(p, " <gray>Level " + d.level + " <dark_gray>→ <green>Level " + next + "</green><gray>: more points for your Skill Tree.");
         if (next == cfg().maxLevel) raw(p, " <gold>Unlocks Mastery: <yellow>" + c.mastery());
         raw(p, " <gray>Price: " + cost.describe(p));
         p.sendSystemMessage(buttons("Upgrade", "Pay and level up", () -> confirmUpgrade(p)));

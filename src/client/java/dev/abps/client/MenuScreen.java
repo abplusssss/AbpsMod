@@ -409,7 +409,7 @@ public final class MenuScreen extends Screen {
         int x = cx + 6, y = y0 + 4, w = cw - 16;
         y = section(g, "New in " + dev.abps.Updater.current(), 0xFFD54F, x, y);
         String[] big = {
-                "<white><gold>Skill Tree</gold> replaces straight upgrades. Every level is a point: unlock abilities and pick damage, utility or defense skills. Reset it for free.",
+                "<white><gold>Skill Tree</gold> replaces straight upgrades. Every level gives points (max level fills the tree): unlock abilities and pick damage, utility or defense skills. Reset it for free.",
                 "<white><green>Two roles at once</green>: a <#FF5252>PvP</#FF5252> attribute and a <#69F0AE>Gatherer</#69F0AE> attribute, each with its own level and skills. Switch any time (Overview, !Role or <yellow>" + AbpsClient.roleKey.getTranslatedKeyMessage().getString() + "</yellow>). New gatherers: Harvester, Lumberjack, Angler, Explorer.",
                 "<white>Real <gold>custom weapons and tools</gold> with their own look and a right-click power: staffs, a warhammer, daggers, a greatsword, a spear, a chakram, a drill and more.",
                 "<white>Turn your whole attribute off (Settings or <yellow>!Powers off</yellow>), and Pyromancers can turn off their heat aura (<yellow>!Aura off</yellow>)."};
@@ -1085,7 +1085,7 @@ public final class MenuScreen extends Screen {
         } else {
             Draw.scaled(g, "<bold>" + Draw.gradient(c.color(), c.color2(), "Buy a skill point?") + "</bold>", x + w / 2f, yy, 1.25f, true);
             yy += 18;
-            yy += Draw.wrapped(g, "<gray>Level " + s.level() + " → <white>" + (s.level() + 1) + "</white>: one more point for your Skill Tree, and stronger passives.",
+            yy += Draw.wrapped(g, "<gray>Level " + s.level() + " → <white>" + (s.level() + 1) + "</white>: more points for your Skill Tree, and stronger passives.",
                     x + 10, yy, w - 20, Draw.TEXT) + 2;
             yy += Draw.wrapped(g, "<gray>Price: </gray>" + s.upgradeCost(), x + 10, yy, w - 20, Draw.MUTED) + 2;
             if (!s.canUpgrade()) Draw.text(g, "<red>You can't afford this yet.", x + 10, yy);
