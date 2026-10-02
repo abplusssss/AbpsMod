@@ -103,6 +103,8 @@ public final class Run {
     final DungeonDef.Palette palette;
     final DungeonDef.Boss boss;
     final List<EntityType<? extends Mob>> mobs;
+    /** The dungeon's own monsters in this run and what they're doing. */
+    final List<MobKit.Brain> brains = new ArrayList<>();
 
     State state = State.BUILDING;
     int current;
@@ -351,7 +353,7 @@ public final class Run {
         return r.center();
     }
 
-    private EntityType<? extends Mob> pick() {
+    EntityType<? extends Mob> pick() {
         return mobs.get(rnd.nextInt(mobs.size()));
     }
 
@@ -375,6 +377,7 @@ public final class Run {
             if (ticks > 40) end(false);
             return;
         }
+        MobKit.tick(this, ps);
         if (bar != null && brain != null) {
             LivingEntity b = brain.boss();
             if (b != null) bar.setProgress(Math.max(0, b.getHealth() / b.getMaxHealth()));
@@ -423,25 +426,21 @@ public final class Run {
         switch (r.type) {
             case COMBAT -> {
                 int count = 3 + def.difficulty() + n * 2 + rnd.nextInt(3);
-                for (int k = 0; k < count; k++) spawn(pick(), randomSpot(r), 1, null, r);
+                MobKit.populate(this, r, count, () -> randomSpot(r));
                 bar("<red>⚔ Clear the room!");
                 sound(SoundEvents.RAID_HORN, 0.5f, 1.4f);
             }
             case ELITE -> {
-                EntityType<? extends Mob> t = pick();
-                Mob elite = spawn(t, r.center().add(r.w * 0.2, 0, 0), 4, "<gold><bold>Elite " + t.getDescription().getString() + "</bold>", r);
-                if (elite != null) {
-                    Mods.setBase(elite, Attributes.SCALE, 1.5);
-                    elite.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 20 * 600, 0));
-                    elite.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 600, 0));
-                    elite.setGlowingTag(true);
-                }
-                for (int k = 0; k < 2 + n; k++) spawn(pick(), randomSpot(r), 1, null, r);
+                // An elite of the dungeon's own kind, always with a trait, and its guards
+                MobKit.Kind kind = MobKit.pick(this, MobKit.themeOf(palette));
+                Mob elite = MobKit.spawn(this, kind, r.center().add(r.w * 0.2, 0, 0), r, MobKit.randomAffix(this), true);
+                if (elite != null) elite.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 20 * 600, 0));
+                MobKit.populate(this, r, 2 + n, () -> randomSpot(r));
                 bar("<gold>★ An elite guards this room.");
                 sound(SoundEvents.WITHER_AMBIENT, 0.6f, 1.2f);
             }
             case TRAP -> {
-                for (int k = 0; k < 1 + n; k++) spawn(pick(), randomSpot(r), 1, null, r);
+                MobKit.populate(this, r, 1 + n, () -> randomSpot(r));
                 bar("<yellow>⚠ Watch the floor! Survive and reach the far door.");
             }
             case TREASURE -> {
@@ -577,7 +576,14 @@ public final class Run {
         for (int k = 0; k < count; k++) {
             double a = rnd.nextDouble() * Math.PI * 2, rad = 9 + rnd.nextDouble() * 5;
             Vec3 at = r.center().add(Math.cos(a) * rad, 0, Math.sin(a) * rad);
-            Mob m = spawn(pick(), at, 1, null, r);
+            // Later waves bring more of the dungeon's own monsters, and they start rolling traits
+            Mob m;
+            if (rnd.nextDouble() < Math.min(0.75, 0.25 + wave * 0.04)) {
+                MobKit.Affix affix = wave >= 5 && rnd.nextDouble() < Math.min(0.5, wave * 0.03) ? MobKit.randomAffix(this) : null;
+                m = MobKit.spawn(this, MobKit.pick(this, MobKit.themeOf(palette)), at, r, affix, false);
+            } else {
+                m = spawn(pick(), at, 1, null, r);
+            }
             if (elite && k == 0 && m != null) {
                 m.setCustomName(dev.abps.util.Text.mm("<gold><bold>Elite"));
                 m.setCustomNameVisible(true);
@@ -639,6 +645,7 @@ public final class Run {
             }
         }
         if (brain != null) brain.remove();
+        brains.clear();
         for (Entity e : level.getEntitiesOfClass(Entity.class, new AABB(origin.getX() - 4, origin.getY() - 4, origin.getZ() - 40, maxX + 4, origin.getY() + 30, origin.getZ() + 40),
                 e -> !(e instanceof ServerPlayer))) e.discard();
         // Tear down: one big queued fill, a few thousand blocks a tick
