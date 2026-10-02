@@ -49,6 +49,8 @@ public final class PlayerData {
     public boolean powersOff = false;
     /** "pvp" or "gatherer": which pool rerolls come from. Empty until the player picks one. */
     public String role = "";
+    /** Skill tree nodes this player has taken (see SkillTree). Points come from levels. */
+    public java.util.List<String> skills = new java.util.ArrayList<>();
     /** Pyromancer: the heat aura that sets enemies near you on fire. */
     public boolean pyroAura = true;
 

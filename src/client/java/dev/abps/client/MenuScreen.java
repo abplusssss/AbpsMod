@@ -21,7 +21,7 @@ public final class MenuScreen extends Screen {
     private enum Tab {
         OVERVIEW("Overview", "minecraft:nether_star"),
         ABILITIES("Abilities", "minecraft:blaze_powder"),
-        ROAD("Level Road", "minecraft:experience_bottle"),
+        SKILLS("Skill Tree", "minecraft:enchanted_book"),
         CLASSES("Attributes", "minecraft:book"),
         TOP("Top Players", "minecraft:totem_of_undying"),
         SHOPS("Shops", "minecraft:emerald"),
@@ -52,7 +52,8 @@ public final class MenuScreen extends Screen {
     private String confirm = ""; // "upgrade" or "reroll" when a popup is open
     private double scroll;
     private int contentHeight;
-    private int roadLevel = -1;
+    private String pendingRespec = "";
+    private long respecAt;
     private String classPick = "";
     private String boardFilter = "";
     private String roleFilter = "";
@@ -77,7 +78,7 @@ public final class MenuScreen extends Screen {
         switch (tab) {
             case "abilities" -> this.tab = Tab.ABILITIES;
             case "news", "new" -> this.tab = Tab.NEWS;
-            case "road" -> this.tab = Tab.ROAD;
+            case "road", "skills", "skill", "tree" -> this.tab = Tab.SKILLS;
             case "classes", "attributes" -> this.tab = Tab.CLASSES;
             case "top" -> this.tab = Tab.TOP;
             case "settings" -> this.tab = Tab.SETTINGS;
@@ -210,7 +211,7 @@ public final class MenuScreen extends Screen {
             contentHeight = switch (tab) {
                 case OVERVIEW -> overview(g, mmx, mmy, s, c, top);
                 case ABILITIES -> abilities(g, mmx, mmy, s, c, top);
-                case ROAD -> road(g, mmx, mmy, s, c, top);
+                case SKILLS -> skills(g, mmx, mmy, s, c, top);
                 case CLASSES -> classes(g, mmx, mmy, top);
                 case TOP -> top(g, mmx, mmy, top);
                 case SETTINGS -> settings(g, mmx, mmy, s, top);
@@ -268,17 +269,11 @@ public final class MenuScreen extends Screen {
                 + (max ? "  <gradient:#FFD54F:#FF8F00><bold>MASTERED</bold></gradient>" : ""), x, y);
         y += 11;
         Draw.bar(g, x, y, cw - 16, 5, (float) s.level() / s.maxLevel(), c.color(), c.color2());
-        // Marks where abilities unlock
-        for (int u : s.unlock()) {
-            if (u <= 0) continue; // no fifth ability for this attribute
-            int mxp = x + (int) ((cw - 16) * (u / (float) s.maxLevel()));
-            g.fill(mxp, y - 1, mxp + 1, y + 6, u <= s.level() ? 0xFFFFFFFF : 0x80FFFFFF);
-        }
         y += 11;
 
         // Buttons
         int bw = (cw - 16 - 12) / 3;
-        button(g, mx, my, x, y, bw, 18, max ? "Max level" : "⬆ Upgrade", 0x69F0AE, !max, () -> confirm = "upgrade");
+        button(g, mx, my, x, y, bw, 18, max ? "Max level" : "⬆ Skill point", 0x69F0AE, !max, () -> confirm = "upgrade");
         button(g, mx, my, x + bw + 6, y, bw, 18, "🎲 Reroll", 0xFF5252, true, () -> confirm = "reroll");
         String other = "gatherer".equals(c.role()) ? "PvP" : "Gatherer";
         button(g, mx, my, x + 2 * (bw + 6), y, bw, 18, "⇄ Be " + other, 0x40C4FF, !"admin".equals(c.role()), () -> confirm = "switch_role");
@@ -417,7 +412,7 @@ public final class MenuScreen extends Screen {
             Draw.text(g, name, x + 34, y + 5);
             String meta = "<dark_gray>[</dark_gray><yellow>" + Hud.keyLabel(i) + "</yellow><dark_gray>]</dark_gray> ";
             if (ult) meta += "<gray>Charges by hitting players</gray>";
-            else if (!unlocked) meta += "<red>Unlocks at level " + s.unlock()[i - 1] + "</red>";
+            else if (!unlocked) meta += "<red>Locked: take it in the Skill Tree</red>";
             else meta += "<gray>" + Text.time(s.cdTotal()[i]) + " cooldown</gray>";
             int mw = Draw.font().width(Text.mm(meta));
             Draw.scaled(g, meta, x + cw - 20 - mw * 0.75f, y + 6, 0.75f, false);
@@ -430,64 +425,116 @@ public final class MenuScreen extends Screen {
         return y - y0 + 18;
     }
 
-    private int road(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c, int y0) {
-        if (roadLevel < 1) roadLevel = Math.min(s.maxLevel(), s.level() + 1);
-        int x = cx + 6, y = y0 + 4;
-        int listW = 104;
-        // Level list on the left
-        for (int lvl = 1; lvl <= s.maxLevel(); lvl++) {
-            boolean reached = lvl <= s.level();
-            boolean current = lvl == s.level();
-            boolean picked = lvl == roadLevel;
-            int unlockIdx = -1;
-            for (int u = 0; u < 5; u++) if (s.unlock()[u] == lvl) unlockIdx = u + 1;
-            boolean hover = Draw.inside(mx, my, x, y, listW, 16);
-            int fill = picked ? Draw.argb(c.color(), 0x50) : hover ? 0x30FFFFFF : 0x60000000;
-            Draw.panel(g, x, y, listW, 16, fill);
-            // Node on the "road"
-            int dot = reached ? Draw.opaque(Text.lerp(c.color(), c.color2(), lvl / (float) s.maxLevel())) : 0xFF44444E;
-            g.fill(x + 4, y + 4, x + 12, y + 12, dot);
-            if (current) g.outline(x + 2, y + 2, 12, 12, 0xFFFFFFFF);
-            String label = (reached ? "<white>" : "<gray>") + "Level " + lvl;
-            if (unlockIdx > 0) label += " <yellow>✦</yellow>";
-            if (lvl == s.maxLevel()) label += " <gold>★</gold>";
-            else if (lvl % 5 == 0) label += " <aqua>◆</aqua>";
-            Draw.text(g, label, x + 17, y + 4);
-            final int target = lvl;
-            buttons.add(new Btn(x, y, listW, 16, () -> roadLevel = target));
-            y += 18;
+    /** A thin line between two points, two pixels wide, drawn as small steps. */
+    private static void line(GuiGraphicsExtractor g, int x0, int y0, int x1, int y1, int color) {
+        int steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+        for (int k = 0; k <= steps; k++) {
+            int x = x0 + (x1 - x0) * k / Math.max(1, steps), y = y0 + (y1 - y0) * k / Math.max(1, steps);
+            g.fill(x, y, x + 2, y + 2, color);
         }
-        int listH = y - y0;
+    }
 
-        // Details for the picked level on the right, pinned to the top of the view
-        int dx = x + listW + 8, dw = cw - 16 - listW - 8;
-        int dy = cy + 4;
-        int lvlIdx = roadLevel - 1;
-        g.disableScissor();
-        g.enableScissor(dx - 2, cy, cx + cw, cy + ch);
-        Draw.framed(g, dx, dy, dw, ch - 8, 0xE0101016, Draw.argb(c.color(), 0x80));
-        int yy = dy + 5;
-        Draw.text(g, "<bold>" + Draw.gradient(c.color(), c.color2(), "Level " + roadLevel) + "</bold>"
-                + (roadLevel <= s.level() ? " <#69F0AE>✔ reached</#69F0AE>" : " <gray>locked</gray>"), dx + 5, yy);
-        yy += 12;
-        for (int u = 0; u < 5; u++) {
-            if (s.unlock()[u] == roadLevel) {
-                yy += Draw.wrapped(g, "<yellow>✦ New ability:</yellow> <white>" + c.abilityNames().get(u), dx + 5, yy, dw - 10, Draw.TEXT) + 2;
+    private int skills(GuiGraphicsExtractor g, int mx, int my, Net.SyncPayload s, Net.ClassInfo c, int y0) {
+        int x = cx + 6, y = y0 + 4, w = cw - 16;
+        List<dev.abps.skills.SkillTree.Node> tree = dev.abps.skills.SkillTree.build(ClientState.abilityCount(c), c.abilityNames().subList(0, 5),
+                "gatherer".equals(c.role()) ? "gatherer" : "pvp");
+        List<String> owned = s.skills();
+        int points = s.points();
+        boolean max = s.level() >= s.maxLevel();
+
+        // Header: points, buy one, reset
+        Draw.text(g, "<gray>Skill points:</gray> " + (points > 0 ? "<gold><bold>" + points + "</bold></gold>" : "<white>0"), x, y + 5);
+        int bw = 86;
+        button(g, mx, my, x + w - bw * 2 - 4, y, bw, 18, max ? "Max level" : "<white>⬆ Buy a point", 0x69F0AE, !max, () -> confirm = "upgrade");
+        boolean armed = "respec".equals(pendingRespec) && System.currentTimeMillis() - respecAt < 3000;
+        button(g, mx, my, x + w - bw, y, bw, 18, armed ? "<white><bold>Sure? Free" : "<white>↺ Reset", 0xFF8A65, !owned.isEmpty(), () -> {
+            if (armed) {
+                pendingRespec = "";
+                AbpsClient.send("respec", "");
+            } else {
+                pendingRespec = "respec";
+                respecAt = System.currentTimeMillis();
+            }
+        });
+        y += 24;
+
+        // The grid: 7 columns, 6 rows
+        int node = 20, sx = Math.max(node + 8, Math.min(44, (w - node) / 6)), sy = 30;
+        int gw = sx * 6 + node, gx = x + (w - gw) / 2, gy = y + 12;
+        String[] names = {"gatherer".equals(c.role()) ? "Prosperity" : "Offense", "Abilities", "Utility", "Defense"};
+        double[] labelCols = {0.5, 2, 3.5, 5.5};
+        for (int b = 0; b < 4; b++) {
+            if (b == 1) continue; // the trunk is labelled by the root itself
+            int col = b == 0 && "gatherer".equals(c.role()) ? dev.abps.skills.SkillTree.PROSPERITY_COLOR : dev.abps.skills.SkillTree.BRANCH_COLORS[b];
+            Draw.scaled(g, "<bold>" + Draw.gradient(col, Text.lerp(col, 0xFFFFFF, 0.5f), names[b]) + "</bold>",
+                    gx + (float) (labelCols[b] * sx) + node / 2f, gy - 10, 0.75f, true);
+        }
+        java.util.function.Function<dev.abps.skills.SkillTree.Node, int[]> at = n -> new int[]{gx + (int) Math.round(n.col() * sx), gy + n.row() * sy};
+
+        // Lines first, so nodes sit on top of them
+        for (dev.abps.skills.SkillTree.Node n : tree) {
+            int[] b = at.apply(n);
+            for (String r : n.requires()) {
+                dev.abps.skills.SkillTree.Node parent = dev.abps.skills.SkillTree.find(tree, r);
+                if (parent == null) continue;
+                int[] a = at.apply(parent);
+                boolean lit = owned.contains(n.id()) && (r.equals("root") || owned.contains(r));
+                int col = branchColor(n, c);
+                line(g, a[0] + node / 2 - 1, a[1] + node / 2 - 1, b[0] + node / 2 - 1, b[1] + node / 2 - 1, lit ? Draw.opaque(col) : 0x60FFFFFF);
             }
         }
-        if (roadLevel == s.maxLevel()) yy += Draw.wrapped(g, "<gold>★ Mastery:</gold> " + c.mastery(), dx + 5, yy, dw - 10, Draw.TEXT) + 2;
-        if (roadLevel % 5 == 0 && roadLevel != s.maxLevel()) yy += Draw.wrapped(g, "<aqua>◆ Milestone level</aqua> <gray>(costs a bit more)", dx + 5, yy, dw - 10, Draw.TEXT) + 2;
-        yy += 2;
-        Draw.text(g, "<gray>Passives at this level:", dx + 5, yy);
-        yy += 11;
-        List<String> now = c.passivesByLevel().get(lvlIdx);
-        for (String line : now) {
-            if (yy > dy + ch - 20) break;
-            yy += Draw.wrapped(g, "<#69F0AE>•</#69F0AE> " + line, dx + 5, yy, dw - 10, Draw.MUTED) + 1;
+        dev.abps.skills.SkillTree.Node hovered = null;
+        for (dev.abps.skills.SkillTree.Node n : tree) {
+            int[] p = at.apply(n);
+            boolean own = n.kind() == dev.abps.skills.SkillTree.Kind.ROOT || owned.contains(n.id());
+            boolean open = dev.abps.skills.SkillTree.available(n, owned);
+            int col = branchColor(n, c);
+            boolean hover = Draw.inside(mx, my, p[0], p[1], node, node);
+            if (own) Draw.button(g, p[0], p[1], node, node, col, hover, true);
+            else if (open) {
+                int edge = Text.lerp(col, 0xFFFFFF, Draw.pulse(1f) * 0.5f);
+                Draw.framed(g, p[0], p[1], node, node, 0xF0101016, Draw.opaque(hover ? 0xFFFFFF : edge));
+            } else Draw.framed(g, p[0], p[1], node, node, 0xF00A0A0E, 0xFF2A2A32);
+            String icon = n.kind() == dev.abps.skills.SkillTree.Kind.ABILITY ? Draw.abilityIcon(c.id(), (int) n.value()) : n.icon();
+            Draw.item(g, icon, p[0] + 2, p[1] + 2, 1f);
+            if (!own && !open) g.fill(p[0] + 1, p[1] + 1, p[0] + node - 1, p[1] + node - 1, 0xA0000000);
+            if (hover) hovered = n;
+            if (open) {
+                final String id = n.id();
+                buttons.add(new Btn(p[0], p[1], node, node, "skill:" + id, () -> {
+                    if (s.points() > 0) AbpsClient.send("skill", id);
+                    else confirm = "upgrade";
+                }));
+            }
         }
-        g.disableScissor();
-        g.enableScissor(cx, cy, cx + cw, cy + ch);
-        return listH + 4;
+        if (hovered != null) {
+            boolean own = hovered.kind() == dev.abps.skills.SkillTree.Kind.ROOT || owned.contains(hovered.id());
+            boolean open = dev.abps.skills.SkillTree.available(hovered, owned);
+            int col = branchColor(hovered, c);
+            StringBuilder tip = new StringBuilder("<bold>" + Draw.gradient(col, Text.lerp(col, 0xFFFFFF, 0.5f), hovered.name()) + "</bold>\n<gray>" + hovered.desc());
+            if (own) tip.append("\n<#69F0AE>✔ Learned");
+            else if (open) tip.append(points > 0 ? "\n<yellow>Click to learn (1 point)" : "\n<#FF8A80>No points left. Click to buy one.");
+            else {
+                List<String> need = new ArrayList<>();
+                for (String r : hovered.requires()) {
+                    dev.abps.skills.SkillTree.Node pn = dev.abps.skills.SkillTree.find(tree, r);
+                    if (pn != null) need.add(pn.name());
+                }
+                tip.append("\n<dark_gray>Needs ").append(String.join(" or ", need)).append(" first");
+            }
+            g.setTooltipForNextFrame(Draw.font().split(Text.mm(tip.toString()), 180), mx, my);
+        }
+        y = gy + 5 * sy + node + 8;
+        y += Draw.wrapped(g, "<gray>Each level is one skill point and makes your passives stronger. There are more skills than points, so pick a build."
+                + " Resetting is free when you're not in a fight.", x, y, w, Draw.MUTED) + 4;
+        Draw.wrapped(g, "<gold>★ Level " + s.maxLevel() + " Mastery:</gold> " + c.mastery(), x, y, w, Draw.TEXT);
+        return y - y0 + 24;
+    }
+
+    private static int branchColor(dev.abps.skills.SkillTree.Node n, Net.ClassInfo c) {
+        if (n.branch() == dev.abps.skills.SkillTree.OFFENSE && "gatherer".equals(c.role())) return dev.abps.skills.SkillTree.PROSPERITY_COLOR;
+        if (n.branch() == dev.abps.skills.SkillTree.TRUNK) return c.color();
+        return dev.abps.skills.SkillTree.BRANCH_COLORS[n.branch()];
     }
 
     private int classes(GuiGraphicsExtractor g, int mx, int my, int y0) {
@@ -967,20 +1014,16 @@ public final class MenuScreen extends Screen {
             yy += Draw.wrapped(g, "<gray>Price: </gray>" + s.rerollCost(), x + 10, yy, w - 20, Draw.MUTED) + 2;
             if (!s.canReroll()) Draw.text(g, "<red>You can't afford this yet.", x + 10, yy);
         } else {
-            Draw.scaled(g, "<bold>" + Draw.gradient(c.color(), c.color2(), "Upgrade to level " + (s.level() + 1) + "?") + "</bold>", x + w / 2f, yy, 1.25f, true);
+            Draw.scaled(g, "<bold>" + Draw.gradient(c.color(), c.color2(), "Buy a skill point?") + "</bold>", x + w / 2f, yy, 1.25f, true);
             yy += 18;
+            yy += Draw.wrapped(g, "<gray>Level " + s.level() + " → <white>" + (s.level() + 1) + "</white>: one more point for your Skill Tree, and stronger passives.",
+                    x + 10, yy, w - 20, Draw.TEXT) + 2;
             yy += Draw.wrapped(g, "<gray>Price: </gray>" + s.upgradeCost(), x + 10, yy, w - 20, Draw.MUTED) + 2;
-            for (int u = 0; u < 5; u++) {
-                if (s.unlock()[u] == s.level() + 1) {
-                    Draw.text(g, "<yellow>✦ Unlocks " + c.abilityNames().get(u), x + 10, yy);
-                    yy += 11;
-                }
-            }
             if (!s.canUpgrade()) Draw.text(g, "<red>You can't afford this yet.", x + 10, yy);
         }
         int by = y + h - 26, bw = (w - 30) / 2;
         boolean can = reroll || switching ? s.canReroll() : s.canUpgrade();
-        button(g, mx, my, x + 10, by, bw, 18, switching ? "<white><bold>Switch" : reroll ? "<white><bold>Reroll" : "<white><bold>Upgrade", col, can, () -> {
+        button(g, mx, my, x + 10, by, bw, 18, switching ? "<white><bold>Switch" : reroll ? "<white><bold>Reroll" : "<white><bold>Buy", col, can, () -> {
             AbpsClient.send(switching ? "switchrole" : reroll ? "reroll" : "upgrade", "");
             confirm = "";
             if (reroll || switching) onClose();

@@ -53,7 +53,7 @@ public final class ClientSelfTest {
             case 260 -> shot(mc);
             case 270 -> mc.gui.setScreen(new MenuScreen("abilities"));
             case 290 -> shot(mc);
-            case 300 -> mc.gui.setScreen(new MenuScreen("road"));
+            case 300 -> mc.gui.setScreen(new MenuScreen("skills"));
             case 320 -> shot(mc);
             case 330 -> mc.gui.setScreen(new MenuScreen("classes"));
             case 350 -> shot(mc);

@@ -69,13 +69,24 @@ public final class DamageHooks {
                 }
                 m *= out;
             }
+            if (c != null) m *= dev.abps.skills.Skills.outgoing(p, d, c, victim);
             // Gatherers aren't built for fighting players
             if (c != null && c.role() == dev.abps.classes.Role.GATHERER && victim instanceof ServerPlayer) m *= dev.abps.classes.Role.GATHERER_PVP_DAMAGE;
+        }
+        // Ability damage skips the hit hooks above, but skill tree damage and the gatherer PvP cut still count
+        if (Targets.abilityDamage && source.getEntity() instanceof ServerPlayer ap && ap != victim) {
+            PlayerData ad = data(ap);
+            AttributeClass ac = cls(ad);
+            if (ac != null) {
+                m *= dev.abps.skills.Skills.outgoing(ap, ad, ac, victim);
+                if (ac.role() == dev.abps.classes.Role.GATHERER && victim instanceof ServerPlayer) m *= dev.abps.classes.Role.GATHERER_PVP_DAMAGE;
+            }
         }
         if (victim instanceof ServerPlayer vp) {
             PlayerData d = data(vp);
             AttributeClass c = cls(d);
             if (c != null) {
+                m *= dev.abps.skills.Skills.incoming(d, c);
                 double in = Math.max(0, c.incoming(vp, d, source, amount));
                 if (in != 1 && d.debug) {
                     AbpsMod.service().raw(vp, "<dark_gray>[Debug] <gray>Took " + source.getMsgId() + ": "

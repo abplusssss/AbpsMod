@@ -72,8 +72,8 @@ public final class Commands {
         add(new Entry("Menu", "", "Opens the attribute menu.", "attr", "gui", "m"));
         add(new Entry("Attribute", "", "Shows your attribute, level and stats.", "attr", "info", "myattribute", "me"));
         add(new Entry("Attributes", "", "Lists all attributes.", "attr", "list", "classes"));
-        add(new Entry("Upgrade", "", "Level up your attribute.", "attr", "levelup", "up"));
-        add(new Entry("Road", "", "Shows what you get at every level.", "attr", "levelroad", "levels"));
+        add(new Entry("Upgrade", "", "Buy a level: one more skill point.", "attr", "levelup", "up", "buypoint", "skillpoint"));
+        add(new Entry("Skills", "[reset]", "Your skill tree: spend points, or reset them for free.", "attr", "skill", "tree", "skilltree", "road", "levelroad", "levels", "talents"));
         add(new Entry("Top", "[attribute]", "Shows the highest level players.", "attr", "leaderboard", "lb"));
         add(new Entry("RollAttribute", "", "Reroll your attribute for a price.", "attr", "reroll", "roll"));
         add(new Entry("Cooldowns", "", "Shows your ability cooldowns.", "attr", "cd"));
@@ -289,10 +289,11 @@ public final class Commands {
                 ServerPlayer p = needPlayer(s);
                 if (p != null) sv.promptUpgrade(p);
             }
-            case "Road" -> {
+            case "Skills" -> {
                 ServerPlayer p = needPlayer(s);
                 if (p == null) return;
-                if (Service.hasMod(p)) ServerPlayNetworking.send(p, new Net.OpenMenuPayload("road"));
+                if (args.length > 0 && (args[0].equalsIgnoreCase("reset") || args[0].equalsIgnoreCase("respec"))) dev.abps.skills.Skills.respec(p);
+                else if (Service.hasMod(p)) ServerPlayNetworking.send(p, new Net.OpenMenuPayload("skills"));
                 else road(s, p);
             }
             case "Top" -> top(s, args);
@@ -697,7 +698,7 @@ public final class Commands {
             AttributeClass mine = service().cls(service().data(p));
             int count = mine == null ? 4 : mine.abilityCount();
             for (int i = 1; i <= count; i++) {
-                Service.raw(s, "  <yellow>" + service().keyName(p, i) + " <dark_gray>- <gray>Ability " + i + ", unlocks at level " + AbpsMod.config().unlockLevel(i));
+                Service.raw(s, "  <yellow>" + service().keyName(p, i) + " <dark_gray>- <gray>Ability " + i + (i == 1 ? "" : ", unlocked in the Skill Tree"));
             }
             Service.raw(s, "  <yellow>" + service().keyName(p, AttributeClass.ULTIMATE) + " <dark_gray>- <gray>Ultimate (charge it by hurting players)");
         }
@@ -724,6 +725,7 @@ public final class Commands {
         Service.raw(s, Service.LINE);
     }
 
+    /** The skill tree in chat, for players without the mod: every node, what it does, and a click to take it. */
     private static void road(CommandSourceStack s, ServerPlayer p) {
         PlayerData d = service().data(p);
         AttributeClass c = service().cls(d);
@@ -731,15 +733,29 @@ public final class Commands {
             Service.send(s, "<red>You don't have an attribute.");
             return;
         }
+        var tree = dev.abps.skills.Skills.tree(c);
+        int points = dev.abps.skills.Skills.points(d);
         Service.raw(s, Service.LINE);
-        Service.raw(s, " " + c.gradient("<bold>Level Road</bold>") + " <gray>- " + c.name());
-        for (int i = 2; i <= c.abilityCount(); i++) {
-            int lvl = AbpsMod.config().unlockLevel(i);
-            Service.raw(s, "  " + (d.level >= lvl ? "<green>✔" : "<red>✖") + " <gray>Level " + lvl + ": <yellow>" + c.abilityName(i));
+        Service.raw(s, " " + c.gradient("<bold>Skill Tree</bold>") + " <gray>- " + c.name() + " · <white>" + points + "</white> point" + (points == 1 ? "" : "s")
+                + " to spend <dark_gray>(buy more with !Upgrade, reset with !Skills reset)");
+        String[] branches = {"Offense", "Abilities", "Utility", "Defense"};
+        if (c.role() == dev.abps.classes.Role.GATHERER) branches[0] = "Prosperity";
+        for (int b = 0; b < 4; b++) {
+            Service.raw(s, " " + Text.colorTag(dev.abps.skills.SkillTree.BRANCH_COLORS[b]) + "<bold>" + branches[b]);
+            for (var n : tree) {
+                if (n.branch() != b || n.kind() == dev.abps.skills.SkillTree.Kind.ROOT) continue;
+                boolean own = d.skills.contains(n.id()), open = dev.abps.skills.SkillTree.available(n, d.skills);
+                String mark = own ? "<green>✔" : open ? "<yellow>◆" : "<dark_gray>✖";
+                MutableComponent line = Text.mm("  " + mark + " " + (own ? "<white>" : open ? "<yellow>" : "<gray>") + n.name() + " <dark_gray>- <gray>" + n.desc());
+                if (open && points > 0) {
+                    final String id = n.id();
+                    line.append(Text.mm(" ")).append(service().button("<green><bold>[Take]</bold>", "<green>Spend a point on " + n.name(),
+                            () -> dev.abps.skills.Skills.buy(p, id)));
+                }
+                s.sendSystemMessage(line);
+            }
         }
-        int max = AbpsMod.config().maxLevel;
-        Service.raw(s, "  " + (d.level >= max ? "<green>✔" : "<red>✖") + " <gray>Level " + max + ": <gold>Mastery <gray>- " + c.mastery());
-        Service.raw(s, "  <gray>Every level makes your passives stronger and cooldowns shorter.");
+        Service.raw(s, "  <gray>Every level is one point and makes your passives stronger. Level " + AbpsMod.config().maxLevel + ": <gold>Mastery <gray>- " + c.mastery());
         Service.raw(s, Service.LINE);
     }
 
@@ -786,7 +802,7 @@ public final class Commands {
         service().send(p, "<gold>Cooldowns" + (d.noCooldown ? " <red>(no cooldown mode is on)" : ""));
         for (int i = 1; i <= c.abilityCount(); i++) {
             String state;
-            if (!service().unlocked(d, i)) state = "<dark_gray>Locked (level " + AbpsMod.config().unlockLevel(i) + ")";
+            if (!service().unlocked(d, i)) state = "<dark_gray>Locked (Skill Tree)";
             else {
                 long left = d.cooldownLeft(i);
                 state = left > 0 ? "<red>" + Text.time(left) : "<green>Ready";

@@ -171,6 +171,8 @@ public final class Service {
             }
         } else {
             if (d.role.isEmpty()) d.role = c.adminOnly() ? dev.abps.classes.Role.PVP.id : c.role().id;
+            // Coming from the old level system: their levels become skill points, abilities first
+            if (d.skills.isEmpty() && d.level > 1) dev.abps.skills.Skills.autoAllocate(d, c);
             if (!d.powersOff) c.applyStatic(p, d);
             AbpsMod.state().updateLeaderboard(p.getUUID(), p.getName().getString(), d.classId, d.level);
             if (cfg().joinMessage) Tasks.later(30, () -> {
@@ -201,7 +203,10 @@ public final class Service {
         PlayerData d = data(p);
         Mods.clearAll(p);
         AttributeClass c = active(d);
-        if (c != null) c.applyStatic(p, d);
+        if (c != null) {
+            c.applyStatic(p, d);
+            dev.abps.skills.Skills.apply(p, d, c);
+        }
         updateTags(p);
         sync(p, true);
     }
@@ -215,6 +220,9 @@ public final class Service {
         d.classId = c == null ? null : c.id();
         if (c != null && !c.adminOnly()) d.role = c.role().id;
         d.level = Math.max(1, Math.min(cfg().maxLevel, level));
+        // A new attribute starts a new tree. Any levels it comes with go into its abilities first.
+        d.skills.clear();
+        dev.abps.skills.Skills.autoAllocate(d, c);
         d.ultCharge = 0;
         reapply(p);
         AbpsMod.data().save(p, d);
@@ -224,6 +232,7 @@ public final class Service {
     public void setLevel(ServerPlayer p, int level) {
         PlayerData d = data(p);
         d.level = Math.max(1, Math.min(cfg().maxLevel, level));
+        dev.abps.skills.Skills.trim(d);
         reapply(p);
         AbpsMod.data().save(p, d);
         AbpsMod.state().updateLeaderboard(p.getUUID(), p.getName().getString(), d.classId, d.level);
@@ -324,7 +333,7 @@ public final class Service {
     public void addGatherCharge(ServerPlayer p, PlayerData d, double amount) {
         AttributeClass c = active(d);
         if (amount <= 0 || c == null || d.ultCharge >= 1 || System.currentTimeMillis() < d.ultLockUntil) return;
-        d.ultCharge = Math.min(1, d.ultCharge + amount);
+        d.ultCharge = Math.min(1, d.ultCharge + amount * dev.abps.skills.Skills.gatherMult(d, c));
         notifyUltReady(p, d, c);
     }
 
@@ -452,11 +461,8 @@ public final class Service {
         int next = d.level + 1;
         Cost cost = cfg().upgradeCost(d.level, cls(d));
         raw(p, LINE);
-        raw(p, " <gold><bold>Upgrade " + c.name() + "</bold>");
-        raw(p, " <gray>Level " + d.level + " <dark_gray>→ <green>Level " + next);
-        for (int i = 2; i <= c.abilityCount(); i++) {
-            if (next == cfg().unlockLevel(i)) raw(p, " <aqua>Unlocks: " + c.gradient("<bold>" + c.abilityName(i) + "</bold>"));
-        }
+        raw(p, " <gold><bold>Buy a skill point</bold> <gray>(" + c.name() + ")");
+        raw(p, " <gray>Level " + d.level + " <dark_gray>→ <green>Level " + next + "</green><gray>: one more point for your Skill Tree.");
         if (next == cfg().maxLevel) raw(p, " <gold>Unlocks Mastery: <yellow>" + c.mastery());
         raw(p, " <gray>Price: " + cost.describe(p));
         p.sendSystemMessage(buttons("Upgrade", "Pay and level up", () -> confirmUpgrade(p)));
@@ -487,12 +493,8 @@ public final class Service {
         int outer = dev.abps.util.Vfx.theme(dev.abps.util.FxKind.theme(c.id()));
         dev.abps.util.Vfx.cue(level(p), 20, p.position(), new net.minecraft.world.phys.Vec3(0, 1, 0), p.position().add(0, 1, 0), p, null, c.rgb(), c.rgb2(), max ? 1 : 0);
         dev.abps.util.Vfx.theme(outer);
-        send(p, "<green>Upgraded to level " + d.level + "! " + bar(d.level, cfg().maxLevel, 12, c));
-        for (int i = 2; i <= c.abilityCount(); i++) {
-            if (d.level == cfg().unlockLevel(i)) {
-                send(p, "<aqua>New ability: " + c.gradient("<bold>" + c.abilityName(i) + "</bold>") + " <gray>(" + keyName(p, i) + ")");
-            }
-        }
+        send(p, "<green>Level " + d.level + "! " + bar(d.level, cfg().maxLevel, 12, c) + " <gray>You have <white>" + dev.abps.skills.Skills.points(d)
+                + "</white> skill point" + (dev.abps.skills.Skills.points(d) == 1 ? "" : "s") + " to spend in the <gold>Skill Tree</gold> (<yellow>!Skills</yellow>).");
         if (d.level % 5 == 0) celebrate(p, c.rgb(), max);
         if (max) {
             send(p, "<gold>Mastery unlocked: <yellow>" + c.mastery());
@@ -518,6 +520,11 @@ public final class Service {
     }
 
     // ================= Abilities =================
+    /** Cooldown for this player, with their skill tree's cooldown nodes. */
+    public long cooldownMs(AttributeClass c, int idx, PlayerData d) {
+        return (long) (cooldownMs(c, idx, d) * dev.abps.skills.Skills.cooldownMult(d, c));
+    }
+
     public long cooldownMs(AttributeClass c, int idx, int level) {
         double cut = cfg().cooldownReductionAtMax * cfg().scale(level);
         return (long) (c.baseCooldown(idx) * 1000 * (1 - cut) * c.cooldownMultiplier(level));
@@ -577,8 +584,8 @@ public final class Service {
     }
 
     public boolean unlocked(PlayerData d, int idx) {
-        if (idx == AttributeClass.ULTIMATE) return true;
-        return d.level >= cfg().unlockLevel(idx);
+        if (idx == AttributeClass.ULTIMATE || idx == 1) return true;
+        return dev.abps.skills.Skills.owns(d, "ab" + idx);
     }
 
     public void cast(ServerPlayer p, int idx) {
@@ -600,15 +607,14 @@ public final class Service {
             return;
         }
         if (!unlocked(d, idx)) {
-            actionBar(p, tag("🔒 LOCKED", "#FF5252", "#FF8A65") + " <white>" + c.abilityName(idx) + "</white> <gray>unlocks at level <gold><bold>"
-                    + cfg().unlockLevel(idx) + "</bold></gold>");
+            actionBar(p, tag("🔒 LOCKED", "#FF5252", "#FF8A65") + " <white>" + c.abilityName(idx) + "</white> <gray>Unlock it in the <gold><bold>Skill Tree</bold></gold>");
             denied(p);
             return;
         }
         long left = d.cooldownLeft(idx);
         if (left > 0 && !d.noCooldown) {
             actionBar(p, tag("⏳ COOLDOWN", "#FF5252", "#FF8A65") + " <white>" + c.abilityName(idx) + "</white> "
-                    + meter(c, 1 - (double) left / Math.max(1, cooldownMs(c, idx, d.level))) + " <gold><bold>" + Text.time(left));
+                    + meter(c, 1 - (double) left / Math.max(1, cooldownMs(c, idx, d))) + " <gold><bold>" + Text.time(left));
             denied(p);
             return;
         }
@@ -621,7 +627,7 @@ public final class Service {
             return;
         }
         if (worked) {
-            long cd = cooldownMs(c, idx, d.level);
+            long cd = cooldownMs(c, idx, d);
             d.cooldownEnd[idx] = System.currentTimeMillis() + cd;
             d.readyNotified[idx] = cd < 10_000; // only ding for longer cooldowns
             d.abilitiesUsed++;
@@ -660,9 +666,9 @@ public final class Service {
             if (d.debug) send(p, "<dark_gray>[Debug] Ultimate did not go off: " + c.lastFail);
             return;
         }
-        d.ultCharge = 0;
+        d.ultCharge = dev.abps.skills.Skills.overflow(d, c);
         d.ultReadyNotified = false;
-        d.ultLockUntil = System.currentTimeMillis() + cfg().ultimateLockoutSeconds * 1000L;
+        d.ultLockUntil = System.currentTimeMillis() + (long) (cfg().ultimateLockoutSeconds * 1000L * dev.abps.skills.Skills.ultLockMult(d, c));
         d.ultsUsed++;
         d.abilitiesUsed++;
         banner(p, c.gradient("<bold>" + c.abilityName(AttributeClass.ULTIMATE).toUpperCase() + "</bold>"), "<gray>Ultimate", c.rgb(), 30);
@@ -680,7 +686,7 @@ public final class Service {
         // Gatherers aren't meant to fight players, so monsters charge them fully
         boolean gatherer = cl != null && cl.role() == dev.abps.classes.Role.GATHERER;
         double worth = victimIsPlayer || gatherer ? 1 : cfg().ultimateMobDamageFactor;
-        d.ultCharge = Math.min(1, d.ultCharge + damage * worth / cfg().ultimateDamageToCharge);
+        d.ultCharge = Math.min(1, d.ultCharge + damage * worth / cfg().ultimateDamageToCharge * dev.abps.skills.Skills.ultChargeMult(d, cl));
         notifyUltReady(p, d, cl);
     }
 
@@ -745,24 +751,26 @@ public final class Service {
         long[] total = new long[7];
         for (int i = 1; i <= 5; i++) {
             left[i] = d.noCooldown ? 0 : Math.max(0, d.cooldownEnd[i] - now);
-            total[i] = c == null ? 0 : cooldownMs(c, i, d.level);
+            total[i] = c == null ? 0 : cooldownMs(c, i, d);
         }
         boolean max = d.level >= cfg().maxLevel;
         Cost up = cfg().upgradeCost(d.level, cls(d));
         Cost re = cfg().rerollCost();
-        int[] unlock = {cfg().unlockLevel(1), cfg().unlockLevel(2), cfg().unlockLevel(3), cfg().unlockLevel(4),
-                c != null && c.abilityCount() >= 5 ? cfg().unlockLevel(5) : 0}; // 0 = no fifth ability
+        // 1 = unlocked, 0 = locked (take it in the skill tree), -1 = this attribute has no such ability
+        int[] unlock = new int[5];
+        for (int i = 1; i <= 5; i++) unlock[i - 1] = c != null && i > c.abilityCount() ? -1 : unlocked(d, i) ? 1 : 0;
         Net.SyncPayload payload = new Net.SyncPayload(c == null ? "" : c.id(), d.level, cfg().maxLevel, unlock, left, total,
                 (float) d.ultCharge, Math.max(0, d.ultLockUntil - now), Math.max(0, d.combatUntil - now), d.noCooldown,
                 d.abilitiesUsed, d.rerolls, max ? "" : up.describe(p), !max && up.canAfford(p), re.describe(p),
                 re.canAfford(p), d.hud, d.sidebar, cfg().cooldownReductionAtMax,
                 dev.abps.command.Commands.isAdmin(p.createCommandSourceStack()),
-                (d.powersOff ? Net.SyncPayload.POWERS_OFF : 0) | (d.pyroAura ? Net.SyncPayload.PYRO_AURA : 0));
+                (d.powersOff ? Net.SyncPayload.POWERS_OFF : 0) | (d.pyroAura ? Net.SyncPayload.PYRO_AURA : 0),
+                new ArrayList<>(d.skills), dev.abps.skills.Skills.points(d));
         // Only send when something the player can see changed (cooldowns tick down on the client)
         int hash = Objects.hash(payload.classId(), payload.level(), Arrays.hashCode(roundUp(left)), Math.round(d.ultCharge * 200),
                 payload.ultLockLeft() / 1000, payload.combatLeft() / 1000, payload.noCooldown(), payload.upgradeCost(),
                 payload.canUpgrade(), payload.rerollCost(), payload.canReroll(), payload.hud(), payload.panel(), d.abilitiesUsed, payload.admin(),
-                payload.flags());
+                payload.flags(), payload.skills(), payload.points(), Arrays.hashCode(unlock));
         if (!force && hash == d.lastSyncHash) return;
         d.lastSyncHash = hash;
         ServerPlayNetworking.send(p, payload);
@@ -889,8 +897,8 @@ public final class Service {
         for (int i = 1; i <= c.abilityCount(); i++) {
             boolean locked = !unlocked(d, i);
             String head = "  <yellow>[" + keyName(target, i) + "] " + c.gradient("<bold>" + c.abilityName(i) + "</bold>");
-            if (locked) raw(to, head + " <dark_gray>(Unlocks at level " + cfg().unlockLevel(i) + ")");
-            else raw(to, head + " <dark_gray>(" + Text.seconds(cooldownMs(c, i, d.level) / 1000.0) + " cooldown)");
+            if (locked) raw(to, head + " <dark_gray>(locked: take it in the Skill Tree)");
+            else raw(to, head + " <dark_gray>(" + Text.seconds(cooldownMs(c, i, d) / 1000.0) + " cooldown)");
             raw(to, "    <gray>" + c.abilityDesc(i, d.level));
         }
         raw(to, " <light_purple><bold>✹ Ultimate</bold> <dark_gray>[" + keyName(target, AttributeClass.ULTIMATE) + "] " + c.gradient("<bold>" + c.abilityName(AttributeClass.ULTIMATE) + "</bold>")

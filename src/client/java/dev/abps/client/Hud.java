@@ -157,8 +157,7 @@ public final class Hud implements HudElement {
 
         if (!unlocked) {
             g.fill(x + 1, y + 1, x + size - 1, y + size - 1, 0xC0000000);
-            Draw.centered(g, "<gray>🔒</gray>", x + size / 2, y + 5);
-            Draw.centered(g, "<dark_gray>" + s.unlock()[i - 1] + "</dark_gray>", x + size / 2, y + 16);
+            Draw.centered(g, "<gray>🔒</gray>", x + size / 2, y + (size - 8) / 2);
         } else if (left > 0) {
             // Dark cover that shrinks as the cooldown runs out
             float frac = Math.min(1f, (float) left / total);

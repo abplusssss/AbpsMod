@@ -164,7 +164,7 @@ public final class Assassin extends AttributeClass {
 
     @Override
     public void onKill(ServerPlayer p, PlayerData d, LivingEntity victim) {
-        if (d.level < AbpsMod.config().unlockLevel(2) || d.cooldownEnd[2] == 0) return;
+        if (!AbpsMod.service().unlocked(d, 2) || d.cooldownEnd[2] == 0) return;
         d.cooldownEnd[2] = 0;
         AbpsMod.service().actionBar(p, gradient("<bold>Shadow Dash</bold>") + " <gray>was reset!");
     }

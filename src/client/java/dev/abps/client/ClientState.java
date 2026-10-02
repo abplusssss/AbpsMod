@@ -100,7 +100,7 @@ public final class ClientState {
 
     public static boolean unlocked(int idx) {
         if (idx == ULTIMATE) return true;
-        return sync != null && sync.level() >= sync.unlock()[idx - 1];
+        return sync != null && sync.unlock()[idx - 1] == 1;
     }
 
     public static void tick() {

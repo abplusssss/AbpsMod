@@ -72,7 +72,7 @@ public final class Net {
                               float ultCharge, long ultLockLeft, long combatLeft, boolean noCooldown,
                               int abilitiesUsed, int rerolls, String upgradeCost, boolean canUpgrade,
                               String rerollCost, boolean canReroll, boolean hud, boolean panel, double cooldownCut,
-                              boolean admin, int flags)
+                              boolean admin, int flags, List<String> skills, int points)
             implements CustomPacketPayload {
         public static final Type<SyncPayload> TYPE = newType("sync");
         public static final StreamCodec<RegistryFriendlyByteBuf, SyncPayload> CODEC = CustomPacketPayload.codec(
@@ -98,6 +98,8 @@ public final class Net {
                     buf.writeDouble(p.cooldownCut);
                     buf.writeBoolean(p.admin);
                     buf.writeVarInt(p.flags);
+                    writeStrings(buf, p.skills);
+                    buf.writeVarInt(p.points);
                 },
                 buf -> {
                     String classId = buf.readUtf();
@@ -112,7 +114,7 @@ public final class Net {
                     return new SyncPayload(classId, level, maxLevel, unlock, left, total, buf.readFloat(),
                             buf.readVarLong(), buf.readVarLong(), buf.readBoolean(), buf.readVarInt(), buf.readVarInt(),
                             buf.readUtf(), buf.readBoolean(), buf.readUtf(), buf.readBoolean(), buf.readBoolean(),
-                            buf.readBoolean(), buf.readDouble(), buf.readBoolean(), buf.readVarInt());
+                            buf.readBoolean(), buf.readDouble(), buf.readBoolean(), buf.readVarInt(), readStrings(buf), buf.readVarInt());
                 });
 
         /** Bits in flags. */

@@ -107,7 +107,8 @@ public final class ServerEvents {
             if (!dev.abps.dungeon.Dungeons.allowDeath(p)) return false;
             if (!dev.abps.items.CustomItems.allowDeath(p)) return false;
             AttributeClass c = cls(p);
-            return c == null || c.allowDeath(p, data(p), source);
+            if (c != null && !c.allowDeath(p, data(p), source)) return false;
+            return c == null || dev.abps.skills.Skills.allowDeath(p, data(p), c);
         });
         ServerLivingEntityEvents.AFTER_DEATH.register(ServerEvents::afterDeath);
 
@@ -219,6 +220,7 @@ public final class ServerEvents {
             d.tickCount++;
             try {
                 c.tick(p, d);
+                dev.abps.skills.Skills.tick(p, d, c);
                 s.tickPlayer(p, d, c);
             } catch (Exception ex) {
                 if (d.tickCount % 200 == 1) AbpsMod.LOGGER.warn("Error while ticking {} for {}", c.name(), p.getName().getString(), ex);
@@ -252,6 +254,7 @@ public final class ServerEvents {
             s.addUltCharge(p, d, taken, victim instanceof ServerPlayer);
             AttributeClass c = s.active(d);
             if (c != null && hit != null && !Targets.abilityDamage) c.afterHit(p, d, victim, taken, hit);
+            if (c != null) dev.abps.skills.Skills.afterHit(p, d, c, taken);
             if (hit != null && !Targets.abilityDamage) dev.abps.items.CustomItems.afterHit(p, victim, taken, hit);
             if (victim instanceof ServerPlayer vp) Combat.tag(p, vp);
         } else if (src != null) {
@@ -294,7 +297,10 @@ public final class ServerEvents {
                 kd.mobKills++;
             }
             AttributeClass c = cls(killer);
-            if (c != null) c.onKill(killer, data(killer), entity);
+            if (c != null) {
+                c.onKill(killer, data(killer), entity);
+                dev.abps.skills.Skills.onKill(killer, data(killer), c);
+            }
             dev.abps.items.CustomItems.onKill(killer, entity);
             return;
         }
@@ -324,6 +330,8 @@ public final class ServerEvents {
                 if (r != null) s.chooseRole(p, r);
             }
             case "switchrole" -> s.confirmSwitchRole(p);
+            case "skill" -> dev.abps.skills.Skills.buy(p, arg);
+            case "respec" -> dev.abps.skills.Skills.respec(p);
             case "toggle_aura" -> {
                 d.pyroAura = !d.pyroAura;
                 AbpsMod.data().save(p, d);
