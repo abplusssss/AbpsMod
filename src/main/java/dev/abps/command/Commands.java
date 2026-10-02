@@ -75,7 +75,7 @@ public final class Commands {
         add(new Entry("Upgrade", "", "Buy a level: one more skill point.", "attr", "levelup", "up", "buypoint", "skillpoint"));
         add(new Entry("Skills", "[reset]", "Your skill tree: spend points, or reset them for free.", "attr", "skill", "tree", "skilltree", "road", "levelroad", "levels", "talents"));
         add(new Entry("Top", "[attribute]", "Shows the highest level players.", "attr", "leaderboard", "lb"));
-        add(new Entry("RollAttribute", "", "Reroll your attribute for a price.", "attr", "reroll", "roll"));
+        add(new Entry("RollAttribute", "[other | pvp | gatherer]", "Reroll your attribute for a price (or the other role's).", "attr", "reroll", "roll"));
         add(new Entry("Cooldowns", "", "Shows your ability cooldowns.", "attr", "cd"));
         add(new Entry("Cast", "<1-6>", "Uses an ability from chat. 6 is your ultimate (5 for attributes with only 4 abilities).", "attr", "ability"));
         add(new Entry("Ult", "", "Uses your ultimate when it is charged.", "attr", "ultimate"));
@@ -97,7 +97,7 @@ public final class Commands {
         add(new Entry("Party", "[invite <name> | accept | decline | leave | kick <name>]", "Your dungeon party (up to 4 players).", "dungeon", "team", "group", "dparty"));
         add(new Entry("Powers", "[on | off]", "Turns your whole attribute off or back on (abilities, passives and weaknesses).", "attr",
                 "power", "abilities", "togglepowers", "nopowers", "vanillamode"));
-        add(new Entry("Role", "[pvp | gatherer]", "Shows your role, picks one, or switches to the other (costs a reroll).", "attr",
+        add(new Entry("Role", "[pvp | gatherer | info]", "Switches between your PvP and Gatherer attributes (free, not in combat).", "attr",
                 "roles", "switchrole", "job", "path"));
         add(new Entry("Aura", "[on | off]", "Pyromancer: turns your heat aura off or back on.", "attr", "heataura", "flameaura", "fireaura"));
         add(new Entry("Title", "[name | off]", "Shows or picks the title next to your name.", "dungeon", "titles", "settitle"));
@@ -299,7 +299,12 @@ public final class Commands {
             case "Top" -> top(s, args);
             case "RollAttribute" -> {
                 ServerPlayer p = needPlayer(s);
-                if (p != null) sv.promptReroll(p);
+                if (p == null) return;
+                // "!Reroll other" (or the other role's name) rerolls the attribute you're not playing
+                dev.abps.classes.Role r = args.length > 0 ? dev.abps.classes.Role.of(args[0]) : null;
+                boolean other = args.length > 0 && (args[0].equalsIgnoreCase("other") || (r != null && r != sv.roleOf(sv.data(p))));
+                if (other) sv.promptRerollOther(p);
+                else sv.promptReroll(p);
             }
             case "Cooldowns" -> {
                 ServerPlayer p = needPlayer(s);
@@ -414,14 +419,16 @@ public final class Commands {
                     else sv.askRole(p);
                     return;
                 }
-                if (want == null) {
-                    Service.send(s, "<gray>Your role is " + Text.colorTag(now.color) + "<bold>" + now.label + "</bold><gray>. " + now.blurb
-                            + " Use <yellow>!Role " + now.other().id + "</yellow> to switch (costs a reroll).");
-                } else if (want == now) {
-                    Service.send(s, "<gray>You're already " + now.label + ".");
-                } else {
-                    sv.promptSwitchRole(p);
+                if (args.length > 0 && (args[0].equalsIgnoreCase("info") || args[0].equalsIgnoreCase("list"))) {
+                    var other = sv.otherSlot(d);
+                    AttributeClass oc = other == null ? null : Classes.get(other.classId);
+                    Service.send(s, "<gray>Playing " + Text.colorTag(now.color) + now.label + "</gray><gray>: " + sv.cls(d).display() + " <gray>Lv " + d.level
+                            + "  <dark_gray>|</dark_gray>  " + Text.colorTag(now.other().color) + now.other().label + "</gray><gray>: "
+                            + (oc == null ? "<gray>none yet" : oc.display() + " <gray>Lv " + other.level) + "  <dark_gray>(!Role to switch)");
+                    return;
                 }
+                if (want == now) Service.send(s, "<gray>You're already playing " + now.label + ".");
+                else sv.switchRole(p);
             }
             case "Powers" -> {
                 ServerPlayer p = needPlayer(s);

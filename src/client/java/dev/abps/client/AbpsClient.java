@@ -21,6 +21,8 @@ public final class AbpsClient implements ClientModInitializer {
     public static KeyMapping menuKey;
     /** Shows or hides the HUD panel (level, ability keys and cooldowns, ultimate bar). */
     public static KeyMapping hudKey;
+    /** Switches between your PvP and Gatherer attributes. */
+    public static KeyMapping roleKey;
 
     private static boolean jumpWasDown;
     private static boolean wasOnGround = true;
@@ -37,6 +39,7 @@ public final class AbpsClient implements ClientModInitializer {
         }
         menuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod.menu", InputConstants.KEY_M, CATEGORY));
         hudKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod.hud", InputConstants.KEY_H, CATEGORY));
+        roleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.abpsmod.role", InputConstants.KEY_B, CATEGORY));
 
         registerReceivers();
         dev.abps.client.fx.FxClient.init();
@@ -161,6 +164,9 @@ public final class AbpsClient implements ClientModInitializer {
             send("toggle_hud", "");
             mc.player.sendOverlayMessage(net.minecraft.network.chat.Component.literal(nowShown ? "HUD panel shown" : "HUD panel hidden (press "
                     + hudKey.getTranslatedKeyMessage().getString() + " to show it again)"));
+        }
+        while (roleKey.consumeClick()) {
+            if (connected() && mc.gui.screen() == null) send("switchrole", "");
         }
         while (menuKey.consumeClick()) {
             if (mc.gui.screen() == null) mc.gui.setScreen(new MenuScreen("overview"));

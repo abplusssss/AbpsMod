@@ -331,7 +331,8 @@ public final class ServerEvents {
                 dev.abps.classes.Role r = dev.abps.classes.Role.of(arg);
                 if (r != null) s.chooseRole(p, r);
             }
-            case "switchrole" -> s.confirmSwitchRole(p);
+            case "switchrole" -> s.switchRole(p);
+            case "rerollother" -> s.confirmRerollOther(p);
             case "skill" -> dev.abps.skills.Skills.buy(p, arg);
             case "respec" -> dev.abps.skills.Skills.respec(p);
             case "toggle_aura" -> {

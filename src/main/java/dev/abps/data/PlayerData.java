@@ -47,8 +47,25 @@ public final class PlayerData {
     public String title = "";
     /** Turns your attribute off completely: no abilities, passives or weaknesses until you turn it back on. */
     public boolean powersOff = false;
-    /** "pvp" or "gatherer": which pool rerolls come from. Empty until the player picks one. */
+    /** "pvp" or "gatherer": the role being played right now. classId, level and skills above belong to it. */
     public String role = "";
+
+    /**
+     * Every player has one attribute per role. The one in use lives in classId, level and skills; the other is
+     * parked here under its role id until the player switches to it.
+     */
+    public static final class Slot {
+        public String classId;
+        public int level = 1;
+        public List<String> skills = new ArrayList<>();
+        /** Cooldowns and ultimate charge are kept while parked, so switching back and forth doesn't reset them. */
+        public transient long[] cooldownEnd;
+        public transient double ultCharge;
+        public transient long ultLockUntil;
+    }
+
+    public Map<String, Slot> slots = new HashMap<>();
+    public transient long roleSwitchAt;
     /** Skill tree nodes this player has taken (see SkillTree). Points come from levels. */
     public java.util.List<String> skills = new java.util.ArrayList<>();
     /** Pyromancer: the heat aura that sets enemies near you on fire. */

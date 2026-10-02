@@ -72,7 +72,7 @@ public final class Net {
                               float ultCharge, long ultLockLeft, long combatLeft, boolean noCooldown,
                               int abilitiesUsed, int rerolls, String upgradeCost, boolean canUpgrade,
                               String rerollCost, boolean canReroll, boolean hud, boolean panel, double cooldownCut,
-                              boolean admin, int flags, List<String> skills, int points)
+                              boolean admin, int flags, List<String> skills, int points, String role, String otherClass, int otherLevel)
             implements CustomPacketPayload {
         public static final Type<SyncPayload> TYPE = newType("sync");
         public static final StreamCodec<RegistryFriendlyByteBuf, SyncPayload> CODEC = CustomPacketPayload.codec(
@@ -100,6 +100,9 @@ public final class Net {
                     buf.writeVarInt(p.flags);
                     writeStrings(buf, p.skills);
                     buf.writeVarInt(p.points);
+                    buf.writeUtf(p.role);
+                    buf.writeUtf(p.otherClass);
+                    buf.writeVarInt(p.otherLevel);
                 },
                 buf -> {
                     String classId = buf.readUtf();
@@ -114,7 +117,8 @@ public final class Net {
                     return new SyncPayload(classId, level, maxLevel, unlock, left, total, buf.readFloat(),
                             buf.readVarLong(), buf.readVarLong(), buf.readBoolean(), buf.readVarInt(), buf.readVarInt(),
                             buf.readUtf(), buf.readBoolean(), buf.readUtf(), buf.readBoolean(), buf.readBoolean(),
-                            buf.readBoolean(), buf.readDouble(), buf.readBoolean(), buf.readVarInt(), readStrings(buf), buf.readVarInt());
+                            buf.readBoolean(), buf.readDouble(), buf.readBoolean(), buf.readVarInt(), readStrings(buf), buf.readVarInt(),
+                            buf.readUtf(), buf.readUtf(), buf.readVarInt());
                 });
 
         /** Bits in flags. */

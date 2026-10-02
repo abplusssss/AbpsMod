@@ -173,6 +173,10 @@ public final class Service {
             if (d.role.isEmpty()) d.role = c.adminOnly() ? dev.abps.classes.Role.PVP.id : c.role().id;
             // Coming from the old level system: their levels become skill points, abilities first
             if (d.skills.isEmpty() && d.level > 1) dev.abps.skills.Skills.autoAllocate(d, c);
+            // Everyone has an attribute for both roles; players from before roles get the second one now
+            if (!c.adminOnly() && otherSlot(d) == null) Tasks.later(60, () -> {
+                if (!p.isRemoved()) ensureOtherSlot(p, true);
+            });
             if (!d.powersOff) c.applyStatic(p, d);
             AbpsMod.state().updateLeaderboard(p.getUUID(), p.getName().getString(), d.classId, d.level);
             if (cfg().joinMessage) Tasks.later(30, () -> {
@@ -216,6 +220,15 @@ public final class Service {
         PlayerData d = data(p);
         AttributeClass old = cls(d);
         if (old != null) old.cleanup(p, d);
+        // Given an attribute of the other role (admin command): the current one is parked, not lost
+        if (old != null && c != null && !old.adminOnly() && !c.adminOnly() && old.role() != c.role()) {
+            PlayerData.Slot park = new PlayerData.Slot();
+            park.classId = d.classId;
+            park.level = d.level;
+            park.skills = new ArrayList<>(d.skills);
+            d.slots.put(old.role().id, park);
+            d.slots.remove(c.role().id);
+        }
         d.resetRuntime();
         d.classId = c == null ? null : c.id();
         if (c != null && !c.adminOnly()) d.role = c.role().id;
@@ -270,7 +283,7 @@ public final class Service {
             return;
         }
         raw(p, LINE);
-        raw(p, " <gold><bold>Pick your role</bold>");
+        raw(p, " <gold><bold>Pick the role to start in</bold> <gray>(you get an attribute for both and can switch any time)");
         for (dev.abps.classes.Role r : dev.abps.classes.Role.values()) {
             raw(p, " " + dev.abps.util.Text.colorTag(r.color) + "<bold>" + r.label + "</bold> <gray>" + r.blurb);
         }
@@ -281,40 +294,126 @@ public final class Service {
         raw(p, LINE);
     }
 
-    /** First pick: sets the role and rolls an attribute from it. Does nothing once they already have an attribute. */
+    /**
+     * First pick: which role to start in. The player gets an attribute for both roles: the chosen one is rolled now
+     * (with the animation) and the other is rolled quietly and parked until they switch to it.
+     */
     public void chooseRole(ServerPlayer p, dev.abps.classes.Role role) {
         PlayerData d = data(p);
         if (cls(d) != null || d.rolling || p.isRemoved()) return;
         d.role = role.id;
         AbpsMod.data().save(p, d);
-        send(p, "<gray>You picked " + dev.abps.util.Text.colorTag(role.color) + "<bold>" + role.label + "</bold><gray>. Rolling your attribute...");
+        send(p, "<gray>Starting as " + dev.abps.util.Text.colorTag(role.color) + "<bold>" + role.label + "</bold><gray>. You get one attribute for each role and can switch any time.");
         roll(p, true);
+        Tasks.later(70, () -> {
+            if (!p.isRemoved()) ensureOtherSlot(p, true);
+        });
     }
 
-    public void promptSwitchRole(ServerPlayer p) {
+    /** The parked attribute for the role not in use, or null if there isn't one yet. */
+    public PlayerData.Slot otherSlot(PlayerData d) {
+        PlayerData.Slot s = d.slots.get(roleOf(d).other().id);
+        return s == null || Classes.get(s.classId) == null ? null : s;
+    }
+
+    /** Makes sure the role not in use has an attribute, rolling one at level 1 if it doesn't. */
+    public void ensureOtherSlot(ServerPlayer p, boolean announce) {
         PlayerData d = data(p);
+        if (cls(d) == null || otherSlot(d) != null) return;
+        dev.abps.classes.Role other = roleOf(d).other();
+        PlayerData.Slot s = new PlayerData.Slot();
+        s.classId = randomClass(null, other).id();
+        d.slots.put(other.id, s);
+        AbpsMod.data().save(p, d);
+        AttributeClass c = Classes.get(s.classId);
+        if (announce && c != null) {
+            send(p, "<gray>Your " + dev.abps.util.Text.colorTag(other.color) + other.label + "</gray> <gray>attribute is " + c.display()
+                    + "<gray>. Switch to it any time from the menu, with <yellow>!Role</yellow> or your Switch Role key.");
+        }
+    }
+
+    /** Swaps to the other role's attribute. Free, but not in combat, mid-roll, or twice within 3 seconds. */
+    public void switchRole(ServerPlayer p) {
+        PlayerData d = data(p);
+        AttributeClass now = cls(d);
+        if (now == null || d.rolling || p.isRemoved()) return;
+        if (now.adminOnly()) {
+            send(p, "<gray>Overlord has no second role.");
+            return;
+        }
+        if (d.inCombat()) {
+            actionBar(p, "<red>You can't switch roles in combat.");
+            denied(p);
+            return;
+        }
+        long wait = d.roleSwitchAt + 3000 - System.currentTimeMillis();
+        if (wait > 0) {
+            actionBar(p, "<gray>Wait " + Text.time(wait) + " before switching again.");
+            return;
+        }
+        ensureOtherSlot(p, false);
+        PlayerData.Slot next = otherSlot(d);
+        if (next == null) return;
+        dev.abps.classes.Role from = roleOf(d), to = from.other();
+        // Park the current attribute with its cooldowns and charge
+        PlayerData.Slot park = new PlayerData.Slot();
+        park.classId = d.classId;
+        park.level = d.level;
+        park.skills = new ArrayList<>(d.skills);
+        park.cooldownEnd = d.cooldownEnd.clone();
+        park.ultCharge = d.ultCharge;
+        park.ultLockUntil = d.ultLockUntil;
+        now.cleanup(p, d);
+        d.slots.put(from.id, park);
+        d.slots.remove(to.id);
+        // And bring the other one out
+        d.classId = next.classId;
+        d.level = Math.max(1, Math.min(cfg().maxLevel, next.level));
+        d.skills = new ArrayList<>(next.skills);
+        d.cooldownEnd = next.cooldownEnd != null ? next.cooldownEnd.clone() : new long[7];
+        d.ultCharge = next.ultCharge;
+        d.ultLockUntil = next.ultLockUntil;
+        java.util.Arrays.fill(d.readyNotified, true);
+        d.role = to.id;
+        d.roleSwitchAt = System.currentTimeMillis();
+        dev.abps.skills.Skills.trim(d);
+        reapply(p);
+        AbpsMod.data().save(p, d);
+        AbpsMod.state().updateLeaderboard(p.getUUID(), p.getName().getString(), d.classId, d.level);
+        AttributeClass c = cls(d);
+        if (c != null) {
+            banner(p, c.gradient("<bold>" + c.name().toUpperCase() + "</bold>"), dev.abps.util.Text.colorTag(to.color) + to.label + " <gray>· Level " + d.level, c.rgb(), 30);
+            Fx.sound(level(p), p, SoundEvents.ILLUSIONER_MIRROR_MOVE, 0.8f, 1.2f);
+        }
+    }
+
+    public void promptRerollOther(ServerPlayer p) {
+        PlayerData d = data(p);
+        PlayerData.Slot s = otherSlot(d);
+        if (s == null) {
+            ensureOtherSlot(p, true);
+            return;
+        }
         if (hasMod(p)) {
-            ServerPlayNetworking.send(p, new Net.OpenMenuPayload("switch_role"));
+            ServerPlayNetworking.send(p, new Net.OpenMenuPayload("confirm_reroll_other"));
             return;
         }
-        dev.abps.classes.Role to = roleOf(d).other();
+        AttributeClass c = Classes.get(s.classId);
+        dev.abps.classes.Role r = roleOf(d).other();
         raw(p, LINE);
-        raw(p, " <gold><bold>Switch to " + to.label + "?</bold>");
-        raw(p, " <gray>" + to.blurb);
-        raw(p, " <red>You roll a new " + to.label + " attribute and lose your levels and XP, like a reroll.");
+        raw(p, " <gold><bold>Reroll your " + r.label + " attribute?</bold>");
+        raw(p, " <gray>Current: " + (c == null ? "?" : c.display()) + " <gray>(Level " + s.level + ")");
+        raw(p, " <red>You lose its levels and every XP level you have.");
         raw(p, " <gray>Price: " + cfg().rerollCost().describe(p));
-        p.sendSystemMessage(buttons("Switch", "Pay and switch role", () -> confirmSwitchRole(p)));
+        p.sendSystemMessage(buttons("Reroll", "Pay and reroll", () -> confirmRerollOther(p)));
         raw(p, LINE);
     }
 
-    /** Pays the reroll price, moves to the other role and rolls an attribute from it. */
-    public void confirmSwitchRole(ServerPlayer p) {
+    /** Rerolls the parked attribute (the role not in use) for the reroll price. */
+    public void confirmRerollOther(ServerPlayer p) {
         PlayerData d = data(p);
-        if (d.rolling || p.isRemoved()) return;
-        if (cls(d) == null) {
-            askRole(p);
-            return;
-        }
+        PlayerData.Slot s = otherSlot(d);
+        if (s == null || d.rolling || p.isRemoved()) return;
         Cost cost = cfg().rerollCost();
         if (!cost.canAfford(p)) {
             send(p, "<red>You can't afford this. You need " + cost.describe(p) + "<red>.");
@@ -324,9 +423,19 @@ public final class Service {
         cost.take(p);
         p.setExperienceLevels(0);
         p.setExperiencePoints(0);
-        d.role = roleOf(d).other().id;
+        dev.abps.classes.Role r = roleOf(d).other();
+        PlayerData.Slot fresh = new PlayerData.Slot();
+        fresh.classId = randomClass(cfg().rerollNoRepeat ? s.classId : null, r).id();
+        d.slots.put(r.id, fresh);
         d.rerolls++;
-        roll(p, true);
+        AbpsMod.data().save(p, d);
+        AttributeClass c = Classes.get(fresh.classId);
+        Fx.sound(level(p), p, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.1f);
+        if (c != null) {
+            banner(p, c.gradient("<bold>" + c.name().toUpperCase() + "</bold>"), "<gray>Your new " + r.label + " attribute", c.rgb(), 50);
+            send(p, "<gray>Your " + r.label + " attribute is now " + c.display() + "<gray>.");
+        }
+        sync(p, true);
     }
 
     /** Gatherers fill their ultimate by gathering. amount is a fraction of a full charge. */
@@ -765,12 +874,13 @@ public final class Service {
                 re.canAfford(p), d.hud, d.sidebar, cfg().cooldownReductionAtMax,
                 dev.abps.command.Commands.isAdmin(p.createCommandSourceStack()),
                 (d.powersOff ? Net.SyncPayload.POWERS_OFF : 0) | (d.pyroAura ? Net.SyncPayload.PYRO_AURA : 0),
-                new ArrayList<>(d.skills), dev.abps.skills.Skills.points(d));
+                new ArrayList<>(d.skills), dev.abps.skills.Skills.points(d), roleOf(d).id,
+                otherSlot(d) == null ? "" : otherSlot(d).classId, otherSlot(d) == null ? 0 : otherSlot(d).level);
         // Only send when something the player can see changed (cooldowns tick down on the client)
         int hash = Objects.hash(payload.classId(), payload.level(), Arrays.hashCode(roundUp(left)), Math.round(d.ultCharge * 200),
                 payload.ultLockLeft() / 1000, payload.combatLeft() / 1000, payload.noCooldown(), payload.upgradeCost(),
                 payload.canUpgrade(), payload.rerollCost(), payload.canReroll(), payload.hud(), payload.panel(), d.abilitiesUsed, payload.admin(),
-                payload.flags(), payload.skills(), payload.points(), Arrays.hashCode(unlock));
+                payload.flags(), payload.skills(), payload.points(), Arrays.hashCode(unlock), payload.role(), payload.otherClass(), payload.otherLevel());
         if (!force && hash == d.lastSyncHash) return;
         d.lastSyncHash = hash;
         ServerPlayNetworking.send(p, payload);

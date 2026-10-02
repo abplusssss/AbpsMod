@@ -7,5 +7,6 @@
   "key.abpsmod.ability5": "Ability 5",
   "key.abpsmod.ultimate": "Ultimate",
   "key.abpsmod.menu": "Open Menu",
-  "key.abpsmod.hud": "Show / Hide HUD Panel"
+  "key.abpsmod.hud": "Show / Hide HUD Panel",
+  "key.abpsmod.role": "Switch Role (PvP / Gatherer)"
 }
