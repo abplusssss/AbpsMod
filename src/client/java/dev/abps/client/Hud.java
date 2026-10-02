@@ -48,9 +48,8 @@ public final class Hud implements HudElement {
         int x = prefs.hudOnRight ? 4 : g.guiWidth() - w - 4;
         int y = g.guiWidth() < 182 + 2 * (w + 8) ? 44 : 4;
         int c1 = h.color() == 0 ? 0xB388FF : h.color(), c2 = Text.lerp(c1, 0xFFFFFF, 0.5f);
-        Draw.panel(g, x, y, w, hh, Draw.PANEL);
-        Draw.hGradient(g, x + 1, y, w - 2, 1, Draw.opaque(c1), Draw.opaque(c2));
-        Draw.hGradient(g, x, y + 1, w, 6, Draw.argb(c1, 0x40), Draw.argb(c2, 0x08));
+        Draw.window(g, x, y, w, hh, c1, Text.lerp(c1, 0x000000, 0.45f), 0xE80E0D14);
+        Draw.hGradient(g, x + 1, y + 2, w - 2, 6, Draw.argb(c1, 0x34), Draw.argb(c2, 0x06));
 
         String clock = "<white>" + Text.time(ClientState.dungeonElapsed());
         int clockW = Draw.font().width(Text.mm(clock));
@@ -102,10 +101,8 @@ public final class Hud implements HudElement {
         if (combat > 0) h += 12;
 
         // Background with a glowing top edge in the class colors
-        Draw.panel(g, x, y, WIDTH, h, Draw.PANEL);
-        Draw.hGradient(g, x + 1, y, WIDTH - 2, 1, Draw.opaque(c1), Draw.opaque(c2));
-        // Full width: the panel only has cut corners on its very first row, so the glow must reach both edges below it
-        Draw.hGradient(g, x, y + 1, WIDTH, 6, Draw.argb(c1, 0x40), Draw.argb(c2, 0x10));
+        Draw.window(g, x, y, WIDTH, h, c1, c2, 0xE80E0D14);
+        Draw.hGradient(g, x + 1, y + 2, WIDTH - 2, 6, Draw.argb(c1, 0x34), Draw.argb(c2, 0x0C));
 
         // Header: icon, class name, level
         Draw.item(g, c.icon(), x + 4, y + 4, 0.625f); // 10px so it sits level with the name and clear of the level bar

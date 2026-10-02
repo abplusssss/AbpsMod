@@ -56,7 +56,8 @@ public final class TextInput {
         this.y = y;
         this.w = w;
         this.h = h;
-        Draw.framed(g, x, y, w, h, 0xF0060609, focused ? Draw.opaque(accent) : 0xFF3A3A44);
+        // Like Minecraft's text boxes: black inside, a gray edge that lights up in the accent color while typing
+        Draw.framed(g, x, y, w, h, 0xFF000000, focused ? Draw.opaque(accent) : 0xFF6E6E78);
         boolean blink = focused && (System.currentTimeMillis() / 500) % 2 == 0;
         String shown = text.isEmpty() && !focused ? "<dark_gray>" + placeholder : "<white>" + text + (blink ? "_" : "");
         Draw.text(g, shown, x + 4, y + (h - 8) / 2);

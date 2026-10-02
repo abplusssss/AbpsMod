@@ -126,10 +126,8 @@ public final class MenuScreen extends Screen {
 
     private void button(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h, String label, int color, boolean enabled, Runnable action) {
         boolean hover = enabled && Draw.inside(mx, my, x, y, w, h);
-        int border = enabled ? Draw.opaque(hover ? Text.lerp(color, 0xFFFFFF, 0.35f) : color) : 0xFF3A3A44;
-        int fill = enabled ? Draw.argb(color, hover ? 0x70 : 0x38) : 0xC0202028;
-        Draw.framed(g, x, y, w, h, fill, border);
-        Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2);
+        Draw.button(g, x, y, w, h, color, hover, enabled);
+        Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 12 ? 1 : 0));
         if (enabled) buttons.add(new Btn(x, y, w, h, Text.strip(label), action));
     }
 
@@ -152,11 +150,9 @@ public final class MenuScreen extends Screen {
         g.pose().translate(0, (1 - open) * 10);
 
         // Main panel
-        Draw.panel(g, px - 1, py - 1, pw + 2, ph + 2, Draw.argb(c1, 0x60));
-        Draw.panel(g, px, py, pw, ph, 0xF00C0C12);
-        Draw.hGradient(g, px + 1, py, pw - 2, 1, Draw.opaque(c1), Draw.opaque(c2));
-        Draw.hGradient(g, px, py + 1, pw, 1, Draw.opaque(c1), Draw.opaque(c2));
-        Draw.hGradient(g, px, py + 2, pw, 22, Draw.argb(c1, 0x30), Draw.argb(c2, 0x08));
+        Draw.window(g, px, py, pw, ph, c1, c2, 0xF00E0D14);
+        Draw.hGradient(g, px + 1, py + 2, pw - 2, 21, Draw.argb(c1, 0x34), Draw.argb(c2, 0x08));
+        Draw.divider(g, px + 1, py + 23, pw - 2, Draw.argb(c1, 0xA0), Draw.argb(c2, 0x30));
         Draw.text(g, "<bold>" + Draw.gradient(c1, c2, "ABPS") + "</bold> <gray>Attributes</gray>", px + 8, py + 9);
         if (s != null && c != null) {
             String right = Draw.gradient(c1, c2, c.symbol() + " " + c.name()) + " <dark_gray>|</dark_gray> <white>Lv " + s.level() + "</white><gray>/" + s.maxLevel() + "</gray>";
@@ -174,12 +170,9 @@ public final class MenuScreen extends Screen {
             if (t == Tab.ADMIN && !isAdmin) continue;
             boolean active = t == tab;
             boolean hover = Draw.inside(mx, my, px + 6, ty, 84, tabH);
-            if (active) {
-                Draw.panel(g, px + 6, ty, 84, tabH, Draw.argb(c1, 0x50));
-                g.fill(px + 6, ty + 3, px + 8, ty + tabH - 3, Draw.opaque(c1));
-            } else if (hover) {
-                Draw.panel(g, px + 6, ty, 84, tabH, 0x30FFFFFF);
-            }
+            // The open tab is a raised button in the class color, the others sit flat until hovered
+            if (active) Draw.button(g, px + 6, ty, 84, tabH, c1, false, true);
+            else if (hover) Draw.framed(g, px + 6, ty, 84, tabH, 0x28FFFFFF, 0x50FFFFFF);
             String icon = t == Tab.OVERVIEW && c != null ? c.icon() : t.icon;
             float iconScale = tabH >= 20 ? 1f : tabH >= 14 ? 0.8f : 0.6f;
             Draw.item(g, icon, px + 11, ty + (tabH - 16 * iconScale) / 2f, iconScale);
@@ -189,7 +182,8 @@ public final class MenuScreen extends Screen {
             buttons.add(new Btn(px + 6, ty, 84, tabH, "tab:" + target.name(), () -> switchTab(target)));
             ty += step;
         }
-        g.fill(px + 93, py + 30, px + 94, py + ph - 8, Draw.LINE);
+        g.fill(px + 93, py + 30, px + 94, py + ph - 8, 0x60000000);
+        g.fill(px + 94, py + 30, px + 95, py + ph - 8, 0x18FFFFFF);
 
         // Content
         if (s == null || !AbpsClient.connected()) {
@@ -223,8 +217,10 @@ public final class MenuScreen extends Screen {
                 float frac = (float) ch / contentHeight;
                 int barH = Math.max(12, (int) (ch * frac));
                 int barY = cy + (int) ((ch - barH) * (scroll / Math.max(1, contentHeight - ch)));
-                g.fill(px + pw - 5, cy, px + pw - 3, cy + ch, 0x30FFFFFF);
-                g.fill(px + pw - 5, barY, px + pw - 3, barY + barH, Draw.opaque(c1));
+                g.fill(px + pw - 6, cy, px + pw - 2, cy + ch, 0x80000000);
+                g.fill(px + pw - 6, barY, px + pw - 2, barY + barH, Draw.opaque(Text.lerp(c1, 0x000000, 0.25f)));
+                g.fill(px + pw - 6, barY, px + pw - 3, barY + barH - 1, Draw.opaque(c1));
+                g.fill(px + pw - 6, barY, px + pw - 3, barY + 1, Draw.opaque(Text.lerp(c1, 0xFFFFFF, 0.4f)));
             }
             // Buttons hidden by the scroll area should not be clickable
             buttons.removeIf(b -> b.x >= cx && (b.y + b.h <= cy || b.y >= cy + ch));
@@ -297,7 +293,7 @@ public final class MenuScreen extends Screen {
     private int section(GuiGraphicsExtractor g, String title, int color, int x, int y) {
         Draw.text(g, "<bold>" + Draw.gradient(color, Text.lerp(color, 0xFFFFFF, 0.5f), title) + "</bold>", x, y);
         int tw = Draw.font().width(Text.mm("<bold>" + title));
-        Draw.hGradient(g, x + tw + 6, y + 4, cw - 22 - tw, 1, Draw.argb(color, 0x90), Draw.argb(color, 0));
+        Draw.divider(g, x + tw + 6, y + 4, cw - 22 - tw, Draw.argb(color, 0x90), Draw.argb(color, 0));
         return y + 12;
     }
 
@@ -649,12 +645,13 @@ public final class MenuScreen extends Screen {
     private int toggle(GuiGraphicsExtractor g, int mx, int my, int x, int y, String label, boolean on, Runnable flip) {
         int w = cw - 16;
         boolean hover = Draw.inside(mx, my, x, y, w, 18);
-        Draw.panel(g, x, y, w, 18, hover ? 0x40FFFFFF : 0x60000000);
-        Draw.text(g, "<white>" + label, x + 6, y + 5);
+        Draw.framed(g, x, y, w, 18, hover ? 0x38FFFFFF : 0x70000000, hover ? 0x60FFFFFF : 0x40000000);
+        Draw.textFit(g, "<white>" + label, x + 6, y + 5, w - 42);
+        // A sunken track with a raised knob, like a lever: green and to the right when on
         int sx = x + w - 30;
-        Draw.panel(g, sx, y + 4, 24, 10, on ? 0xFF2E7D5B : 0xFF3A3A44);
-        int knob = on ? sx + 14 : sx + 1;
-        Draw.panel(g, knob, y + 5, 9, 8, on ? 0xFF69F0AE : 0xFF9E9EA8);
+        Draw.framed(g, sx, y + 4, 24, 10, on ? 0xFF1E5A40 : 0xFF202026, 0xFF000000);
+        int knob = on ? sx + 13 : sx + 1;
+        Draw.button(g, knob, y + 4, 10, 10, on ? 0x69F0AE : 0x9E9EA8, hover, true);
         buttons.add(new Btn(x, y, w, 18, () -> {
             flip.run();
             ClientPrefs.get().save();
@@ -887,11 +884,7 @@ public final class MenuScreen extends Screen {
         int w = Math.min(pw - 40, 260), h = reroll ? 146 : 130;
         int x = px + (pw - w) / 2, y = py + (ph - h) / 2;
         int col = reroll ? 0xFF5252 : 0x69F0AE;
-        Draw.panel(g, x - 1, y - 1, w + 2, h + 2, Draw.argb(col, 0x90));
-        Draw.panel(g, x, y, w, h, 0xF8101016);
-        int col2 = Text.lerp(col, 0xFFFFFF, 0.5f);
-        Draw.hGradient(g, x + 1, y, w - 2, 1, Draw.opaque(col), Draw.opaque(col2));
-        Draw.hGradient(g, x, y + 1, w, 1, Draw.opaque(col), Draw.opaque(col2));
+        Draw.window(g, x, y, w, h, col, Text.lerp(col, 0x000000, 0.4f), 0xF8100F16);
         int yy = y + 8;
         if (reroll) {
             Draw.scaled(g, "<bold><gradient:#FF5252:#FFAB40>Reroll your attribute?</gradient></bold>", x + w / 2f, yy, 1.25f, true);

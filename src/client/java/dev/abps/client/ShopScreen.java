@@ -86,10 +86,8 @@ public final class ShopScreen extends Screen {
 
     private void button(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h, String label, int color, boolean enabled, Runnable action) {
         boolean hover = enabled && Draw.inside(mx, my, x, y, w, h);
-        int border = enabled ? Draw.opaque(hover ? Text.lerp(color, 0xFFFFFF, 0.35f) : color) : 0xFF3A3A44;
-        int fill = enabled ? Draw.argb(color, hover ? 0x70 : 0x38) : 0xC0202028;
-        Draw.framed(g, x, y, w, h, fill, border);
-        Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2);
+        Draw.button(g, x, y, w, h, color, hover, enabled);
+        Draw.centered(g, enabled ? label : "<dark_gray>" + Text.strip(label), x + w / 2, y + (h - 8) / 2 - (enabled && h >= 12 ? 1 : 0));
         if (enabled) buttons.add(new Btn(x, y, w, h, Text.strip(label), action));
     }
 
@@ -161,10 +159,8 @@ public final class ShopScreen extends Screen {
         g.pose().translate(0, (1 - open) * 10);
 
         int c1 = 0x2E7D5B, c2 = GREEN;
-        Draw.panel(g, px - 1, py - 1, pw + 2, ph + 2, Draw.argb(c2, 0x60));
-        Draw.panel(g, px, py, pw, ph, 0xF00C0C12);
-        Draw.hGradient(g, px + 1, py, pw - 2, 2, Draw.opaque(c1), Draw.opaque(BLUE));
-        Draw.hGradient(g, px, py + 2, pw, 30, Draw.argb(c2, 0x28), Draw.argb(BLUE, 0x06));
+        Draw.window(g, px, py, pw, ph, c2, BLUE, 0xF00E0D14);
+        Draw.hGradient(g, px + 1, py + 2, pw - 2, 30, Draw.argb(c2, 0x28), Draw.argb(BLUE, 0x06));
         boolean popupOpen = !popup.isEmpty();
         int mmx = popupOpen ? -1 : mx, mmy = popupOpen ? -1 : my;
 
@@ -312,9 +308,7 @@ public final class ShopScreen extends Screen {
         w = Math.min(w, pw - 20);
         h = Math.min(h, ph - 16);
         int x = px + (pw - w) / 2, y = py + (ph - h) / 2;
-        Draw.panel(g, x - 1, y - 1, w + 2, h + 2, Draw.argb(color, 0x90));
-        Draw.panel(g, x, y, w, h, 0xF8101016);
-        Draw.hGradient(g, x + 1, y, w - 2, 2, Draw.opaque(color), Draw.opaque(Text.lerp(color, 0xFFFFFF, 0.5f)));
+        Draw.window(g, x, y, w, h, color, Text.lerp(color, 0x000000, 0.4f), 0xF8100F16);
         return new int[]{x, y, w, h};
     }
 

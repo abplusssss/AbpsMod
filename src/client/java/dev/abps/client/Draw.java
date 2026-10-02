@@ -53,10 +53,59 @@ public final class Draw {
         g.fill(x + w - 1, y + 1, x + w, y + h - 1, color);
     }
 
-    /** A panel with a thin colored border. */
+    /**
+     * A card or row, sunk into the window like an inventory slot: a colored edge, then a dark line along the top and
+     * left inside it and a faint light line along the bottom and right.
+     */
     public static void framed(GuiGraphicsExtractor g, int x, int y, int w, int h, int fill, int border) {
-        panel(g, x, y, w, h, border);
-        panel(g, x + 1, y + 1, w - 2, h - 2, fill);
+        if (w <= 0 || h <= 0) return;
+        g.fill(x, y, x + w, y + h, border);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, fill);
+        if (w > 6 && h > 6) {
+            g.fill(x + 1, y + 1, x + w - 1, y + 2, 0x48000000);
+            g.fill(x + 1, y + 2, x + 2, y + h - 1, 0x30000000);
+            g.fill(x + 2, y + h - 2, x + w - 1, y + h - 1, 0x16FFFFFF);
+            g.fill(x + w - 2, y + 2, x + w - 1, y + h - 2, 0x10FFFFFF);
+        }
+    }
+
+    /**
+     * A window in the style of Minecraft's item tooltips: a black outline with cut corners, a border that fades from
+     * c1 at the top to c2 at the bottom, a dark body and a soft bevel inside.
+     */
+    public static void window(GuiGraphicsExtractor g, int x, int y, int w, int h, int c1, int c2, int body) {
+        panel(g, x - 1, y - 1, w + 2, h + 2, 0xFF050507);
+        panel(g, x, y, w, h, body);
+        int top = argb(c1, 0xD0), bottom = argb(c2, 0xA0);
+        g.fill(x + 1, y, x + w - 1, y + 1, top);
+        g.fill(x + 1, y + h - 1, x + w - 1, y + h, bottom);
+        g.fillGradient(x, y + 1, x + 1, y + h - 1, top, bottom);
+        g.fillGradient(x + w - 1, y + 1, x + w, y + h - 1, top, bottom);
+        g.fill(x + 1, y + 1, x + w - 1, y + 2, 0x1CFFFFFF);
+        g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, 0x50000000);
+    }
+
+    /**
+     * A button shaped like Minecraft's: black outline, a body tinted with color, a light edge on top and a dark edge
+     * along the bottom. Hovering turns the outline white like vanilla buttons do. Disabled buttons are flat and dark.
+     */
+    public static void button(GuiGraphicsExtractor g, int x, int y, int w, int h, int color, boolean hover, boolean enabled) {
+        if (w <= 0 || h <= 0) return;
+        g.fill(x, y, x + w, y + h, enabled && hover ? 0xFFFFFFFF : 0xFF000000);
+        int base = enabled ? Text.lerp(0x55555E, color & 0xFFFFFF, 0.45f) : 0x26262C;
+        if (enabled && hover) base = Text.lerp(base, 0xFFFFFF, 0.15f);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, opaque(base));
+        if (!enabled || h < 5) return;
+        g.fill(x + 1, y + 1, x + w - 1, y + 2, opaque(Text.lerp(base, 0xFFFFFF, 0.35f)));
+        g.fill(x + 1, y + 2, x + 2, y + h - 2, opaque(Text.lerp(base, 0xFFFFFF, 0.18f)));
+        g.fill(x + w - 2, y + 2, x + w - 1, y + h - 2, opaque(Text.lerp(base, 0x000000, 0.3f)));
+        g.fill(x + 1, y + h - 2, x + w - 1, y + h - 1, opaque(Text.lerp(base, 0x000000, 0.5f)));
+    }
+
+    /** A thin line with a dark line under it, so it looks pressed into the window. */
+    public static void divider(GuiGraphicsExtractor g, int x, int y, int w, int from, int to) {
+        hGradient(g, x, y, w, 1, from, to);
+        hGradient(g, x, y + 1, w, 1, 0x70000000, 0);
     }
 
     /** Left to right color gradient. */
@@ -71,12 +120,16 @@ public final class Draw {
         }
     }
 
-    /** A progress bar with a gradient fill. */
+    /** A progress bar like the XP bar: a dark trough, a gradient fill with a light top row and a darker bottom row. */
     public static void bar(GuiGraphicsExtractor g, int x, int y, int w, int h, float progress, int c1, int c2) {
-        g.fill(x, y, x + w, y + h, 0xC0000000);
+        g.fill(x, y, x + w, y + h, 0xD0000000);
         int filled = Math.round(w * Math.max(0, Math.min(1, progress)));
-        if (filled > 0) hGradient(g, x, y, filled, h, opaque(c1), opaque(c2));
-        g.fill(x, y, x + w, y + 1, 0x30FFFFFF);
+        if (filled > 0) {
+            hGradient(g, x, y, filled, h, opaque(c1), opaque(c2));
+            g.fill(x, y, x + filled, y + 1, 0x60FFFFFF);
+            if (h >= 4) g.fill(x, y + h - 1, x + filled, y + h, 0x50000000);
+        }
+        if (filled < w) g.fill(x + filled, y, x + w, y + 1, 0x18FFFFFF);
     }
 
     public static void text(GuiGraphicsExtractor g, String markup, int x, int y) {

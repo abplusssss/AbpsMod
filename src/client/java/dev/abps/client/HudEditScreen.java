@@ -61,8 +61,8 @@ public final class HudEditScreen extends Screen {
 
     private void button(GuiGraphicsExtractor g, int mx, int my, int x, int y, int w, int h, String label, int color) {
         boolean hover = Draw.inside(mx, my, x, y, w, h);
-        Draw.framed(g, x, y, w, h, Draw.argb(color, hover ? 0x80 : 0x40), Draw.opaque(color));
-        Draw.centered(g, label, x + w / 2, y + (h - 8) / 2);
+        Draw.button(g, x, y, w, h, color, hover, true);
+        Draw.centered(g, label, x + w / 2, y + (h - 8) / 2 - 1);
     }
 
     @Override
