@@ -440,15 +440,17 @@ public final class MenuScreen extends Screen {
         y = section(g, "Dungeons", 0xB388FF, x, y);
         String[] dungeons = {
                 "<white>Find every custom item in the new <yellow>AbpsMod</yellow> creative tab.",
-                "<white><gold>Rebuilt dungeon halls</gold>: round domed boss and arena halls with galleries, column rings, chandeliers and lantern circles; vaulted octagon rooms with lit lattice walls, grand gateways and arched corridors.",
-                "<white>Five dungeons: three story dungeons with a boss each, <light_purple>The Shifting Depths</light_purple> (new rooms and a random boss every run) and the <gold>Endless Arena</gold>.",
+                "<white><gold>No more bosses</gold>: every dungeon ends in the <red>Final Hall</red>, where the doors seal and wave after wave of monsters pours in, the last led by champions.",
+                "<white><gold>4 new dungeons</gold>: the <#9CCC65>Overgrown Ruins</#9CCC65>, the <#FFCA28>Sunscorched Tomb</#FFCA28>, the <#26C6DA>Sunken Temple</#26C6DA> and the <#CE93D8>Void Sanctum</#CE93D8>, each with its own monsters.",
+                "<white><gold>Rebuilt dungeon halls</gold>: round domed halls with galleries, column rings, chandeliers and lantern circles; vaulted octagon rooms with lit lattice walls, grand gateways and arched corridors.",
+                "<white>Nine dungeons: seven story dungeons, <light_purple>The Shifting Depths</light_purple> (new rooms in any style every run) and the <gold>Endless Arena</gold>.",
                 "<white>Go alone or with a party of up to 4. The party leader starts the run from the <yellow>Dungeons</yellow> tab.",
-                "<white>Bosses warn you first: a red ring or lane on the ground fills up, then hits. Get out of it!",
+                "<white>Big moves warn you first: a red ring or lane on the ground fills up, then hits. Get out of it!",
                 "<white>Falling in a dungeon downs you instead of killing you. The party shares a few downs.",
                 "<white>15 dungeon items with special powers, best times, top 5 boards and titles to show next to your name.",
                 "<white>Ruined stone arches appear in new land. Walk through one to start The Shifting Depths.",
                 "<white>13 dungeon monsters with their own moves, elites with traits, champion rooms and shrines that bless your party.",
-                "<white>Much more detailed rooms, a second boss phase, loot for every room and an S/A/B/C grade at the end."};
+                "<white>Much more detailed rooms, loot for every room and an S/A/B/C grade at the end."};
         for (String n : dungeons) y += Draw.wrapped(g, "<light_purple>•</light_purple> " + n, x, y, w, Draw.TEXT) + 3;
         button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Dungeons", 0xB388FF, true, () -> switchTab(Tab.DUNGEONS));
         y += 26;
@@ -1460,7 +1462,7 @@ public final class MenuScreen extends Screen {
             Draw.framed(g, x, y, w, h, 0xE0101016, Draw.argb(col, 0x90));
             Draw.item(g, d.icon(), x + 8, y + 6, 1.5f);
             Draw.textFit(g, "<bold>" + Draw.gradient(col, col2, d.name()) + "</bold>", x + 38, y + 6, textW);
-            Draw.textFit(g, "<gold>" + "★".repeat(Math.max(0, d.difficulty())) + "</gold><dark_gray>" + "☆".repeat(Math.max(0, 3 - d.difficulty()))
+            Draw.textFit(g, "<gold>" + "★".repeat(Math.max(0, d.difficulty())) + "</gold><dark_gray>" + "☆".repeat(Math.max(0, 4 - d.difficulty()))
                     + "</dark_gray> <dark_gray>·</dark_gray> <gray>" + modeName(d.mode()), x + 38, y + 17, textW);
             Draw.wrapped(g, blurb, x + 38, y + 29, textW, Draw.MUTED);
             String startLabel = !dp.inRun().isEmpty() ? "In a run" : !dp.leader() ? "Leader only" : size > 1 ? "<white><bold>Start (" + size + ")" : "<white><bold>Start";

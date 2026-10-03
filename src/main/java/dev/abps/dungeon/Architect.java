@@ -56,6 +56,22 @@ final class Architect {
                     d(Blocks.CHISELED_DEEPSLATE), d(Blocks.CHISELED_DEEPSLATE), d(Blocks.OCHRE_FROGLIGHT), d(Blocks.SOUL_LANTERN),
                     d(Blocks.DEEPSLATE_BRICK_STAIRS), d(Blocks.DEEPSLATE_TILE_SLAB), d(Blocks.DEEPSLATE_BRICK_WALL), d(Blocks.DEEPSLATE_TILES),
                     Blocks.STAINED_GLASS.purple().defaultBlockState());
+            case OCEAN -> new Style(d(Blocks.PRISMARINE_BRICKS), d(Blocks.PRISMARINE), d(Blocks.DARK_PRISMARINE), d(Blocks.DARK_PRISMARINE),
+                    d(Blocks.PRISMARINE_BRICKS), d(Blocks.PRISMARINE), d(Blocks.SEA_LANTERN), d(Blocks.DARK_PRISMARINE), d(Blocks.PRISMARINE_BRICKS),
+                    d(Blocks.DARK_PRISMARINE), d(Blocks.SEA_LANTERN), d(Blocks.SOUL_LANTERN), d(Blocks.PRISMARINE_BRICK_STAIRS),
+                    d(Blocks.PRISMARINE_BRICK_SLAB), d(Blocks.PRISMARINE_WALL), d(Blocks.DARK_PRISMARINE), Blocks.STAINED_GLASS.cyan().defaultBlockState());
+            case JUNGLE -> new Style(d(Blocks.MOSSY_STONE_BRICKS), d(Blocks.CRACKED_STONE_BRICKS), d(Blocks.MOSS_BLOCK), d(Blocks.MOSSY_COBBLESTONE),
+                    d(Blocks.STONE_BRICKS), d(Blocks.COBBLESTONE), d(Blocks.MOSS_BLOCK), d(Blocks.JUNGLE_LOG), d(Blocks.CHISELED_STONE_BRICKS),
+                    d(Blocks.CHISELED_STONE_BRICKS), d(Blocks.VERDANT_FROGLIGHT), d(Blocks.LANTERN), d(Blocks.MOSSY_STONE_BRICK_STAIRS),
+                    d(Blocks.MOSSY_STONE_BRICK_SLAB), d(Blocks.MOSSY_STONE_BRICK_WALL), d(Blocks.STONE_BRICKS), Blocks.STAINED_GLASS.lime().defaultBlockState());
+            case DESERT -> new Style(d(Blocks.CUT_SANDSTONE), d(Blocks.SANDSTONE), d(Blocks.CUT_RED_SANDSTONE), d(Blocks.SMOOTH_SANDSTONE),
+                    d(Blocks.SANDSTONE), d(Blocks.SMOOTH_RED_SANDSTONE), d(Blocks.GOLD_BLOCK), d(Blocks.SMOOTH_SANDSTONE), d(Blocks.CHISELED_SANDSTONE),
+                    d(Blocks.CHISELED_RED_SANDSTONE), d(Blocks.OCHRE_FROGLIGHT), d(Blocks.LANTERN), d(Blocks.SANDSTONE_STAIRS), d(Blocks.SANDSTONE_SLAB),
+                    d(Blocks.SANDSTONE_WALL), d(Blocks.SMOOTH_SANDSTONE), Blocks.STAINED_GLASS.orange().defaultBlockState());
+            case VOID -> new Style(d(Blocks.END_STONE_BRICKS), d(Blocks.END_STONE), d(Blocks.PURPUR_BLOCK), d(Blocks.PURPUR_BLOCK),
+                    d(Blocks.OBSIDIAN), d(Blocks.END_STONE_BRICKS), d(Blocks.CRYING_OBSIDIAN), d(Blocks.PURPUR_PILLAR), d(Blocks.OBSIDIAN),
+                    d(Blocks.PURPUR_BLOCK), d(Blocks.PEARLESCENT_FROGLIGHT), d(Blocks.SOUL_LANTERN), d(Blocks.PURPUR_STAIRS), d(Blocks.PURPUR_SLAB),
+                    d(Blocks.END_STONE_BRICK_WALL), d(Blocks.OBSIDIAN), Blocks.STAINED_GLASS.magenta().defaultBlockState());
             default -> new Style(d(Blocks.STONE_BRICKS), d(Blocks.MOSSY_STONE_BRICKS), d(Blocks.DEEPSLATE_BRICKS), d(Blocks.DEEPSLATE_TILES),
                     d(Blocks.POLISHED_DEEPSLATE), d(Blocks.COBBLED_DEEPSLATE), d(Blocks.CHISELED_DEEPSLATE), d(Blocks.POLISHED_DEEPSLATE),
                     d(Blocks.CHISELED_STONE_BRICKS), d(Blocks.CHISELED_STONE_BRICKS), d(Blocks.VERDANT_FROGLIGHT), d(Blocks.SOUL_LANTERN),
@@ -220,7 +236,6 @@ final class Architect {
         props(b, sh, st, theme, r, rnd);
 
         switch (r.type) {
-            case BOSS -> throne(b, sh, st);
             case START -> {
                 lamp(b, st, sh.x0 + 2, sh.y0 + 1, sh.mid - 3);
                 lamp(b, st, sh.x0 + 2, sh.y0 + 1, sh.mid + 3);

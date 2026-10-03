@@ -99,6 +99,53 @@ final class Decor {
                     default -> b.set(x, y, z, Blocks.DECORATED_POT.defaultBlockState());
                 }
             }
+            case OCEAN -> {
+                switch (rnd.nextInt(5)) {
+                    case 0 -> b.set(x, y, z, Blocks.WET_SPONGE.defaultBlockState());
+                    case 1 -> b.set(x, y, z, Blocks.TUBE_CORAL_BLOCK.defaultBlockState());
+                    case 2 -> b.set(x, y, z, Blocks.BRAIN_CORAL_BLOCK.defaultBlockState());
+                    case 3 -> {
+                        b.set(x, y, z, Blocks.PRISMARINE_BRICKS.defaultBlockState());
+                        b.set(x, y + 1, z, Blocks.SEA_LANTERN.defaultBlockState());
+                    }
+                    default -> b.set(x, y, z, Blocks.DECORATED_POT.defaultBlockState());
+                }
+            }
+            case JUNGLE -> {
+                switch (rnd.nextInt(5)) {
+                    case 0 -> b.set(x, y, z, Blocks.AZALEA.defaultBlockState());
+                    case 1 -> b.set(x, y, z, Blocks.FLOWERING_AZALEA.defaultBlockState());
+                    case 2 -> b.set(x, y, z, Blocks.MOSS_CARPET.defaultBlockState());
+                    case 3 -> {
+                        b.set(x, y, z, Blocks.MOSSY_COBBLESTONE.defaultBlockState());
+                        b.set(x, y + 1, z, Blocks.MOSS_CARPET.defaultBlockState());
+                    }
+                    default -> b.set(x, y, z, Blocks.BARREL.defaultBlockState());
+                }
+            }
+            case DESERT -> {
+                switch (rnd.nextInt(5)) {
+                    case 0 -> b.set(x, y, z, Blocks.DECORATED_POT.defaultBlockState());
+                    case 1 -> b.set(x, y, z, Blocks.SUSPICIOUS_SAND.defaultBlockState());
+                    case 2 -> b.set(x, y, z, candles(rnd));
+                    case 3 -> {
+                        b.set(x, y, z, Blocks.CHISELED_SANDSTONE.defaultBlockState());
+                        b.set(x, y + 1, z, candles(rnd));
+                    }
+                    default -> b.set(x, y, z, Blocks.RAW_GOLD_BLOCK.defaultBlockState());
+                }
+            }
+            case VOID -> {
+                switch (rnd.nextInt(4)) {
+                    case 0 -> b.set(x, y, z, Blocks.END_ROD.defaultBlockState());
+                    case 1 -> b.set(x, y, z, Blocks.CHORUS_FLOWER.defaultBlockState());
+                    case 2 -> {
+                        b.set(x, y, z, Blocks.PURPUR_PILLAR.defaultBlockState());
+                        b.set(x, y + 1, z, Blocks.END_ROD.defaultBlockState());
+                    }
+                    default -> b.set(x, y, z, Blocks.OBSIDIAN.defaultBlockState());
+                }
+            }
         }
     }
 
@@ -133,6 +180,31 @@ final class Decor {
                 b.set(x, y, z, Blocks.SCULK.defaultBlockState());
                 b.set(x, y + 1, z, Blocks.AMETHYST_CLUSTER.defaultBlockState());
                 b.set(x + 1, y - 1, z, Blocks.SCULK.defaultBlockState());
+            }
+            case OCEAN -> {
+                // A broken prismarine column with a light on top
+                int tall = 1 + rnd.nextInt(3);
+                for (int k = 0; k < tall; k++) b.set(x, y + k, z, k == 0 ? Blocks.DARK_PRISMARINE.defaultBlockState() : Blocks.PRISMARINE_BRICKS.defaultBlockState());
+                b.set(x, y + tall, z, Blocks.SEA_LANTERN.defaultBlockState());
+            }
+            case JUNGLE -> {
+                // A mossy boulder with a bush growing on it
+                b.set(x, y, z, Blocks.MOSSY_COBBLESTONE.defaultBlockState());
+                b.set(x + 1, y, z, Blocks.MOSS_BLOCK.defaultBlockState());
+                b.set(x, y + 1, z, Blocks.FLOWERING_AZALEA.defaultBlockState());
+            }
+            case DESERT -> {
+                // A sarcophagus: two carved blocks end to end with gold at the head
+                b.set(x, y, z, Blocks.CHISELED_SANDSTONE.defaultBlockState());
+                b.set(x + 1, y, z, Blocks.CUT_SANDSTONE.defaultBlockState());
+                b.set(x, y + 1, z, Blocks.GOLD_BLOCK.defaultBlockState());
+            }
+            case VOID -> {
+                // A small chorus tree
+                b.set(x, y, z, Blocks.END_STONE.defaultBlockState());
+                int tall = 1 + rnd.nextInt(3);
+                for (int k = 1; k <= tall; k++) b.set(x, y + k, z, Blocks.CHORUS_PLANT.defaultBlockState());
+                b.set(x, y + tall + 1, z, Blocks.CHORUS_FLOWER.defaultBlockState());
             }
         }
     }

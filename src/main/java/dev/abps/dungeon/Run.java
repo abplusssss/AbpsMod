@@ -130,6 +130,9 @@ public final class Run {
     long nextWaveAt;
     int partySize;
     BossBrain brain;
+    /** The final hall: which wave it's on, how many there are, and how big the current one was. */
+    int finalWave, finalWaves, finalWaveSize;
+    long finalNextAt;
     Blessing blessing;
     ServerBossEvent bar;
     int ticks;
@@ -147,14 +150,14 @@ public final class Run {
         }
         this.maxDowns = 2 + party.size();
         if (def.mode() == DungeonDef.Mode.RANDOM) {
-            DungeonDef.Palette[] pals = {DungeonDef.CRYPT, DungeonDef.FROST, DungeonDef.FORGE, DungeonDef.ANCIENT};
+            DungeonDef.Palette[] pals = {DungeonDef.CRYPT, DungeonDef.FROST, DungeonDef.FORGE, DungeonDef.ANCIENT, DungeonDef.OCEAN, DungeonDef.JUNGLE,
+                    DungeonDef.DESERT, DungeonDef.VOID};
             this.palette = pals[rnd.nextInt(pals.length)];
-            DungeonDef.Boss[] bosses = DungeonDef.Boss.values();
-            this.boss = bosses[rnd.nextInt(bosses.length)];
         } else {
             this.palette = def.palette();
-            this.boss = def.boss();
         }
+        // No bosses: every dungeon ends in a final hall full of waves of monsters
+        this.boss = null;
         this.mobs = def.mobs();
         this.maxX = layout();
     }
@@ -233,7 +236,9 @@ public final class Run {
         int cx = (int) Math.floor(c.x), cz = (int) Math.floor(c.z);
         switch (r.type) {
             case TREASURE -> {
-                builder.set(cx, y + 1, cz, Blocks.CHEST.defaultBlockState());
+                // Facing the door you come in by (rooms are entered from the west)
+                builder.set(cx, y + 1, cz, Blocks.CHEST.defaultBlockState().setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING,
+                        net.minecraft.core.Direction.WEST));
                 builder.set(cx - 1, y, cz, Blocks.GOLD_BLOCK.defaultBlockState());
                 builder.set(cx + 1, y, cz, Blocks.GOLD_BLOCK.defaultBlockState());
                 builder.set(cx, y, cz - 1, Blocks.GOLD_BLOCK.defaultBlockState());
@@ -423,10 +428,7 @@ public final class Run {
             case START, TREASURE -> clear(r);
             case SHRINE -> shrine(r, ps);
             case TRAP -> trap(r, ps);
-            case BOSS -> {
-                if (brain != null) brain.tick(ps);
-                if (brain != null && brain.dead()) win();
-            }
+            case BOSS -> finalHall(r, ps);
             default -> {
                 if (alive(r) == 0) clear(r);
             }
@@ -461,18 +463,10 @@ public final class Run {
                     + "<#69F0AE>green Vigor</#69F0AE> or <#40C4FF>blue Swiftness</#40C4FF>.");
             case MINIBOSS -> {
                 // A champion: a big custom mob with two traits, and guards
-                MobKit.Kind kind = MobKit.pick(this, MobKit.themeOf(palette));
-                MobKit.Affix a1 = MobKit.randomAffix(this), a2 = MobKit.randomAffix(this);
-                Mob champ = MobKit.spawn(this, kind, r.center().add(r.w * 0.2, 0, 0), r, a1, true);
-                if (champ != null) {
-                    MobKit.applyAffix(champ, a2);
-                    Mods.setBase(champ, Attributes.MAX_HEALTH, champ.getMaxHealth() * 2);
-                    champ.setHealth(champ.getMaxHealth());
-                    Mods.setBase(champ, Attributes.SCALE, kind.scale * 1.6);
-                    champ.setCustomName(dev.abps.util.Text.mm("<red><bold>Champion " + kind.title + "</bold> <gray>(" + a1.label + ", " + a2.label + ")"));
-                }
+                Mob champ = champion(r);
+                String who = champ == null || champ.getCustomName() == null ? "" : champ.getCustomName().getString();
                 MobKit.populate(this, r, 2 + n, () -> randomSpot(r));
-                for (ServerPlayer p : online()) AbpsMod.service().banner(p, "<bold><red>CHAMPION</red></bold>", "<gray>" + kind.title, 0xFF5252, 40);
+                for (ServerPlayer p : online()) AbpsMod.service().banner(p, "<bold><red>CHAMPION</red></bold>", "<gray>" + who, 0xFF5252, 40);
                 sound(SoundEvents.RAID_HORN, 0.6f, 0.8f);
             }
             case TREASURE -> {
@@ -482,27 +476,77 @@ public final class Run {
                 sound(SoundEvents.PLAYER_LEVELUP, 0.6f, 1.6f);
             }
             case BOSS -> {
-                brain = BossBrain.create(this, boss, r);
-                bar = new ServerBossEvent(UUID.randomUUID(), dev.abps.util.Text.mm("<bold>" + boss.title + "</bold>"), barColor(), BossEvent.BossBarOverlay.NOTCHED_10);
+                // The final hall: the way back is sealed and the waves begin
+                finalWaves = 3 + def.difficulty();
+                finalWave = 0;
+                bar = new ServerBossEvent(UUID.randomUUID(), dev.abps.util.Text.mm("<bold>Final Hall</bold>"), BossEvent.BossBarColor.RED,
+                        BossEvent.BossBarOverlay.NOTCHED_10);
                 for (ServerPlayer p : online()) bar.addPlayer(p);
-                // Seal the way back in
                 Builder.open(level, r.min.getX(), r.floor(), r.midZ());
                 for (int dz = -1; dz <= 1; dz++)
                     for (int dy = 1; dy <= 3; dy++) level.setBlock(new BlockPos(r.min.getX(), r.floor() + dy, r.midZ() + dz), Builder.BARS, 3);
                 sound(SoundEvents.WITHER_SPAWN, 0.6f, 0.8f);
-                for (ServerPlayer p : online()) AbpsMod.service().banner(p, "<bold>" + dev.abps.util.Text.colorTag(boss.color) + boss.title + "</bold>", "<gray>Boss", boss.color, 60);
+                for (ServerPlayer p : online())
+                    AbpsMod.service().banner(p, "<bold><gradient:#FF5252:#FFAB40>THE FINAL HALL</gradient></bold>", "<gray>" + finalWaves + " waves stand between you and the treasure", 0xFF5252, 60);
+                finalNextAt = System.currentTimeMillis() + 2500;
             }
             default -> {
             }
         }
     }
 
-    private BossEvent.BossBarColor barColor() {
-        return switch (boss) {
-            case HOLLOW_KING -> BossEvent.BossBarColor.GREEN;
-            case GLACIAL_WARDEN -> BossEvent.BossBarColor.BLUE;
-            case INFERNAL_COLOSSUS -> BossEvent.BossBarColor.RED;
-        };
+    /** The final hall: wave after wave of monsters, the last ones led by champions. Clearing them all wins the run. */
+    private void finalHall(Room r, List<ServerPlayer> ps) {
+        int left = alive(r);
+        if (bar != null) {
+            bar.setName(dev.abps.util.Text.mm("<bold>Final Hall</bold> <gray>wave " + Math.max(1, finalWave) + "/" + finalWaves + " · " + left + " left"));
+            bar.setProgress(finalWaveSize == 0 ? 1f : Math.max(0f, Math.min(1f, left / (float) finalWaveSize)));
+        }
+        if (left > 0) return;
+        long now = System.currentTimeMillis();
+        if (finalNextAt == 0) {
+            if (finalWave >= finalWaves) {
+                win();
+                return;
+            }
+            finalNextAt = now + 4000;
+            bar("<green>✔ Wave " + finalWave + " cleared!</green> <gray>The next one comes in 4 seconds...");
+            sound(SoundEvents.PLAYER_LEVELUP, 0.5f, 1.4f);
+            return;
+        }
+        if (now < finalNextAt) return;
+        finalNextAt = 0;
+        finalWave++;
+        boolean last = finalWave == finalWaves;
+        int count = 10 + def.difficulty() * 3 + partySize * 3 + finalWave * 4;
+        MobKit.populate(this, r, count, () -> randomSpot(r));
+        // Elites from the second wave on, and champions leading the last one
+        if (finalWave >= 2) {
+            MobKit.Kind kind = MobKit.pick(this, MobKit.themeOf(palette));
+            MobKit.spawn(this, kind, randomSpot(r), r, MobKit.randomAffix(this), true);
+        }
+        if (last) for (int k = 0; k < 1 + Math.max(1, partySize / 2); k++) champion(r);
+        finalWaveSize = alive(r);
+        sound(SoundEvents.RAID_HORN, 0.7f, last ? 0.7f : 1f);
+        for (ServerPlayer p : ps) {
+            AbpsMod.service().banner(p, last ? "<bold><red>FINAL WAVE</red></bold>" : "<bold><gold>WAVE " + finalWave + "/" + finalWaves + "</gold></bold>",
+                    "<gray>" + finalWaveSize + " monsters" + (last ? ", led by champions" : ""), last ? 0xFF5252 : 0xFFD54F, 40);
+        }
+    }
+
+    /** A champion: a big dungeon monster with two traits and double health. */
+    private Mob champion(Room r) {
+        MobKit.Kind kind = MobKit.pick(this, MobKit.themeOf(palette));
+        MobKit.Affix a1 = MobKit.randomAffix(this), a2 = MobKit.randomAffix(this);
+        Mob champ = MobKit.spawn(this, kind, randomSpot(r), r, a1, true);
+        if (champ != null) {
+            MobKit.applyAffix(champ, a2);
+            Mods.setBase(champ, Attributes.MAX_HEALTH, champ.getMaxHealth() * 2);
+            champ.setHealth(champ.getMaxHealth());
+            Mods.setBase(champ, Attributes.SCALE, kind.scale * 1.6);
+            champ.setCustomName(dev.abps.util.Text.mm("<red><bold>Champion " + kind.title + "</bold> <gray>(" + a1.label + ", " + a2.label + ")"));
+        }
+        return champ;
     }
 
     private void clear(Room r) {
@@ -568,6 +612,10 @@ public final class Run {
             case FROST -> sound(SoundEvents.POWDER_SNOW_STEP, 0.4f, 0.5f);
             case FORGE -> sound(SoundEvents.BLAZE_AMBIENT, 0.25f, 0.5f);
             case DEPTHS -> sound(SoundEvents.WARDEN_HEARTBEAT, 0.4f, 0.8f);
+            case OCEAN -> sound(SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT, 0.3f, 0.6f);
+            case JUNGLE -> sound(SoundEvents.BREEZE_IDLE_AIR, 0.25f, 0.6f);
+            case DESERT -> sound(SoundEvents.POINTED_DRIPSTONE_LAND, 0.4f, 0.6f);
+            case VOID -> sound(SoundEvents.PORTAL_AMBIENT, 0.2f, 0.5f);
         }
     }
 
@@ -647,13 +695,10 @@ public final class Run {
         wave++;
         sound(SoundEvents.RAID_HORN, 0.6f, 1f + Math.min(0.6f, wave * 0.02f));
         if (wave % 10 == 0) {
-            DungeonDef.Boss[] all = DungeonDef.Boss.values();
-            DungeonDef.Boss b = all[(wave / 10 - 1) % all.length];
-            brain = BossBrain.create(this, b, r);
-            bar = new ServerBossEvent(UUID.randomUUID(), dev.abps.util.Text.mm("<bold>" + b.title + "</bold> <gray>wave " + wave), BossEvent.BossBarColor.PURPLE,
-                    BossEvent.BossBarOverlay.NOTCHED_10);
-            for (ServerPlayer p : ps) bar.addPlayer(p);
-            for (ServerPlayer p : ps) AbpsMod.service().banner(p, "<bold><light_purple>WAVE " + wave + "</bold>", "<gray>" + b.title + " joins the fight", 0xB388FF, 50);
+            // Every tenth wave: a pack of champions
+            int champs = 1 + wave / 10 + partySize / 2;
+            for (int k = 0; k < champs; k++) champion(r);
+            for (ServerPlayer p : ps) AbpsMod.service().banner(p, "<bold><light_purple>WAVE " + wave + "</bold>", "<gray>" + champs + " champions", 0xB388FF, 50);
             return;
         }
         int count = 3 + wave + partySize * 2;

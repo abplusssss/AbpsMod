@@ -32,7 +32,7 @@ final class MobKit {
     private MobKit() {
     }
 
-    enum Theme { CRYPT, FROST, FORGE, DEPTHS }
+    enum Theme { CRYPT, FROST, FORGE, DEPTHS, OCEAN, JUNGLE, DESERT, VOID }
 
     enum Kind {
         GRAVE_KNIGHT("Grave Knight", EntityTypes.ZOMBIE, Theme.CRYPT, 1.2, 2.2, 1.2, 0x9E9E9E),
@@ -47,7 +47,19 @@ final class MobKit {
         FORGE_WARDEN("Forge Warden", EntityTypes.WITHER_SKELETON, Theme.FORGE, 1.45, 2.4, 1.2, 0x8D6E63),
         SCULK_LURKER("Sculk Lurker", EntityTypes.ZOMBIE, Theme.DEPTHS, 1.1, 1.8, 1.3, 0x00897B),
         ECHO_WITCH("Echo Witch", EntityTypes.WITCH, Theme.DEPTHS, 1.0, 1.5, 1.0, 0xB388FF),
-        SHADE("Shade", EntityTypes.VEX, Theme.DEPTHS, 1.2, 1.8, 1.0, 0x311B92);
+        SHADE("Shade", EntityTypes.VEX, Theme.DEPTHS, 1.2, 1.8, 1.0, 0x311B92),
+        TIDE_KNIGHT("Tide Knight", EntityTypes.DROWNED, Theme.OCEAN, 1.25, 2.4, 1.3, 0x26C6DA),
+        REEF_CRAWLER("Reef Crawler", EntityTypes.SPIDER, Theme.OCEAN, 1.1, 1.6, 1.1, 0x00897B),
+        TIDE_CALLER("Tide Caller", EntityTypes.EVOKER, Theme.OCEAN, 1.0, 1.6, 1.0, 0x80DEEA),
+        VINE_LURKER("Vine Lurker", EntityTypes.ZOMBIE, Theme.JUNGLE, 1.1, 1.6, 1.1, 0x7CB342),
+        THORN_ARCHER("Thorn Archer", EntityTypes.BOGGED, Theme.JUNGLE, 1.0, 1.3, 1.0, 0x9CCC65),
+        SPORE_WITCH("Spore Witch", EntityTypes.WITCH, Theme.JUNGLE, 1.0, 1.4, 1.0, 0xAED581),
+        MUMMY("Mummy", EntityTypes.HUSK, Theme.DESERT, 1.15, 2.0, 1.2, 0xD7CCC8),
+        TOMB_ARCHER("Tomb Archer", EntityTypes.SKELETON, Theme.DESERT, 1.0, 1.4, 1.1, 0xFFCA28),
+        SAND_WRAITH("Sand Wraith", EntityTypes.VEX, Theme.DESERT, 1.2, 1.8, 1.0, 0xFFE082),
+        VOID_KNIGHT("Void Knight", EntityTypes.WITHER_SKELETON, Theme.VOID, 1.35, 2.6, 1.3, 0xBA68C8),
+        END_STALKER("End Stalker", EntityTypes.ENDERMAN, Theme.VOID, 1.0, 1.3, 1.1, 0x7B1FA2),
+        SHULKER_SENTRY("Shulker Sentry", EntityTypes.SHULKER, Theme.VOID, 1.0, 2.0, 1.0, 0xCE93D8);
 
         final String title;
         final EntityType<? extends Mob> type;
@@ -99,6 +111,10 @@ final class MobKit {
         if (pal == DungeonDef.FROST) return Theme.FROST;
         if (pal == DungeonDef.FORGE) return Theme.FORGE;
         if (pal == DungeonDef.ANCIENT) return Theme.DEPTHS;
+        if (pal == DungeonDef.OCEAN) return Theme.OCEAN;
+        if (pal == DungeonDef.JUNGLE) return Theme.JUNGLE;
+        if (pal == DungeonDef.DESERT) return Theme.DESERT;
+        if (pal == DungeonDef.VOID) return Theme.VOID;
         return Theme.CRYPT;
     }
 
@@ -146,7 +162,7 @@ final class MobKit {
                 wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));
                 wear(m, EquipmentSlot.OFFHAND, new ItemStack(Items.SHIELD));
             }
-            case BONE_CALLER -> {
+            case BONE_CALLER, TIDE_CALLER -> {
                 wear(m, EquipmentSlot.HEAD, new ItemStack(Items.SKELETON_SKULL));
                 wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.BONE));
             }
@@ -177,6 +193,31 @@ final class MobKit {
                 m.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 20 * 3600, 0, false, false));
             }
             case SHADE -> m.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 20 * 3600, 0, false, false));
+            case TIDE_KNIGHT -> {
+                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.TURTLE_HELMET));
+                wear(m, EquipmentSlot.CHEST, new ItemStack(Items.CHAINMAIL_CHESTPLATE));
+                wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.TRIDENT));
+            }
+            case VINE_LURKER -> {
+                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.MOSS_BLOCK));
+                m.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 3600, 0, false, false));
+            }
+            case THORN_ARCHER -> wear(m, EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
+            case MUMMY -> {
+                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.BONE_BLOCK));
+                Mods.setBase(m, Attributes.KNOCKBACK_RESISTANCE, 0.5);
+            }
+            case TOMB_ARCHER -> {
+                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.GOLDEN_HELMET));
+                wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.BOW));
+            }
+            case SAND_WRAITH -> m.addEffect(new MobEffectInstance(MobEffects.SPEED, 20 * 3600, 0, false, false));
+            case VOID_KNIGHT -> {
+                wear(m, EquipmentSlot.HEAD, new ItemStack(Items.PURPUR_BLOCK));
+                wear(m, EquipmentSlot.CHEST, new ItemStack(Items.NETHERITE_CHESTPLATE));
+                wear(m, EquipmentSlot.MAINHAND, new ItemStack(Items.NETHERITE_SWORD));
+                Mods.setBase(m, Attributes.KNOCKBACK_RESISTANCE, 0.6);
+            }
             default -> {
             }
         }
@@ -283,7 +324,7 @@ final class MobKit {
         double dist = m.distanceTo(t);
         Vec3 ground = new Vec3(t.getX(), b.room != null ? b.room.floor() + 1 : t.getY(), t.getZ());
         switch (b.kind) {
-            case GRAVE_KNIGHT, FORGE_WARDEN -> {
+            case GRAVE_KNIGHT, FORGE_WARDEN, TIDE_KNIGHT, VOID_KNIGHT -> {
                 if (dist < 3 || dist > 12) return 20;
                 // Charge: a lane on the ground, then a rush down it
                 Vec3 from = new Vec3(m.getX(), ground.y, m.getZ());
@@ -295,7 +336,7 @@ final class MobKit {
                     Tasks.later(6, () -> {
                         for (ServerPlayer p : run.online()) {
                             if (p.distanceToSqr(m) < 3.2) {
-                                hit(run, m, p, b.kind == Kind.FORGE_WARDEN ? 9 : 7);
+                                hit(run, m, p, b.kind == Kind.FORGE_WARDEN || b.kind == Kind.VOID_KNIGHT ? 9 : 7);
                                 dev.abps.util.Targets.velocity(p, to.subtract(from).normalize().scale(0.9).add(0, 0.4, 0));
                             }
                         }
@@ -304,7 +345,7 @@ final class MobKit {
                 run.sound(SoundEvents.RAVAGER_ROAR, 0.4f, 1.6f);
                 return 140;
             }
-            case GHOUL, SCULK_LURKER -> {
+            case GHOUL, SCULK_LURKER, VINE_LURKER, MUMMY -> {
                 if (dist < 2.5 || dist > 9) return 15;
                 if (b.kind == Kind.SCULK_LURKER && !b.revealed) {
                     b.revealed = true;
@@ -325,7 +366,8 @@ final class MobKit {
                 for (int k = 0; k < 2; k++) {
                     double a = run.rnd.nextDouble() * Math.PI * 2;
                     Vec3 at = new Vec3(m.getX() + Math.cos(a) * 2, ground.y, m.getZ() + Math.sin(a) * 2);
-                    Mob s = run.spawn(EntityTypes.SKELETON, at, 0.4, "<gray>Restless Bones", b.room);
+                    boolean tide = b.kind == Kind.TIDE_CALLER;
+                    Mob s = run.spawn(tide ? EntityTypes.DROWNED : EntityTypes.SKELETON, at, 0.4, tide ? "<aqua>Drowned Servant" : "<gray>Restless Bones", b.room);
                     if (s != null) {
                         Mods.setBase(s, Attributes.SCALE, 0.7);
                         s.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.STONE_SWORD));
@@ -336,7 +378,7 @@ final class MobKit {
                 run.sound(SoundEvents.EVOKER_PREPARE_SUMMON, 0.8f, 1.2f);
                 return 200;
             }
-            case CRYPT_WEAVER -> {
+            case CRYPT_WEAVER, REEF_CRAWLER -> {
                 if (dist > 10) return 20;
                 // A web lands under the target and melts after a few seconds
                 BlockPos at = BlockPos.containing(t.getX(), ground.y, t.getZ());
@@ -349,7 +391,7 @@ final class MobKit {
                 run.sound(SoundEvents.PHANTOM_BITE, 0.6f, 1.6f);
                 return 140;
             }
-            case FROST_WRAITH -> {
+            case FROST_WRAITH, END_STALKER -> {
                 // Blink behind the target
                 Vec3 behind = t.position().subtract(t.getLookAngle().multiply(1, 0, 1).normalize().scale(2));
                 if (run.level.getBlockState(BlockPos.containing(behind)).isAir() && run.level.getBlockState(BlockPos.containing(behind).above()).isAir()) {
@@ -392,7 +434,7 @@ final class MobKit {
                 run.sound(SoundEvents.BLAZE_SHOOT, 0.6f, 1.4f);
                 return 100;
             }
-            case ECHO_WITCH -> {
+            case ECHO_WITCH, SPORE_WITCH -> {
                 if (dist > 16) return 20;
                 Dungeons.cue(run, dev.abps.items.CustomItems.FX_SOUL, m.position().add(0, 1.5, 0), t.position().add(0, 1, 0), t, 0);
                 t.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0));
@@ -411,7 +453,7 @@ final class MobKit {
     private static int moveB(Run run, Brain b, Mob m, ServerPlayer t, List<ServerPlayer> ps) {
         double dist = m.distanceTo(t);
         switch (b.kind) {
-            case FROST_WRAITH, FROST_SPRITE -> {
+            case FROST_WRAITH, FROST_SPRITE, TIDE_CALLER -> {
                 if (dist > 16) return 20;
                 Dungeons.cue(run, dev.abps.items.CustomItems.FX_FROST, m.position().add(0, 1.2, 0), t.position().add(0, 1, 0), t, 0);
                 Tasks.later(4, () -> {
@@ -422,7 +464,7 @@ final class MobKit {
                 run.sound(SoundEvents.PLAYER_HURT_FREEZE, 0.6f, 1.6f);
                 return 100;
             }
-            case SHADE -> {
+            case SHADE, SAND_WRAITH -> {
                 if (dist > 12) return 20;
                 Dungeons.cue(run, dev.abps.items.CustomItems.FX_SOUL, m.position().add(0, 0.5, 0), t.position().add(0, 1, 0), t, 0);
                 hit(run, m, t, 4);

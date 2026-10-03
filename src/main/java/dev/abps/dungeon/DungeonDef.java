@@ -15,9 +15,9 @@ public record DungeonDef(String id, String name, String blurb, Mode mode, int di
                          Boss boss, String title, String icon, int color) {
 
     public enum Mode {
-        /** A fixed run of rooms that ends with a boss. */
+        /** A fixed run of rooms that ends in the final hall. */
         STORY,
-        /** A new layout of rooms every time, then a random boss. */
+        /** A new layout of rooms every time, then the final hall. */
         RANDOM,
         /** One arena, waves that keep getting harder. Scored by the wave you reach. */
         WAVES
@@ -55,6 +55,19 @@ public record DungeonDef(String id, String name, String blurb, Mode mode, int di
             Blocks.SCULK.defaultBlockState(), Blocks.DEEPSLATE_TILES.defaultBlockState(), Blocks.REINFORCED_DEEPSLATE.defaultBlockState(),
             Blocks.OCHRE_FROGLIGHT.defaultBlockState(), Blocks.DEEPSLATE_TILES.defaultBlockState(), Blocks.CHISELED_DEEPSLATE.defaultBlockState());
 
+    public static final Palette OCEAN = new Palette(Blocks.PRISMARINE_BRICKS.defaultBlockState(), Blocks.PRISMARINE.defaultBlockState(),
+            Blocks.DARK_PRISMARINE.defaultBlockState(), Blocks.PRISMARINE.defaultBlockState(), Blocks.DARK_PRISMARINE.defaultBlockState(),
+            Blocks.SEA_LANTERN.defaultBlockState(), Blocks.DARK_PRISMARINE.defaultBlockState(), Blocks.SEA_LANTERN.defaultBlockState());
+    public static final Palette JUNGLE = new Palette(Blocks.MOSSY_STONE_BRICKS.defaultBlockState(), Blocks.CRACKED_STONE_BRICKS.defaultBlockState(),
+            Blocks.MOSSY_COBBLESTONE.defaultBlockState(), Blocks.MOSS_BLOCK.defaultBlockState(), Blocks.JUNGLE_LOG.defaultBlockState(),
+            Blocks.LANTERN.defaultBlockState(), Blocks.STONE_BRICKS.defaultBlockState(), Blocks.CHISELED_STONE_BRICKS.defaultBlockState());
+    public static final Palette DESERT = new Palette(Blocks.CUT_SANDSTONE.defaultBlockState(), Blocks.SANDSTONE.defaultBlockState(),
+            Blocks.SMOOTH_SANDSTONE.defaultBlockState(), Blocks.CUT_RED_SANDSTONE.defaultBlockState(), Blocks.CHISELED_SANDSTONE.defaultBlockState(),
+            Blocks.LANTERN.defaultBlockState(), Blocks.SMOOTH_SANDSTONE.defaultBlockState(), Blocks.CHISELED_RED_SANDSTONE.defaultBlockState());
+    public static final Palette VOID = new Palette(Blocks.END_STONE_BRICKS.defaultBlockState(), Blocks.PURPUR_BLOCK.defaultBlockState(),
+            Blocks.PURPUR_BLOCK.defaultBlockState(), Blocks.OBSIDIAN.defaultBlockState(), Blocks.PURPUR_PILLAR.defaultBlockState(),
+            Blocks.END_ROD.defaultBlockState(), Blocks.OBSIDIAN.defaultBlockState(), Blocks.CRYING_OBSIDIAN.defaultBlockState());
+
     public static final Map<String, DungeonDef> ALL = new LinkedHashMap<>();
 
     private static void add(DungeonDef d) {
@@ -71,7 +84,19 @@ public record DungeonDef(String id, String name, String blurb, Mode mode, int di
         add(new DungeonDef("forge", "The Infernal Forge", "A furnace of a fortress. Bring fire resistance.", Mode.STORY, 3, FORGE,
                 List.of(EntityTypes.WITHER_SKELETON, EntityTypes.BLAZE, EntityTypes.MAGMA_CUBE, EntityTypes.PIGLIN_BRUTE), Boss.INFERNAL_COLOSSUS,
                 "Flamewalker", "minecraft:magma_block", 0xFF6D00));
-        add(new DungeonDef("depths", "The Shifting Depths", "Different every time you go down. Any boss could be waiting.", Mode.RANDOM, 2, ANCIENT,
+        add(new DungeonDef("ruins", "The Overgrown Ruins", "Moss, vines and archers in the trees. A gentle start.", Mode.STORY, 1, JUNGLE,
+                List.of(EntityTypes.ZOMBIE, EntityTypes.BOGGED, EntityTypes.SPIDER, EntityTypes.WITCH), null,
+                "Pathfinder", "minecraft:moss_block", 0x9CCC65));
+        add(new DungeonDef("tomb", "The Sunscorched Tomb", "Sealed halls of sandstone where the dead keep watch.", Mode.STORY, 2, DESERT,
+                List.of(EntityTypes.HUSK, EntityTypes.SKELETON, EntityTypes.SPIDER, EntityTypes.HUSK), null,
+                "Tomb Raider", "minecraft:chiseled_sandstone", 0xFFCA28));
+        add(new DungeonDef("sunken", "The Sunken Temple", "A drowned temple of prismarine. Its keepers never left.", Mode.STORY, 3, OCEAN,
+                List.of(EntityTypes.DROWNED, EntityTypes.DROWNED, EntityTypes.CAVE_SPIDER, EntityTypes.ZOMBIE), null,
+                "Tidebreaker", "minecraft:prismarine_shard", 0x26C6DA));
+        add(new DungeonDef("void", "The Void Sanctum", "Purpur halls at the edge of nothing. The hardest of them all.", Mode.STORY, 4, VOID,
+                List.of(EntityTypes.ENDERMITE, EntityTypes.SKELETON, EntityTypes.VINDICATOR, EntityTypes.ZOMBIE), null,
+                "Voidtouched", "minecraft:end_crystal", 0xCE93D8));
+        add(new DungeonDef("depths", "The Shifting Depths", "Different every time you go down, in any of the dungeons' styles.", Mode.RANDOM, 2, ANCIENT,
                 List.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON, EntityTypes.SPIDER, EntityTypes.STRAY, EntityTypes.HUSK, EntityTypes.WITCH), null,
                 "Delver", "minecraft:sculk", 0xB388FF));
         add(new DungeonDef("arena", "Endless Arena", "Waves that never stop. How long can you last?", Mode.WAVES, 2, CRYPT,
@@ -84,6 +109,6 @@ public record DungeonDef(String id, String name, String blurb, Mode mode, int di
     }
 
     public String stars() {
-        return "★".repeat(difficulty) + "☆".repeat(Math.max(0, 3 - difficulty));
+        return "★".repeat(difficulty) + "☆".repeat(Math.max(0, 4 - difficulty));
     }
 }
