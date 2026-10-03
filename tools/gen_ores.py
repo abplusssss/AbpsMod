@@ -86,11 +86,6 @@ def textures():
             shutil.copy(os.path.join(tmp, f), os.path.join(item_dir, f))
     shutil.rmtree(tmp)
     # Blocks
-    ramp_recolor(f"{VT}/block/diamond_block.png", f"{block_dir}/ruby_block.png", "ruby", gamma=1.2)
-    ramp_recolor(f"{VT}/block/stone_bricks.png", f"{block_dir}/ruby_bricks.png", "ruby", gamma=0.9)
-    ramp_recolor(f"{VT}/block/redstone_lamp_on.png", f"{block_dir}/ruby_lamp.png", "ruby", gamma=0.7)
-    ramp_recolor(f"{VT}/block/netherite_block.png", f"{block_dir}/endite_block.png", "endite", gamma=1.45)
-    ramp_recolor(f"{VT}/block/polished_blackstone_bricks.png", f"{block_dir}/endite_plating.png", "endite", gamma=1.25)
     # Smithing template
     ramp_recolor(f"{VT}/item/netherite_upgrade_smithing_template.png", f"{item_dir}/endite_upgrade_smithing_template.png", "endite",
                  select=lambda c: c[3] > 10 and (c[0] > c[1] + 8 or abs(c[0] - c[1]) < 10 and c[0] < 120), gamma=1.0)
@@ -107,18 +102,16 @@ def textures():
 
 TOOLS = ["sword", "pickaxe", "axe", "shovel", "hoe"]
 ARMOR = ["helmet", "chestplate", "leggings", "boots"]
-SIMPLE_BLOCKS = ["ruby_ore", "deepslate_ruby_ore", "ruby_block", "ruby_bricks", "ruby_lamp", "endite_ore", "endite_block", "endite_plating"]
-STAIRS = {"ruby_brick_stairs": "ruby_bricks", "endite_plating_stairs": "endite_plating"}
-SLABS = {"ruby_brick_slab": "ruby_bricks", "endite_plating_slab": "endite_plating"}
+SIMPLE_BLOCKS = ["ruby_ore", "deepslate_ruby_ore", "endite_ore"]
+STAIRS = {}
+SLABS = {}
 FLAT_ITEMS = ["ruby", "endite_shard", "endite_ingot", "endite_upgrade_smithing_template"] + [f"{m}_{a}" for m in ("ruby", "endite") for a in ARMOR]
 HAND_ITEMS = [f"{m}_{t}" for m in ("ruby", "endite") for t in TOOLS]
 
 NAMES = {
     "ruby": "Ruby", "endite_shard": "Endite Shard", "endite_ingot": "Endite Ingot", "endite_upgrade_smithing_template": "Endite Upgrade",
-    "ruby_ore": "Ruby Ore", "deepslate_ruby_ore": "Deepslate Ruby Ore", "ruby_block": "Block of Ruby", "ruby_bricks": "Ruby Bricks",
-    "ruby_lamp": "Ruby Lamp", "endite_ore": "Endite Ore", "endite_block": "Block of Endite", "endite_plating": "Endite Plating",
-    "ruby_brick_stairs": "Ruby Brick Stairs", "ruby_brick_slab": "Ruby Brick Slab", "endite_plating_stairs": "Endite Plating Stairs",
-    "endite_plating_slab": "Endite Plating Slab",
+    "ruby_ore": "Ruby Ore", "deepslate_ruby_ore": "Deepslate Ruby Ore",
+    "endite_ore": "Endite Ore",
 }
 for m in ("ruby", "endite"):
     for t in TOOLS + ARMOR:
@@ -219,22 +212,11 @@ def data():
                                         "base": f"minecraft:netherite_{t}", "result": {"id": I(f"endite_{t}")},
                                         "template": I("endite_upgrade_smithing_template")})
     # Gems, ingots and blocks
-    recipe("ruby_block", shaped(["###", "###", "###"], {"#": I("ruby")}, I("ruby_block"), category="building"))
-    recipe("ruby_from_block", {"type": "minecraft:crafting_shapeless", "ingredients": [I("ruby_block")], "result": {"count": 9, "id": I("ruby")}})
-    recipe("endite_block", shaped(["###", "###", "###"], {"#": I("endite_ingot")}, I("endite_block"), category="building"))
-    recipe("endite_ingot_from_block", {"type": "minecraft:crafting_shapeless", "ingredients": [I("endite_block")], "result": {"count": 9, "id": I("endite_ingot")}})
     recipe("endite_ingot", {"type": "minecraft:crafting_shapeless", "group": "endite_ingot",
                             "ingredients": [I("endite_shard")] * 4 + ["minecraft:netherite_ingot"] + ["minecraft:popped_chorus_fruit"] * 4,
                             "result": {"id": I("endite_ingot")}})
     recipe("endite_upgrade_smithing_template", shaped(["#S#", "#C#", "###"], {"#": I("endite_shard"), "C": "minecraft:end_stone",
                                                                              "S": I("endite_upgrade_smithing_template")}, I("endite_upgrade_smithing_template"), count=2))
-    recipe("ruby_bricks", shaped(["##", "##"], {"#": I("ruby_block")}, I("ruby_bricks"), count=4, category="building"))
-    recipe("ruby_brick_stairs", shaped(["#  ", "## ", "###"], {"#": I("ruby_bricks")}, I("ruby_brick_stairs"), count=4, category="building"))
-    recipe("ruby_brick_slab", shaped(["###"], {"#": I("ruby_bricks")}, I("ruby_brick_slab"), count=6, category="building"))
-    recipe("ruby_lamp", shaped([" R ", "RGR", " R "], {"R": I("ruby"), "G": "minecraft:glowstone"}, I("ruby_lamp"), category="building"))
-    recipe("endite_plating", shaped(["##", "##"], {"#": I("endite_block")}, I("endite_plating"), count=4, category="building"))
-    recipe("endite_plating_stairs", shaped(["#  ", "## ", "###"], {"#": I("endite_plating")}, I("endite_plating_stairs"), count=4, category="building"))
-    recipe("endite_plating_slab", shaped(["###"], {"#": I("endite_plating")}, I("endite_plating_slab"), count=6, category="building"))
     for ore in ("ruby_ore", "deepslate_ruby_ore"):
         for kind, time in (("smelting", 200), ("blasting", 100)):
             recipe(f"ruby_from_{kind}_{ore}", {"type": f"minecraft:{kind}", "cookingtime": time, "experience": 1.0, "group": "ruby",
@@ -251,7 +233,7 @@ def data():
             {"type": "minecraft:item", "modifier": [{"type": "minecraft:apply_bonus", "enchantment": "minecraft:fortune", "formula": "minecraft:ore_drops"},
                                                     {"type": "minecraft:explosion_decay"}], "name": I("ruby")}]}], "rolls": 1}],
             "random_sequence": f"{NS}:blocks/{ore}"})
-    for b in ("ruby_block", "ruby_bricks", "ruby_lamp", "endite_ore", "endite_block", "endite_plating") + tuple(STAIRS):
+    for b in ("endite_ore",):
         write(f"{lt}/{b}.json", {"type": "minecraft:block", "pools": [{"condition": {"type": "minecraft:survives_explosion"},
                                                                        "entries": [{"type": "minecraft:item", "name": I(b)}], "rolls": 1}],
                                  "random_sequence": f"{NS}:blocks/{b}"})
@@ -264,9 +246,8 @@ def data():
     tag = lambda kind, ns, name, values: write(f"{DATA}/{ns}/tags/{kind}/{name}.json", {"replace": False, "values": values})
     all_blocks = [I(b) for b in SIMPLE_BLOCKS + list(STAIRS) + list(SLABS)]
     tag("block", "minecraft", "mineable/pickaxe", all_blocks)
-    tag("block", "minecraft", "needs_diamond_tool", [I("ruby_ore"), I("deepslate_ruby_ore"), I("ruby_block")])
-    tag("block", "minecraft", "needs_iron_tool", [I("ruby_bricks"), I("ruby_brick_stairs"), I("ruby_brick_slab"), I("ruby_lamp")])
-    tag("block", NS, "needs_netherite_tool", [I("endite_ore"), I("endite_block")])
+    tag("block", "minecraft", "needs_diamond_tool", [I("ruby_ore"), I("deepslate_ruby_ore")])
+    tag("block", NS, "needs_netherite_tool", [I("endite_ore")])
     tag("block", NS, "needs_ruby_tool", ["minecraft:ancient_debris", "minecraft:netherite_block"])
     # Diamond can't mine what needs ruby; nothing below netherite can mine what needs netherite
     tag("block", "minecraft", "incorrect_for_diamond_tool", [f"#{NS}:needs_ruby_tool", f"#{NS}:needs_netherite_tool"])
@@ -284,11 +265,6 @@ def data():
         tag("item", "minecraft", vt, [I(f"ruby_{a}"), I(f"endite_{a}")])
     tag("item", "minecraft", "trimmable_armor", [I(f"{m}_{a}") for m in ("ruby", "endite") for a in ARMOR])
     tag("item", "minecraft", "beacon_payment_items", [I("ruby"), I("endite_ingot")])
-    tag("block", "minecraft", "beacon_base_blocks", [I("ruby_block"), I("endite_block")])
-    tag("item", "minecraft", "stairs", [I(s) for s in STAIRS])
-    tag("item", "minecraft", "slabs", [I(s) for s in SLABS])
-    tag("block", "minecraft", "stairs", [I(s) for s in STAIRS])
-    tag("block", "minecraft", "slabs", [I(s) for s in SLABS])
 
     # Worldgen (26.3 calls configured features just "feature")
     wg = f"{DATA}/{NS}/worldgen"

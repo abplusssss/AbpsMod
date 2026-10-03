@@ -26,8 +26,6 @@ import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DropExperienceBlock;
-import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
@@ -145,8 +143,8 @@ public final class ModContent {
 
     // ------------------------------------------------------------------ content
 
-    public static Block RUBY_ORE, DEEPSLATE_RUBY_ORE, RUBY_BLOCK, RUBY_BRICKS, RUBY_BRICK_STAIRS, RUBY_BRICK_SLAB, RUBY_LAMP;
-    public static Block ENDITE_ORE, ENDITE_BLOCK, ENDITE_PLATING, ENDITE_PLATING_STAIRS, ENDITE_PLATING_SLAB;
+    public static Block RUBY_ORE, DEEPSLATE_RUBY_ORE;
+    public static Block ENDITE_ORE;
     public static Item RUBY, ENDITE_SHARD, ENDITE_INGOT, ENDITE_TEMPLATE;
     public static Item RUBY_SWORD, RUBY_PICKAXE, RUBY_AXE, RUBY_SHOVEL, RUBY_HOE, RUBY_HELMET, RUBY_CHESTPLATE, RUBY_LEGGINGS, RUBY_BOOTS;
     public static Item ENDITE_SWORD, ENDITE_PICKAXE, ENDITE_AXE, ENDITE_SHOVEL, ENDITE_HOE, ENDITE_HELMET, ENDITE_CHESTPLATE, ENDITE_LEGGINGS, ENDITE_BOOTS;
@@ -157,12 +155,6 @@ public final class ModContent {
         RUBY_ORE = block("ruby_ore", p -> new DropExperienceBlock(UniformInt.of(3, 7), p), BlockBehaviour.Properties.ofFullCopy(Blocks.DIAMOND_ORE), false);
         DEEPSLATE_RUBY_ORE = block("deepslate_ruby_ore", p -> new DropExperienceBlock(UniformInt.of(3, 7), p),
                 BlockBehaviour.Properties.ofFullCopy(Blocks.DEEPSLATE_DIAMOND_ORE), false);
-        RUBY_BLOCK = block("ruby_block", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.DIAMOND_BLOCK), false);
-        RUBY_BRICKS = block("ruby_bricks", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.STONE_BRICKS).strength(3f, 6f), false);
-        Block bricks = RUBY_BRICKS;
-        RUBY_BRICK_STAIRS = block("ruby_brick_stairs", p -> new StairBlock(bricks.defaultBlockState(), p), BlockBehaviour.Properties.ofFullCopy(bricks), false);
-        RUBY_BRICK_SLAB = block("ruby_brick_slab", SlabBlock::new, BlockBehaviour.Properties.ofFullCopy(bricks), false);
-        RUBY_LAMP = block("ruby_lamp", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.GLOWSTONE).strength(1.5f), false);
         RUBY_SWORD = item("ruby_sword", p -> new Item(p.sword(RUBY_TOOLS, 3f, -2.4f)), false);
         RUBY_PICKAXE = item("ruby_pickaxe", p -> new Item(p.pickaxe(RUBY_TOOLS, 1f, -2.8f)), false);
         RUBY_AXE = item("ruby_axe", p -> new Item(tool(p, "axe", RUBY_TOOLS, 5f, -3f)), false);
@@ -178,11 +170,6 @@ public final class ModContent {
         ENDITE_INGOT = item("endite_ingot", Item::new, true);
         ENDITE_TEMPLATE = item("endite_upgrade_smithing_template", Item::new, true);
         ENDITE_ORE = block("endite_ore", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.ANCIENT_DEBRIS), true);
-        ENDITE_BLOCK = block("endite_block", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.NETHERITE_BLOCK), true);
-        ENDITE_PLATING = block("endite_plating", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.POLISHED_BLACKSTONE_BRICKS).strength(5f, 12f), true);
-        Block plating = ENDITE_PLATING;
-        ENDITE_PLATING_STAIRS = block("endite_plating_stairs", p -> new StairBlock(plating.defaultBlockState(), p), BlockBehaviour.Properties.ofFullCopy(plating), true);
-        ENDITE_PLATING_SLAB = block("endite_plating_slab", SlabBlock::new, BlockBehaviour.Properties.ofFullCopy(plating), true);
         ENDITE_SWORD = item("endite_sword", p -> new Item(p.sword(ENDITE_TOOLS, 3f, -2.4f)), true);
         ENDITE_PICKAXE = item("endite_pickaxe", p -> new Item(p.pickaxe(ENDITE_TOOLS, 1f, -2.8f)), true);
         ENDITE_AXE = item("endite_axe", p -> new Item(tool(p, "axe", ENDITE_TOOLS, 5f, -3f)), true);

@@ -2,7 +2,6 @@
   "replace": false,
   "values": [
     "abpsmod:ruby_ore",
-    "abpsmod:deepslate_ruby_ore",
-    "abpsmod:ruby_block"
+    "abpsmod:deepslate_ruby_ore"
   ]
 }

@@ -1,8 +1,0 @@
-{
-  "parent": "minecraft:block/outer_stairs",
-  "textures": {
-    "bottom": "abpsmod:block/endite_plating",
-    "side": "abpsmod:block/endite_plating",
-    "top": "abpsmod:block/endite_plating"
-  }
-}

@@ -169,17 +169,9 @@ public final class CustomItems {
     public static void registerTab() {
         net.minecraft.world.item.CreativeModeTab tab = tabBuilder()
                 .title(Component.literal("AbpsMod"))
-                .icon(() -> {
-                    ItemStack icon = new ItemStack(Items.NETHERITE_SWORD);
-                    icon.set(DataComponents.ITEM_MODEL, AbpsMod.id("dragonbone_greatsword"));
-                    return icon;
-                })
+                .icon(() -> new ItemStack(dev.abps.content.ModContent.RUBY_SWORD))
                 .displayItems((params, output) -> {
                     for (net.minecraft.world.item.Item it : dev.abps.content.ModContent.ITEMS) output.accept(new ItemStack(it));
-                    for (String id : ALL.keySet()) {
-                        ItemStack s = create(id, params.holders());
-                        if (!s.isEmpty()) output.accept(s);
-                    }
                 })
                 .build();
         net.minecraft.core.Registry.register(net.minecraft.core.registries.BuiltInRegistries.CREATIVE_MODE_TAB, AbpsMod.id("items"), tab);

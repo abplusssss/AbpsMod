@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:block/cube_all",
-  "textures": {
-    "all": "abpsmod:block/ruby_lamp"
-  }
-}
