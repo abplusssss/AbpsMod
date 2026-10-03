@@ -93,7 +93,7 @@ public final class Commands {
         add(new Entry("Spawn", "", "Teleports you to spawn.", "tp", "hub", "lobby"));
         add(new Entry("Back", "", "Goes back to where you last teleported or died.", "tp", "return"));
         // Dungeons
-        add(new Entry("Dungeon", "[start <id> | leave | list]", "Opens the dungeons, starts a run or leaves one.", "dungeon", "dungeons", "dg", "raid", "dungeonrun"));
+        add(new Entry("Dungeon", "[start <id> | leave | list]", "Opens the Party tab: Siege and party games. Start one or leave.", "dungeon", "dungeons", "dg", "raid", "games", "game", "siege", "minigames"));
         add(new Entry("Party", "[invite <name> | accept | decline | leave | kick <name>]", "Your dungeon party (up to 4 players).", "dungeon", "team", "group", "dparty"));
         add(new Entry("Powers", "[on | off]", "Turns your whole attribute off or back on (abilities, passives and weaknesses).", "attr",
                 "power", "abilities", "togglepowers", "nopowers", "vanillamode"));
@@ -107,6 +107,7 @@ public final class Commands {
         add(new Entry("Profile", "", "Shows your kills, deaths, playtime and streak.", "extra", "mystats", "pstats", "playerstats"));
         add(new Entry("Travel", "", "Opens your homes and teleports in the menu.", "extra", "warps", "tpmenu"));
         // Admin and testing
+        add(new Entry("Meteors", "", "Starts a meteor shower now.", "admin", "meteorshower", "meteor"));
         add(new Entry("GiveAttribute", "@player <attribute>", "Sets a player's attribute.", "admin", "setattribute"));
         add(new Entry("GiveUpgrade", "@player <1-25>", "Sets a player's level.", "admin", "setlevel"));
         add(new Entry("GiveUlt", "[@player]", "Fully charges an ultimate.", "admin", "chargeult"));
@@ -341,13 +342,17 @@ public final class Commands {
                 ServerPlayer p = needPlayer(s);
                 if (p != null) Teleports.setHome(p, args.length > 0 ? args[0] : "home");
             }
+            case "Meteors" -> {
+                dev.abps.content.Meteors.start(AbpsMod.server());
+                Service.send(s, "<light_purple>A meteor shower begins.");
+            }
             case "Dungeon" -> {
                 ServerPlayer p = needPlayer(s);
                 if (p == null) return;
                 String op = args.length > 0 ? args[0].toLowerCase(java.util.Locale.ROOT) : "";
                 switch (op) {
                     case "start", "go", "play" -> {
-                        if (args.length < 2) Service.send(s, "<red>Use: !Dungeon start <id>. <gray>Ids: <white>" + String.join(", ", dev.abps.dungeon.DungeonDef.ALL.keySet()));
+                        if (args.length < 2) Service.send(s, "<red>Use: !Dungeon start <id>. <gray>Ids: <white>" + String.join(", ", dev.abps.games.GameDef.ALL.keySet()));
                         else dev.abps.dungeon.Dungeons.start(p, args[1].toLowerCase(java.util.Locale.ROOT));
                     }
                     case "leave", "quit", "exit" -> dev.abps.dungeon.Dungeons.leave(p);
@@ -371,9 +376,9 @@ public final class Commands {
                             ServerPlayNetworking.send(p, new Net.OpenMenuPayload("dungeons"));
                             return;
                         }
-                        Service.send(s, "<light_purple><bold>Dungeons</bold></light_purple> <gray>(start one with <yellow>!Dungeon start <id></yellow>)");
-                        for (var d : dev.abps.dungeon.DungeonDef.ALL.values()) {
-                            Service.raw(s, " <gold>" + d.stars() + "</gold> <white>" + d.name() + "</white> <dark_gray>(" + d.id() + ")</dark_gray> <gray>" + d.blurb());
+                        Service.send(s, "<light_purple><bold>Party games</bold></light_purple> <gray>(start one with <yellow>!Dungeon start <id></yellow>)");
+                        for (var d : dev.abps.games.GameDef.ALL.values()) {
+                            Service.raw(s, " <white>" + d.name() + "</white> <dark_gray>(" + d.id() + ")</dark_gray> <gray>" + d.blurb());
                         }
                     }
                     default -> Service.send(s, "<red>Use: !Dungeon [start <id> | leave | list]");

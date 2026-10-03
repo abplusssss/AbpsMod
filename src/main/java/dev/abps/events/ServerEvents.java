@@ -61,7 +61,8 @@ public final class ServerEvents {
             AbpsMod.stop();
         });
         ServerTickEvents.END_SERVER_TICK.register(ServerEvents::tick);
-        dev.abps.dungeon.Gates.register();
+        dev.abps.games.Games.register();
+        dev.abps.content.Meteors.register();
 
         // ---- Join and leave ----
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -132,9 +133,12 @@ public final class ServerEvents {
         });
         // Dungeons can't be dug through or built in (creative players can still edit them)
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) ->
-                !(AbpsMod.running() && level.dimension() == dev.abps.dungeon.Dungeons.WORLD && !player.isCreative()));
+                !(AbpsMod.running() && level.dimension() == dev.abps.dungeon.Dungeons.WORLD && !player.isCreative())
+                        || player instanceof ServerPlayer sp && dev.abps.games.Games.canBreak(sp, pos));
         net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, level, hand, hit) ->
-                AbpsMod.running() && level.dimension() == dev.abps.dungeon.Dungeons.WORLD && !player.isCreative()
+                player instanceof ServerPlayer sp && dev.abps.games.Games.use(sp, hand) ? InteractionResult.SUCCESS
+                        : dev.abps.games.Games.isBlueprint(player.getItemInHand(hand)) ? InteractionResult.PASS
+                        : AbpsMod.running() && level.dimension() == dev.abps.dungeon.Dungeons.WORLD && !player.isCreative()
                         ? InteractionResult.FAIL : InteractionResult.PASS);
         UseItemCallback.EVENT.register((player, level, hand) -> {
             if (player instanceof ServerPlayer p && AbpsMod.running()) {

@@ -77,6 +77,12 @@ public final class Dungeons {
     // ------------------------------------------------------------------ starting and leaving
 
     public static void start(ServerPlayer leader, String id) {
+        // Dungeons were replaced by Siege and the party games
+        dev.abps.games.Games.start(leader, id);
+    }
+
+    /** The old dungeon start, kept for the self test. */
+    static void startDungeon(ServerPlayer leader, String id) {
         DungeonDef def = DungeonDef.get(id);
         if (def == null) {
             tell(leader, "<red>There is no dungeon called " + id + ".");
@@ -117,9 +123,10 @@ public final class Dungeons {
     }
 
     public static void leave(ServerPlayer p) {
+        if (dev.abps.games.Games.leave(p)) return;
         Run r = runOf(p);
         if (r == null) {
-            tell(p, "<red>You're not in a dungeon.");
+            tell(p, "<red>You're not in a game.");
             return;
         }
         r.players.remove(p.getUUID());
@@ -135,7 +142,7 @@ public final class Dungeons {
     }
 
     public static void tick() {
-        Gates.tick();
+        dev.abps.games.Games.tick();
         ServerLevel level = level();
         if (level == null) return;
         for (Run r : new ArrayList<>(RUNS.values())) {
@@ -164,7 +171,7 @@ public final class Dungeons {
         // Anyone standing in the dungeon world without a run (after a restart, say) goes back to spawn
         if (level.getGameTime() % 40 == 0) {
             for (ServerPlayer p : level.players()) {
-                if (runOf(p) == null && !p.isCreative() && !p.isSpectator()) {
+                if (runOf(p) == null && !dev.abps.games.Games.inGame(p) && !p.isCreative() && !p.isSpectator()) {
                     dev.abps.data.PlayerData.Loc spawn = dev.abps.Teleports.spawn();
                     ServerLevel l = dev.abps.Teleports.levelOf(spawn);
                     if (l != null) p.teleportTo(l, spawn.x(), spawn.y(), spawn.z(), java.util.Set.of(), spawn.yaw(), spawn.pitch(), false);
@@ -175,6 +182,7 @@ public final class Dungeons {
 
     /** Called instead of dying. Returns false when the death was turned into being downed. */
     public static boolean allowDeath(ServerPlayer p) {
+        if (!dev.abps.games.Games.allowDeath(p)) return false;
         Run r = runOf(p);
         if (r == null || p.level() != r.level || r.state != Run.State.ACTIVE) return true;
         return r.down(p);
@@ -188,10 +196,12 @@ public final class Dungeons {
             // Put them somewhere safe for when they log back in
             r.sendHome(p);
         }
+        dev.abps.games.Games.onQuit(p);
         Party.onQuit(p);
     }
 
     public static void shutdown() {
+        dev.abps.games.Games.shutdown();
         for (Run r : new ArrayList<>(RUNS.values())) r.end(false);
         ServerLevel level = level();
         if (level != null) for (Builder b : TEARDOWN.values()) while (!b.tick(level)) ;
@@ -206,17 +216,9 @@ public final class Dungeons {
     public static void sendMenu(ServerPlayer p) {
         PlayerData d = AbpsMod.data().get(p);
         List<dev.abps.net.Net.DungeonCard> cards = new ArrayList<>();
-        for (DungeonDef def : DungeonDef.ALL.values()) {
-            boolean waves = def.mode() == DungeonDef.Mode.WAVES;
-            List<String> board = new ArrayList<>();
-            int rank = 1;
-            for (Entry e : board(def.id())) {
-                if (rank > 5) break;
-                board.add(rank++ + ". " + e.names() + "  " + (waves ? "wave " + e.value() : dev.abps.util.Text.time(e.value())));
-            }
-            long best = waves ? d.bestWave : d.dungeonBest.getOrDefault(def.id(), 0L);
-            cards.add(new dev.abps.net.Net.DungeonCard(def.id(), def.name(), def.blurb(), def.mode().name(), def.difficulty(), def.icon(), def.color(),
-                    d.dungeonClears.getOrDefault(def.id(), 0), best, board));
+        for (dev.abps.games.GameDef def : dev.abps.games.GameDef.ALL.values()) {
+            cards.add(new dev.abps.net.Net.DungeonCard(def.id(), def.name(), def.blurb(), def.kind().name(), def.difficulty(), def.icon(), def.color(),
+                    d.dungeonClears.getOrDefault(def.id(), 0), d.dungeonBest.getOrDefault(def.id(), 0L), dev.abps.games.Games.board(def)));
         }
         Party party = Party.of(p);
         List<String> members = new ArrayList<>();
@@ -236,9 +238,9 @@ public final class Dungeons {
         }
         List<String> online = new ArrayList<>();
         for (ServerPlayer o : AbpsMod.server().getPlayerList().getPlayers()) if (o != p) online.add(o.getName().getString());
-        Run run = runOf(p);
+        var game = dev.abps.games.Games.gameOf(p);
         net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p, new dev.abps.net.Net.DungeonsPayload(AbpsMod.config().dungeonsEnabled, cards, members,
-                party == null || party.isLeader(p), from, run == null ? "" : run.def.name(), online, new ArrayList<>(d.titles), d.title == null ? "" : d.title));
+                party == null || party.isLeader(p), from, game == null ? "" : game.def.name(), online, new ArrayList<>(d.titles), d.title == null ? "" : d.title));
     }
 
     /** "dungeon" actions from the menu: list, start|id, leave, invite|name, accept, decline, kick|name, partyleave, title|name. */
@@ -349,6 +351,7 @@ public final class Dungeons {
 
     public static void load() {
         Gates.load();
+        dev.abps.games.Games.load();
         try {
             Path f = file();
             if (Files.exists(f)) {

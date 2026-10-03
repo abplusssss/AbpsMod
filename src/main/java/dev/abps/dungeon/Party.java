@@ -14,7 +14,7 @@ import java.util.UUID;
 /** Groups of up to 4 players who run dungeons together. The first member is the leader. */
 public final class Party {
 
-    public static final int MAX = 4;
+    public static final int MAX = 8;
 
     private static final Map<UUID, Party> BY_PLAYER = new HashMap<>();
     /** Invites waiting for an answer: invited player to {party, time sent}. */

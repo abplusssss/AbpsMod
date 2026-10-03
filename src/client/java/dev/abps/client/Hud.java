@@ -70,7 +70,9 @@ public final class Hud implements HudElement {
         Draw.text(g, clock, x + w - 5 - clockW, y + 5);
 
         int by = y + 17;
-        if (h.wave() > 0 || h.rooms() <= 1) {
+        if (h.downsLeft() < 0 && h.rooms() == 0) {
+            Draw.text(g, "<gray>Party game", x + 5, by);
+        } else if (h.wave() > 0 || h.rooms() <= 1) {
             Draw.text(g, "<gray>Wave</gray> <gold><bold>" + Math.max(1, h.wave()) + "</bold></gold>", x + 5, by);
         } else {
             // One small block per room: done, current, still ahead
@@ -84,8 +86,14 @@ public final class Hud implements HudElement {
             String rooms = "<gray>" + h.room() + "/" + h.rooms();
             Draw.text(g, rooms, x + w - 5 - Draw.font().width(Text.mm(rooms)), by);
         }
-        Draw.textFit(g, "<white>" + h.objective(), x + 5, y + 28, w - 10);
+        String[] lines = h.objective().split("[|]", 2);
+        Draw.textFit(g, "<white>" + lines[0], x + 5, y + 28, w - 10);
         int downs = h.downsLeft();
+        if (downs < 0) {
+            // Party games put their own status on the second line
+            if (lines.length > 1) Draw.textFit(g, lines[1], x + 5, y + 39, w - 10);
+            return;
+        }
         String d = downs == 0 ? "<#FF5252>No downs left, careful!" : "<#FF8A80>♥</#FF8A80> <gray>" + downs + " down" + (downs == 1 ? "" : "s") + " left";
         Draw.textFit(g, d, x + 5, y + 39, w - 10);
     }

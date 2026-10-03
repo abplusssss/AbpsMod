@@ -26,7 +26,7 @@ public final class MenuScreen extends Screen {
         TOP("Top Players", "minecraft:totem_of_undying"),
         SHOPS("Shops", "minecraft:emerald"),
         TRAVEL("Travel", "minecraft:ender_pearl"),
-        DUNGEONS("Dungeons", "minecraft:skeleton_skull"),
+        DUNGEONS("Party", "minecraft:crossbow"),
         PROFILE("Profile", "minecraft:name_tag"),
         NEWS("What's New", "minecraft:writable_book"),
         KEYBINDS("Keybinds", "minecraft:tripwire_hook"),
@@ -432,27 +432,28 @@ public final class MenuScreen extends Screen {
         String[] big = {
                 "<white><gold>Skill Tree</gold> replaces straight upgrades. Every level gives points (max level fills the tree): unlock abilities and pick damage, utility or defense skills. Reset it for free.",
                 "<white><green>Two roles at once</green>: a <#FF5252>PvP</#FF5252> attribute and a <#69F0AE>Gatherer</#69F0AE> attribute, each with its own level and skills. Switch any time (Overview, !Role or <yellow>" + AbpsClient.roleKey.getTranslatedKeyMessage().getString() + "</yellow>). New gatherers: Harvester, Lumberjack, Angler, Explorer.",
-                "<white>Real <gold>custom weapons and tools</gold> with their own look and a right-click power: staffs, a warhammer, daggers, a greatsword, a spear, a chakram, a drill and more.",
                 "<white>Turn your whole attribute off (Settings or <yellow>!Powers off</yellow>), and Pyromancers can turn off their heat aura (<yellow>!Aura off</yellow>)."};
         for (String n : big) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
         button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Skill Tree", 0xFFD54F, true, () -> switchTab(Tab.SKILLS));
         y += 26;
-        y = section(g, "Dungeons", 0xB388FF, x, y);
-        String[] dungeons = {
-                "<white>Find every custom item in the new <yellow>AbpsMod</yellow> creative tab.",
-                "<white><gold>No more bosses</gold>: every dungeon ends in the <red>Final Hall</red>, where the doors seal and wave after wave of monsters pours in, the last led by champions.",
-                "<white><gold>4 new dungeons</gold>: the <#9CCC65>Overgrown Ruins</#9CCC65>, the <#FFCA28>Sunscorched Tomb</#FFCA28>, the <#26C6DA>Sunken Temple</#26C6DA> and the <#CE93D8>Void Sanctum</#CE93D8>, each with its own monsters.",
-                "<white><gold>Rebuilt dungeon halls</gold>: round domed halls with galleries, column rings, chandeliers and lantern circles; vaulted octagon rooms with lit lattice walls, grand gateways and arched corridors.",
-                "<white>Nine dungeons: seven story dungeons, <light_purple>The Shifting Depths</light_purple> (new rooms in any style every run) and the <gold>Endless Arena</gold>.",
-                "<white>Go alone or with a party of up to 4. The party leader starts the run from the <yellow>Dungeons</yellow> tab.",
-                "<white>Big moves warn you first: a red ring or lane on the ground fills up, then hits. Get out of it!",
-                "<white>Falling in a dungeon downs you instead of killing you. The party shares a few downs.",
-                "<white>15 dungeon items with special powers, best times, top 5 boards and titles to show next to your name.",
-                "<white>Ruined stone arches appear in new land. Walk through one to start The Shifting Depths.",
-                "<white>13 dungeon monsters with their own moves, elites with traits, champion rooms and shrines that bless your party.",
-                "<white>Much more detailed rooms, loot for every room and an S/A/B/C grade at the end."};
-        for (String n : dungeons) y += Draw.wrapped(g, "<light_purple>•</light_purple> " + n, x, y, w, Draw.TEXT) + 3;
-        button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Dungeons", 0xB388FF, true, () -> switchTab(Tab.DUNGEONS));
+        y = section(g, "Ruby & Endite", 0xFF5370, x, y);
+        String[] ores = {
+                "<white><#FF5370>Ruby</#FF5370>: deep ore (Y 16 to bedrock, needs a diamond pickaxe). Ruby tools and armor sit between diamond and netherite. Full set: +2 hearts and Luck.",
+                "<white>Ancient debris now needs a <#FF5370>ruby pickaxe</#FF5370>, and netherite upgrades start from ruby gear.",
+                "<white><#CE93D8>Endite</#CE93D8>: ore on the End's outer islands (netherite pickaxe). 4 shards + a netherite ingot + 4 popped chorus fruit make an ingot. The upgrade template hides in End City chests.",
+                "<white>Full endite set: no ender pearl damage, and it pulls you out of the void once every 10 minutes.",
+                "<white><gold>18 new enchantments</gold>: Lifesteal, Executioner, Venom, Frostbite, Thunderstrike, Dodge, Timber, Excavator, Smelting Touch, Magnetic, Replanting, Explosive Shot, Leaping, Night Owl, Second Wind, plus treasure-only Vein Miner, Homing and Soulbound.",
+                "<white><#FFC107>Miner</#FFC107> buff: faster mining, shorter cooldowns and the new Prospector passive."};
+        for (String n : ores) y += Draw.wrapped(g, "<#FF5370>•</#FF5370> " + n, x, y, w, Draw.TEXT) + 3;
+        y += 6;
+        y = section(g, "Siege & Party Games", 0xB388FF, x, y);
+        String[] games = {
+                "<white>Dungeons are gone. In their place: <gold>Siege</gold>, co-op tower defense. Hold the Heart through 10, 15 or 20 waves of raiders; kills earn coins for Archer, Frost, Bombard and Healing towers.",
+                "<white>Party games for 2+ players: <#40C4FF>Capture the Flag</#40C4FF>, <#FFAB40>King of the Hill</#FFAB40> and <#E1F5FE>Spleef</#E1F5FE>, with win boards.",
+                "<white>Make a party, then the leader starts a game from the <yellow>Party</yellow> tab.",
+                "<white><light_purple>Meteor showers</light_purple> light up some nights. A few meteors land, leaving craters with ruby (and rarely endite) ore."};
+        for (String n : games) y += Draw.wrapped(g, "<light_purple>•</light_purple> " + n, x, y, w, Draw.TEXT) + 3;
+        button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Party", 0xB388FF, true, () -> switchTab(Tab.DUNGEONS));
         y += 26;
         y = section(g, "Also new", 0xFFD54F, x, y);
         String[] latest = {
@@ -1371,6 +1372,10 @@ public final class MenuScreen extends Screen {
 
     private static String modeName(String mode) {
         return switch (mode) {
+            case "SIEGE" -> "Co-op tower defense";
+            case "CTF" -> "Two teams · 2+ players";
+            case "KOTH" -> "Free for all · 2+ players";
+            case "SPLEEF" -> "Last one standing · 2+ players";
             case "WAVES" -> "Waves";
             case "RANDOM" -> "New layout every run";
             default -> "Story";
@@ -1383,11 +1388,11 @@ public final class MenuScreen extends Screen {
         if (System.currentTimeMillis() - dungeonsAskedAt > 3000) request(Tab.DUNGEONS);
         Net.DungeonsPayload dp = ClientState.dungeons;
         if (dp == null) {
-            Draw.centered(g, "<gray>Loading dungeons...", cx + cw / 2, y + 20);
+            Draw.centered(g, "<gray>Loading...", cx + cw / 2, y + 20);
             return 40;
         }
         if (!dp.enabled()) {
-            Draw.centered(g, "<gray>Dungeons are turned off on this server.", cx + cw / 2, y + 20);
+            Draw.centered(g, "<gray>Party games are turned off on this server.", cx + cw / 2, y + 20);
             return 40;
         }
         String me = Minecraft.getInstance().player == null ? "" : Minecraft.getInstance().player.getGameProfile().name();
@@ -1396,7 +1401,7 @@ public final class MenuScreen extends Screen {
         if (!dp.inRun().isEmpty()) {
             Draw.framed(g, x, y, w, 26, 0xE0181020, 0xFFB388FF);
             Draw.textFit(g, "<gray>You're in <white><bold>" + dp.inRun(), x + 8, y + 9, w - 16 - 84);
-            button(g, mx, my, x + w - 80, y + 4, 74, 18, "<white><bold>Leave run", 0xFF5252, true, () -> AbpsClient.send("dungeon", "leave"));
+            button(g, mx, my, x + w - 80, y + 4, 74, 18, "<white><bold>Leave", 0xFF5252, true, () -> AbpsClient.send("dungeon", "leave"));
             y += 32;
         }
         // A party invite waiting for an answer
@@ -1409,7 +1414,7 @@ public final class MenuScreen extends Screen {
         }
 
         // The party
-        y = section(g, "Your party (" + dp.party().size() + "/4)", 0x00E5FF, x, y);
+        y = section(g, "Your party (" + dp.party().size() + "/8)", 0x00E5FF, x, y);
         for (int k = 0; k < dp.party().size(); k++) {
             String name = dp.party().get(k);
             boolean leader = k == 0, mine = name.equals(me);
@@ -1425,7 +1430,7 @@ public final class MenuScreen extends Screen {
             button(g, mx, my, x, y, 90, 16, "<gray>Leave party", 0x777781, true, () -> AbpsClient.send("dungeon", "partyleave"));
             y += 20;
         }
-        if (dp.leader() && dp.party().size() < 4) {
+        if (dp.leader() && dp.party().size() < 8) {
             List<String> labels = new ArrayList<>();
             List<Boolean> on = new ArrayList<>();
             List<Runnable> acts = new ArrayList<>();
@@ -1443,16 +1448,16 @@ public final class MenuScreen extends Screen {
                 y = chips(g, mx, my, x + 42, y, w - 42, labels, on, 0x00E5FF, acts);
             }
         } else if (!dp.leader()) {
-            y += Draw.wrapped(g, "<gray>Your party leader picks the dungeon and starts the run.", x, y + 2, w, Draw.MUTED) + 4;
+            y += Draw.wrapped(g, "<gray>Your party leader picks the game and starts it.", x, y + 2, w, Draw.MUTED) + 4;
         }
 
-        // The dungeons
-        y = section(g, "Dungeons", 0xB388FF, x, y + 4);
+        // Siege and the party games
+        y = section(g, "Siege & Party Games", 0xB388FF, x, y + 4);
         boolean canStart = dp.leader() && dp.inRun().isEmpty();
         int size = dp.party().size();
         for (Net.DungeonCard d : dp.cards()) {
             int col = d.color(), col2 = Text.lerp(col, 0xFFFFFF, 0.5f);
-            boolean waves = d.mode().equals("WAVES");
+            boolean waves = d.mode().equals("SIEGE") || d.mode().equals("WAVES");
             int textW = w - 38 - 80;
             String blurb = "<gray>" + d.blurb();
             int blurbH = Draw.wrappedHeight(blurb, textW);
@@ -1465,18 +1470,18 @@ public final class MenuScreen extends Screen {
             Draw.textFit(g, "<gold>" + "★".repeat(Math.max(0, d.difficulty())) + "</gold><dark_gray>" + "☆".repeat(Math.max(0, 4 - d.difficulty()))
                     + "</dark_gray> <dark_gray>·</dark_gray> <gray>" + modeName(d.mode()), x + 38, y + 17, textW);
             Draw.wrapped(g, blurb, x + 38, y + 29, textW, Draw.MUTED);
-            String startLabel = !dp.inRun().isEmpty() ? "In a run" : !dp.leader() ? "Leader only" : size > 1 ? "<white><bold>Start (" + size + ")" : "<white><bold>Start";
+            String startLabel = !dp.inRun().isEmpty() ? "In a game" : !dp.leader() ? "Leader only" : size > 1 ? "<white><bold>Start (" + size + ")" : "<white><bold>Start";
             final String id = d.id();
             button(g, mx, my, x + w - 74, y + 8, 66, 18, startLabel, col, canStart, () -> AbpsClient.send("dungeon", "start|" + id));
 
             int yy = y + top;
             String stats;
             if (waves) stats = d.best() > 0 ? "<gray>Your best:</gray> <white>wave " + d.best() : "<gray>You haven't tried it yet.";
-            else if (d.clears() > 0) stats = "<gray>Cleared</gray> <white>" + d.clears() + "×</white>" + (d.best() > 0 ? "  <gray>Best time</gray> <white>" + Text.time(d.best()) : "");
-            else stats = "<gray>Not cleared yet.";
+            else if (d.clears() > 0) stats = "<gray>You've won</gray> <white>" + d.clears() + "×";
+            else stats = "<gray>No wins yet.";
             Draw.textFit(g, stats, x + 8, yy, w - 16);
             yy += 11;
-            Draw.text(g, "<bold>" + Draw.gradient(col, col2, waves ? "Top 5 waves" : "Top 5 times") + "</bold>", x + 8, yy);
+            Draw.text(g, "<bold>" + Draw.gradient(col, col2, waves ? "Top 5 waves" : "Most wins") + "</bold>", x + 8, yy);
             yy += 11;
             if (d.board().isEmpty()) {
                 Draw.textFit(g, "<dark_gray>Nobody yet. Be the first!", x + 12, yy, w - 24);
@@ -1493,7 +1498,7 @@ public final class MenuScreen extends Screen {
         // Titles
         y = section(g, "Titles", 0xFFD54F, x, y + 4);
         if (dp.titles().isEmpty()) {
-            y += Draw.wrapped(g, "<gray>Clear dungeons to earn titles. Your title shows next to your name in chat and the tab list.", x, y, w, Draw.MUTED) + 4;
+            y += Draw.wrapped(g, "<gray>Titles you earned show next to your name in chat and the tab list.", x, y, w, Draw.MUTED) + 4;
         } else {
             List<String> labels = new ArrayList<>(List.of("None"));
             List<Boolean> on = new ArrayList<>(List.of(dp.title().isEmpty()));
@@ -1506,7 +1511,7 @@ public final class MenuScreen extends Screen {
             }
             y = chips(g, mx, my, x, y, w, labels, on, 0xFFD54F, acts);
         }
-        y += Draw.wrapped(g, "<dark_gray>Look out for ruined stone arches in new land. Walking through one starts The Shifting Depths for your party.",
+        y += Draw.wrapped(g, "<dark_gray>Siege: right-click a tower blueprint while standing on a gold-centred pad to build or upgrade a tower.",
                 x, y + 2, w, Draw.DIM);
         return y - y0 + 10;
     }
