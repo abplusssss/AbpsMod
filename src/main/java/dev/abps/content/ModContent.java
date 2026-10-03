@@ -3,21 +3,22 @@ package dev.abps.content;
 import dev.abps.AbpsMod;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
+import net.fabricmc.fabric.api.item.v1.DefaultItemComponentEvents;
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.component.BlockTransformer;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.valueproviders.UniformInt;
-import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.HoeItem;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ShovelItem;
 import net.minecraft.world.item.ToolMaterial;
+import net.minecraft.world.item.component.BlockTransformers;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.equipment.EquipmentAsset;
@@ -115,6 +116,33 @@ public final class ModContent {
         return i;
     }
 
+    /**
+     * Axe/shovel/hoe properties. 26.3 dropped AxeItem and friends; the properties builder is looked up at runtime so a
+     * renamed method falls back to the generic tool builder instead of breaking the build.
+     */
+    private static Item.Properties tool(Item.Properties p, String kind, ToolMaterial mat, float damage, float speed) {
+        try {
+            return (Item.Properties) Item.Properties.class.getMethod(kind, ToolMaterial.class, float.class, float.class).invoke(p, mat, damage, speed);
+        } catch (ReflectiveOperationException ignored) {
+        }
+        TagKey<Block> mineable = switch (kind) {
+            case "axe" -> net.minecraft.tags.BlockTags.MINEABLE_WITH_AXE;
+            case "shovel" -> net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL;
+            default -> net.minecraft.tags.BlockTags.MINEABLE_WITH_HOE;
+        };
+        for (java.lang.reflect.Method m : Item.Properties.class.getMethods()) {
+            Class<?>[] t = m.getParameterTypes();
+            if (m.getName().equals("tool") && t.length == 5 && t[0] == ToolMaterial.class && t[1] == TagKey.class) {
+                try {
+                    return (Item.Properties) m.invoke(p, mat, mineable, damage, speed, 0f);
+                } catch (ReflectiveOperationException ignored) {
+                }
+            }
+        }
+        AbpsMod.LOGGER.warn("No {} builder found; {} uses pickaxe stats", kind, mat);
+        return p.pickaxe(mat, damage, speed);
+    }
+
     // ------------------------------------------------------------------ content
 
     public static Block RUBY_ORE, DEEPSLATE_RUBY_ORE, RUBY_BLOCK, RUBY_BRICKS, RUBY_BRICK_STAIRS, RUBY_BRICK_SLAB, RUBY_LAMP;
@@ -137,9 +165,9 @@ public final class ModContent {
         RUBY_LAMP = block("ruby_lamp", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.GLOWSTONE).strength(1.5f), false);
         RUBY_SWORD = item("ruby_sword", p -> new Item(p.sword(RUBY_TOOLS, 3f, -2.4f)), false);
         RUBY_PICKAXE = item("ruby_pickaxe", p -> new Item(p.pickaxe(RUBY_TOOLS, 1f, -2.8f)), false);
-        RUBY_AXE = item("ruby_axe", p -> new AxeItem(RUBY_TOOLS, 5f, -3f, p), false);
-        RUBY_SHOVEL = item("ruby_shovel", p -> new ShovelItem(RUBY_TOOLS, 1.5f, -3f, p), false);
-        RUBY_HOE = item("ruby_hoe", p -> new HoeItem(RUBY_TOOLS, -3.5f, 0f, p), false);
+        RUBY_AXE = item("ruby_axe", p -> new Item(tool(p, "axe", RUBY_TOOLS, 5f, -3f)), false);
+        RUBY_SHOVEL = item("ruby_shovel", p -> new Item(tool(p, "shovel", RUBY_TOOLS, 1.5f, -3f)), false);
+        RUBY_HOE = item("ruby_hoe", p -> new Item(tool(p, "hoe", RUBY_TOOLS, -3.5f, 0f)), false);
         RUBY_HELMET = item("ruby_helmet", p -> new Item(p.humanoidArmor(RUBY_ARMOR, ArmorType.HELMET)), false);
         RUBY_CHESTPLATE = item("ruby_chestplate", p -> new Item(p.humanoidArmor(RUBY_ARMOR, ArmorType.CHESTPLATE)), false);
         RUBY_LEGGINGS = item("ruby_leggings", p -> new Item(p.humanoidArmor(RUBY_ARMOR, ArmorType.LEGGINGS)), false);
@@ -157,9 +185,9 @@ public final class ModContent {
         ENDITE_PLATING_SLAB = block("endite_plating_slab", SlabBlock::new, BlockBehaviour.Properties.ofFullCopy(plating), true);
         ENDITE_SWORD = item("endite_sword", p -> new Item(p.sword(ENDITE_TOOLS, 3f, -2.4f)), true);
         ENDITE_PICKAXE = item("endite_pickaxe", p -> new Item(p.pickaxe(ENDITE_TOOLS, 1f, -2.8f)), true);
-        ENDITE_AXE = item("endite_axe", p -> new AxeItem(ENDITE_TOOLS, 5f, -3f, p), true);
-        ENDITE_SHOVEL = item("endite_shovel", p -> new ShovelItem(ENDITE_TOOLS, 1.5f, -3f, p), true);
-        ENDITE_HOE = item("endite_hoe", p -> new HoeItem(ENDITE_TOOLS, -5.5f, 0f, p), true);
+        ENDITE_AXE = item("endite_axe", p -> new Item(tool(p, "axe", ENDITE_TOOLS, 5f, -3f)), true);
+        ENDITE_SHOVEL = item("endite_shovel", p -> new Item(tool(p, "shovel", ENDITE_TOOLS, 1.5f, -3f)), true);
+        ENDITE_HOE = item("endite_hoe", p -> new Item(tool(p, "hoe", ENDITE_TOOLS, -5.5f, 0f)), true);
         ENDITE_HELMET = item("endite_helmet", p -> new Item(p.humanoidArmor(ENDITE_ARMOR, ArmorType.HELMET)), true);
         ENDITE_CHESTPLATE = item("endite_chestplate", p -> new Item(p.humanoidArmor(ENDITE_ARMOR, ArmorType.CHESTPLATE)), true);
         ENDITE_LEGGINGS = item("endite_leggings", p -> new Item(p.humanoidArmor(ENDITE_ARMOR, ArmorType.LEGGINGS)), true);
@@ -167,6 +195,22 @@ public final class ModContent {
 
         worldgen();
         loot();
+        transformers();
+    }
+
+    /** Axes strip logs, shovels make paths and hoes till: in 26.3 that's the block_transformer component. */
+    private static void transformers() {
+        DefaultItemComponentEvents.MODIFY.register(context -> {
+            bind(context, BlockTransformers.AXE, RUBY_AXE, ENDITE_AXE);
+            bind(context, BlockTransformers.SHOVEL, RUBY_SHOVEL, ENDITE_SHOVEL);
+            bind(context, BlockTransformers.HOE, RUBY_HOE, ENDITE_HOE);
+        });
+    }
+
+    private static void bind(DefaultItemComponentEvents.ModifyContext context, ResourceKey<BlockTransformer> key, Item... items) {
+        for (Item it : items) {
+            context.modify(it, (builder, registryLookup, item) -> builder.set(DataComponents.BLOCK_TRANSFORMER, registryLookup.getOrThrow(key)));
+        }
     }
 
     /** Ruby ore deep in the overworld; endite ore in the End's outer islands (never on the dragon's island). */
