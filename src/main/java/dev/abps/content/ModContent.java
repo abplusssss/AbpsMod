@@ -183,6 +183,7 @@ public final class ModContent {
         worldgen();
         loot();
         transformers();
+        Enchants.register();
     }
 
     /** Axes strip logs, shovels make paths and hoes till: in 26.3 that's the block_transformer component. */

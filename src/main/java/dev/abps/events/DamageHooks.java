@@ -54,6 +54,7 @@ public final class DamageHooks {
 
     // ================= Damage =================
     public static float modify(LivingEntity victim, DamageSource source, float amount) {
+        if (amount > 0) amount = dev.abps.content.Enchants.outgoing(victim, source, amount);
         if (!AbpsMod.running() || amount <= 0) return amount;
         double m = 1;
         if (!Targets.abilityDamage && source.getEntity() instanceof ServerPlayer p && p != victim) {
@@ -167,6 +168,7 @@ public final class DamageHooks {
     }
 
     public static boolean projectileHit(Projectile proj, HitResult hit) {
+        if (!proj.level().isClientSide()) dev.abps.content.Enchants.projectileHit(proj, hit);
         if (!AbpsMod.running() || proj.level().isClientSide()) return false;
         if (!(proj.getOwner() instanceof ServerPlayer p)) return false;
         PlayerData d = data(p);
@@ -190,11 +192,14 @@ public final class DamageHooks {
     }
 
     public static List<ItemStack> modifyDrops(Entity entity, BlockState state, List<ItemStack> drops) {
-        if (!(entity instanceof ServerPlayer p) || !AbpsMod.running()) return null;
-        PlayerData d = data(p);
-        AttributeClass c = cls(d);
-        if (c != null) c.modifyDrops(p, d, state, drops);
-        dev.abps.items.CustomItems.modifyDrops(p, state, drops);
+        if (!(entity instanceof ServerPlayer p)) return null;
+        if (AbpsMod.running()) {
+            PlayerData d = data(p);
+            AttributeClass c = cls(d);
+            if (c != null) c.modifyDrops(p, d, state, drops);
+            dev.abps.items.CustomItems.modifyDrops(p, state, drops);
+        }
+        dev.abps.content.Enchants.modifyDrops(p, drops);
         return drops;
     }
 

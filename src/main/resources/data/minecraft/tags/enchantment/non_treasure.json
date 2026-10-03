@@ -1,0 +1,20 @@
+{
+  "replace": false,
+  "values": [
+    "abpsmod:lifesteal",
+    "abpsmod:executioner",
+    "abpsmod:venom",
+    "abpsmod:frostbite",
+    "abpsmod:thunderstrike",
+    "abpsmod:dodge",
+    "abpsmod:timber",
+    "abpsmod:excavator",
+    "abpsmod:smelting_touch",
+    "abpsmod:magnetic",
+    "abpsmod:replanting",
+    "abpsmod:explosive_shot",
+    "abpsmod:leaping",
+    "abpsmod:night_owl",
+    "abpsmod:second_wind"
+  ]
+}

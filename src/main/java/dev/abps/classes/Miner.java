@@ -59,8 +59,9 @@ public final class Miner extends AttributeClass {
         return isOre(state) ? 0.01 : state.is(BlockTags.MINEABLE_WITH_PICKAXE) ? 0.0008 : 0;
     }
 
-    private double oreSpeed(int lvl) { return lerp(lvl, 0.50, 1.20); }
-    private double stoneSpeed(int lvl) { return lerp(lvl, 0.40, 0.90); }
+    private double oreSpeed(int lvl) { return lerp(lvl, 0.70, 1.60); }
+    private double stoneSpeed(int lvl) { return lerp(lvl, 0.55, 1.20); }
+    private int prospect(int lvl) { return (int) Math.round(lerp(lvl, 3, 10)); }
     private double reach(int lvl) { return lerp(lvl, 1.0, 2.0); }
     private int fortune(int lvl) { return lvl >= 25 ? 3 : lvl >= 15 ? 2 : 1; }
     private double oreXp(int lvl) { return lerp(lvl, 1.5, 2.5); }
@@ -84,7 +85,8 @@ public final class Miner extends AttributeClass {
                 "+" + num(reach(lvl)) + " block mining reach",
                 "+" + fortune(lvl) + " Fortune on ores with a pickaxe",
                 "Ores drop " + mult(oreXp(lvl)) + " XP",
-                "Pickaxes take " + pct(durability(lvl)) + " less durability damage");
+                "Pickaxes take " + pct(durability(lvl)) + " less durability damage",
+                "Prospector: mining an ore also mines up to " + prospect(lvl) + " touching ores of the same kind (sneak to stop it)");
     }
 
     @Override
@@ -121,8 +123,8 @@ public final class Miner extends AttributeClass {
     @Override
     public double baseCooldown(int idx) {
         return switch (idx) {
-            case 1 -> 5;
-            case 2 -> 40;
+            case 1 -> 3;
+            case 2 -> 30;
             case 3 -> 25;
             default -> 240;
         };
@@ -206,12 +208,48 @@ public final class Miner extends AttributeClass {
         if (id != null) FakeBlocks.hide(p, id);
         dev.abps.util.Vfx.burst(level, Vec3.atCenterOf(pos), dev.abps.util.Vfx.tint(oreColor(state)), 8, 0.14, 0.14f, 14, oreColor(state));
         if (p.isCreative()) return;
+        prospect(p, d, level, pos, state);
         double base = baseXp(state);
         if (base <= 0) return;
         double factor = oreXp(d.level) * (d.buff("goldrush") ? 2 : 1) - 1;
         int extra = (int) Math.round(base * factor);
         if (extra > 0) ExperienceOrb.award(level, Vec3.atCenterOf(pos), extra);
         if (mastered(d)) Fx.burst(level, ParticleTypes.FLAME, Vec3.atCenterOf(pos), 4, 0.2, 0.01);
+    }
+
+    private static boolean prospecting;
+
+    /** Prospector: a pickaxe pulls a few touching ores of the same kind out with the first one. */
+    private void prospect(ServerPlayer p, PlayerData d, ServerLevel level, BlockPos pos, BlockState state) {
+        ItemStack tool = p.getMainHandItem();
+        if (prospecting || p.isShiftKeyDown() || !tool.is(ItemTags.PICKAXES)) return;
+        String kind = state.getBlock().getDescriptionId().replace("deepslate_", "");
+        java.util.List<BlockPos> found = new java.util.ArrayList<>();
+        java.util.Set<BlockPos> seen = new java.util.HashSet<>(java.util.List.of(pos));
+        java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>(java.util.List.of(pos));
+        int max = prospect(d.level);
+        while (!queue.isEmpty() && found.size() < max) {
+            BlockPos c = queue.poll();
+            for (net.minecraft.core.Direction dir : net.minecraft.core.Direction.values()) {
+                BlockPos n = c.relative(dir);
+                if (!seen.add(n)) continue;
+                BlockState s = level.getBlockState(n);
+                if (isOre(s) && s.getBlock().getDescriptionId().replace("deepslate_", "").equals(kind)) {
+                    found.add(n);
+                    queue.add(n);
+                    if (found.size() >= max) break;
+                }
+            }
+        }
+        prospecting = true;
+        try {
+            for (BlockPos n : found) {
+                if (tool.isEmpty() || tool.getDamageValue() >= tool.getMaxDamage() - 2) break;
+                p.gameMode.destroyBlock(n);
+            }
+        } finally {
+            prospecting = false;
+        }
     }
 
     @Override

@@ -1,0 +1,23 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.abpsmod.dodge"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 60,
+    "per_level_above_first": 10
+  },
+  "max_level": 3,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 10
+  },
+  "slots": [
+    "chest",
+    "legs"
+  ],
+  "supported_items": "#abpsmod:enchantable/dodge",
+  "weight": 2,
+  "primary_items": "#abpsmod:enchantable/dodge"
+}

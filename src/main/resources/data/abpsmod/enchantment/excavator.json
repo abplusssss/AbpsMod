@@ -1,0 +1,23 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.abpsmod.excavator"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 60,
+    "per_level_above_first": 10
+  },
+  "max_level": 2,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 10
+  },
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#abpsmod:enchantable/excavator",
+  "weight": 1,
+  "primary_items": "#abpsmod:enchantable/excavator",
+  "exclusive_set": "#abpsmod:exclusive_set/excavator_vein"
+}
