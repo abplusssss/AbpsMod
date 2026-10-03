@@ -48,7 +48,7 @@ public final class Meteors {
     private static void tick(MinecraftServer server) {
         ServerLevel world = server.overworld();
         if (world == null || world.players().isEmpty()) return;
-        long time = world.getDayTime() % 24000;
+        long time = Time.dayTime(world) % 24000;
         // Nightfall: one in five nights brings a shower
         if (time >= 13000 && time < 13100) {
             if (!checkedTonight) {

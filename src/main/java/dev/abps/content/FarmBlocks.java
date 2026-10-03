@@ -114,7 +114,7 @@ public final class FarmBlocks {
         protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
             if (!state.getValue(RIPE)) return InteractionResult.PASS;
             if (level instanceof ServerLevel sl) {
-                int n = 1 + sl.random.nextInt(2) + (Farming.season() == Farming.Season.AUTUMN ? 1 : 0);
+                int n = 1 + sl.getRandom().nextInt(2) + (Farming.season() == Farming.Season.AUTUMN ? 1 : 0);
                 Block.popResource(sl, pos.below(), new ItemStack(fruit.get(), n));
                 sl.setBlock(pos, state.setValue(RIPE, false), 2);
                 sl.playSound(null, pos, SoundEvents.SWEET_BERRY_BUSH_PICK_BERRIES, SoundSource.BLOCKS, 1f, 1f);

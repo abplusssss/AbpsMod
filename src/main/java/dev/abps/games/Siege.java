@@ -318,7 +318,6 @@ final class Siege extends Game {
     private void hitHeart(Mob mob) {
         int dmg = mob.getType() == EntityTypes.RAVAGER ? 6 : mob.getType() == EntityTypes.EVOKER ? 4 : 2;
         heart = Math.max(0, heart - dmg);
-        mob.swing(net.minecraft.world.InteractionHand.MAIN_HAND);
         Fx.burst(level, ParticleTypes.DAMAGE_INDICATOR, heartPos().add(0, 0.6, 0), 4, 0.4, 0.05);
         sound(SoundEvents.AMETHYST_BLOCK_BREAK, 0.6f, 0.7f);
         if (heart <= 0) lose();
@@ -541,7 +540,7 @@ final class Siege extends Game {
             for (ItemStack s : loot) {
                 if (!sb.isEmpty()) sb.append(", ");
                 sb.append(s.getCount()).append("x ").append(s.getHoverName().getString());
-                if (!p.getInventory().add(s.copy())) p.drop(s.copy(), false);
+                if (!p.getInventory().add(s.copy())) dev.abps.content.ModContent.drop(p, s.copy());
             }
             p.giveExperiencePoints(held * 25);
             AbpsMod.service().send(p, "<gold>Siege rewards:</gold> <white>" + sb);

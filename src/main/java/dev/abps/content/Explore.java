@@ -424,7 +424,7 @@ public final class Explore {
             left -= take;
         }
         ItemStack bought = d.item().get();
-        if (!p.getInventory().add(bought)) p.drop(bought, false);
+        if (!p.getInventory().add(bought)) ModContent.drop(p, bought);
         Fx.sound((ServerLevel) p.level(), merchant, SoundEvents.WANDERING_TRADER_YES, 1f, 1f);
         AbpsMod.service().actionBar(p, "<green>Bought " + d.what() + ".");
     }
@@ -432,7 +432,7 @@ public final class Explore {
     // ------------------------------------------------------------------ wildlife
 
     private static void wildlife(ServerLevel level, ServerPlayer p) {
-        long t = level.getDayTime() % 24000;
+        long t = Time.dayTime(level) % 24000;
         boolean night = t > 13000 && t < 23000;
         if (level.isRaining()) return;
         if (!night) {
@@ -491,7 +491,7 @@ public final class Explore {
             if (ticks % 20 == 0) wildlife(world, p);
         }
         // A caravan roughly every twenty minutes of daytime somewhere near someone
-        long t = world.getDayTime() % 24000;
+        long t = Time.dayTime(world) % 24000;
         if (ticks % 6000 == 3000 && t < 11000 && !world.players().isEmpty() && RND.nextInt(4) == 0) {
             ServerPlayer p = world.players().get(RND.nextInt(world.players().size()));
             spawnCaravan(world, p);

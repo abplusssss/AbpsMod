@@ -155,7 +155,7 @@ public final class Fishing {
             default -> true;
         };
         if (!where) return false;
-        long t = level.getDayTime() % 24000;
+        long t = Time.dayTime(level) % 24000;
         boolean night = t > 13000 && t < 23000;
         return switch (f.when()) {
             case "day" -> !night;
@@ -271,7 +271,7 @@ public final class Fishing {
     }
 
     private static void give(ServerPlayer p, ItemStack s) {
-        if (!p.getInventory().add(s)) p.drop(s, false);
+        if (!p.getInventory().add(s)) ModContent.drop(p, s);
     }
 
     // ------------------------------------------------------------------ the reel-in minigame (epic and legendary fish)

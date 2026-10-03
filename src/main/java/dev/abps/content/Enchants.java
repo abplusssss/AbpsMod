@@ -198,7 +198,7 @@ public final class Enchants {
         List<ItemStack> kept = SOULBOUND_KEPT.remove(p.getUUID());
         if (kept == null) return;
         for (ItemStack s : kept) {
-            if (!p.getInventory().add(s) && !s.isEmpty()) p.drop(s, false);
+            if (!p.getInventory().add(s) && !s.isEmpty()) ModContent.drop(p, s);
         }
         AbpsMod.service().actionBar(p, "<#B388FF>Your soulbound items came back with you.");
     }
@@ -321,7 +321,6 @@ public final class Enchants {
         if (d.is(Items.CLAY_BALL)) return Items.BRICK;
         if (d.is(Items.NETHERRACK)) return Items.NETHER_BRICK;
         if (d.is(Items.WET_SPONGE)) return Items.SPONGE;
-        if (d.is(Items.CACTUS)) return Items.GREEN_DYE;
         if (d.is(Items.KELP)) return Items.DRIED_KELP;
         if (d.is(ModContent.ENDITE_ORE.asItem())) return ModContent.ENDITE_SHARD;
         if (d.is(net.minecraft.tags.ItemTags.LOGS_THAT_BURN)) return Items.CHARCOAL;
@@ -397,7 +396,7 @@ public final class Enchants {
             Vec3 want = best.position().add(0, best.getBbHeight() * 0.5, 0).subtract(a.position()).normalize();
             Vec3 steered = dir.scale(0.8).add(want.scale(0.2)).normalize().scale(v.length());
             a.setDeltaMovement(steered);
-            a.hurtMarked = true;
+            a.syncVelocity = true;
         }
     }
 }

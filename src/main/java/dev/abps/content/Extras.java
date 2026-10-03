@@ -253,7 +253,7 @@ public final class Extras {
                 ItemStack s = items.get(i);
                 if (s.is(BACKPACK) || s.is(RUBY_BACKPACK)) {
                     items.set(i, ItemStack.EMPTY);
-                    if (!owner.getInventory().add(s)) owner.drop(s, false);
+                    if (!owner.getInventory().add(s)) ModContent.drop(owner, s);
                 }
             }
             stack.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(items));
@@ -286,7 +286,7 @@ public final class Extras {
             if (to.length() < 1.6) return;
             Vec3 v = to.normalize().scale(Math.min(1.4, 0.5 + to.length() * 0.08));
             p.setDeltaMovement(v.add(0, 0.05, 0));
-            p.hurtMarked = true;
+            p.syncVelocity = true;
             if (step % 3 == 0) Fx.line(level, ParticleTypes.CRIT, p.position().add(0, 1, 0), target, 1.2);
         });
     }
@@ -301,7 +301,7 @@ public final class Extras {
     private static final Map<UUID, Long> BAGGED = new HashMap<>();
 
     private static void sleep(ServerPlayer p, ServerLevel level) {
-        long t = level.getDayTime() % 24000;
+        long t = Time.dayTime(level) % 24000;
         if (level.dimension() != Level.OVERWORLD || t < 12500 || t > 23400) {
             AbpsMod.service().actionBar(p, "<gray>You can only sleep at night, in the overworld.");
             return;
@@ -326,9 +326,7 @@ public final class Extras {
         boolean all = true;
         for (ServerPlayer p : ps) if (!p.isSleeping() && !BAGGED.containsKey(p.getUUID()) && !p.isSpectator()) all = false;
         if (all && BAGGED.values().stream().anyMatch(u -> u <= now)) {
-            long day = world.getDayTime() / 24000L;
-            world.setDayTime((day + 1) * 24000L);
-            world.setWeatherParameters(6000, 0, false, false);
+            Time.morning(server);
             for (ServerPlayer p : ps) AbpsMod.service().actionBar(p, "<gold>Good morning!");
             BAGGED.clear();
         }
@@ -441,7 +439,7 @@ public final class Extras {
         seat.setPos(pos.getX() + 0.5, pos.getY() + y, pos.getZ() + 0.5);
         seat.addTag(SEAT_TAG);
         level.addFreshEntity(seat);
-        p.startRiding(seat, true);
+        p.startRiding(seat, true, true);
     }
 
     // ---- display pedestals
@@ -458,7 +456,7 @@ public final class Extras {
             clearPedestal(level, pos, false);
             for (Display.ItemDisplay d : current) {
                 ItemStack s = d.getItemStack().copy();
-                if (!p.getInventory().add(s)) p.drop(s, false);
+                if (!p.getInventory().add(s)) ModContent.drop(p, s);
             }
             return;
         }
@@ -548,7 +546,7 @@ public final class Extras {
         if (!(source.getEntity() instanceof ServerPlayer p) || dead instanceof ServerPlayer || !(dead.level() instanceof ServerLevel level)) return;
         var type = dead.getType();
         boolean boss = type == EntityTypes.WITHER || type == EntityTypes.ENDER_DRAGON || type == EntityTypes.WARDEN || type == EntityTypes.ELDER_GUARDIAN;
-        if (!boss && level.random.nextFloat() > 0.012f) return;
+        if (!boss && level.getRandom().nextFloat() > 0.012f) return;
         ItemStack t = new ItemStack(MOB_TROPHY);
         String name = type.getDescription().getString();
         t.set(DataComponents.ITEM_NAME, dev.abps.util.Text.mm((boss ? "<gradient:#FFD54F:#FF6D00>" : "<gold>") + name + " Trophy"));
@@ -664,7 +662,7 @@ public final class Extras {
                 Vec3 look = p.getLookAngle().multiply(1, 0, 1).normalize();
                 Vec3 nv = new Vec3(v.x * 0.9 + look.x * 0.06, Math.max(v.y, -0.12), v.z * 0.9 + look.z * 0.06);
                 p.setDeltaMovement(nv);
-                p.hurtMarked = true;
+                p.syncVelocity = true;
                 p.fallDistance = 0;
                 if (ticks % 6 == 0) Fx.burst(level, ParticleTypes.CLOUD, p.position().add(0, 2.2, 0), 1, 0.3, 0);
             }
@@ -677,7 +675,7 @@ public final class Extras {
                 if (now >= WING_BOOST.getOrDefault(p.getUUID(), 0L)) {
                     WING_BOOST.put(p.getUUID(), now + 2000);
                     p.setDeltaMovement(p.getDeltaMovement().add(p.getLookAngle().scale(0.9)));
-                    p.hurtMarked = true;
+                    p.syncVelocity = true;
                     Fx.burst(level, ParticleTypes.REVERSE_PORTAL, p.position(), 20, 0.4, 0.1);
                     Fx.sound(level, p, SoundEvents.ENDER_DRAGON_FLAP, 0.6f, 1.4f);
                 }
@@ -712,7 +710,7 @@ public final class Extras {
                     if (speed < 0.02) continue;
                     double want = Math.min(2.0, Math.max(speed * 1.25, 0.4));
                     cart.setDeltaMovement(v.x / speed * want, v.y, v.z / speed * want);
-                    if (l.random.nextInt(4) == 0) Fx.burst(l, ParticleTypes.ELECTRIC_SPARK, cart.position(), 1, 0.2, 0.02);
+                    if (l.getRandom().nextInt(4) == 0) Fx.burst(l, ParticleTypes.ELECTRIC_SPARK, cart.position(), 1, 0.2, 0.02);
                 }
             }
         }

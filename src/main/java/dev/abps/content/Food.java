@@ -184,8 +184,8 @@ public final class Food {
         block("stone_oven", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.BRICKS), true);
         block("cutting_board", p -> new FarmBlocks.Shaped(Block.box(1, 0, 3, 15, 2, 13), p), BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS).noOcclusion(), true);
         block("aging_barrel", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.BARREL), true);
-        block("sprinkler", p -> new FarmBlocks.Sprinkler(3, p), BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK).noOcclusion(), true);
-        block("quality_sprinkler", p -> new FarmBlocks.Sprinkler(5, p), BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK).noOcclusion(), true);
+        block("sprinkler", p -> new FarmBlocks.Sprinkler(3, p), BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK.weathering().unaffected()).noOcclusion(), true);
+        block("quality_sprinkler", p -> new FarmBlocks.Sprinkler(5, p), BlockBehaviour.Properties.ofFullCopy(Blocks.COPPER_BLOCK.weathering().unaffected()).noOcclusion(), true);
         block("greenhouse_glass", FarmBlocks.GreenhouseGlass::new, BlockBehaviour.Properties.ofFullCopy(Blocks.GLASS), true);
         block("scarecrow", p -> new FarmBlocks.Shaped(Block.box(1, 0, 5, 15, 16, 11), p), BlockBehaviour.Properties.ofFullCopy(Blocks.HAY_BLOCK).noOcclusion(), true);
     }

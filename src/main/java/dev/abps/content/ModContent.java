@@ -209,6 +209,12 @@ public final class ModContent {
 
     public static final ResourceKey<net.minecraft.world.level.biome.Biome> CRYSTAL_HOLLOWS = ResourceKey.create(Registries.BIOME, AbpsMod.id("crystal_hollows"));
 
+    /** Puts an item in a player's inventory, or drops it at their feet when it's full. */
+    public static void drop(net.minecraft.world.entity.player.Player p, net.minecraft.world.item.ItemStack s) {
+        if (s.isEmpty()) return;
+        if (!p.getInventory().add(s) && !s.isEmpty()) Block.popResource(p.level(), p.blockPosition(), s);
+    }
+
     /** Ruby ore deep in the overworld; endite ore in the End's outer islands (never on the dragon's island). */
     private static void worldgen() {
         BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.UNDERGROUND_ORES,

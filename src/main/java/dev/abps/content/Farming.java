@@ -28,7 +28,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.BonemealableBlock;
 import net.minecraft.world.level.block.CropBlock;
-import net.minecraft.world.level.block.FarmBlock;
+import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.EmptyLootItem;
@@ -72,14 +72,14 @@ public final class Farming {
     public static Season season() {
         MinecraftServer s = AbpsMod.server();
         if (s == null || s.overworld() == null) return Season.SPRING;
-        long day = s.overworld().getDayTime() / 24000L;
+        long day = Time.dayTime(s.overworld()) / 24000L;
         return Season.values()[(int) ((day / DAYS_PER_SEASON) % 4)];
     }
 
     public static int seasonDay() {
         MinecraftServer s = AbpsMod.server();
         if (s == null || s.overworld() == null) return 1;
-        return (int) ((s.overworld().getDayTime() / 24000L) % DAYS_PER_SEASON) + 1;
+        return (int) ((Time.dayTime(s.overworld()) / 24000L) % DAYS_PER_SEASON) + 1;
     }
 
     // ------------------------------------------------------------------ wiring
@@ -97,7 +97,7 @@ public final class Farming {
             BlockState state = level.getBlockState(pos);
             if (stack.is(Food.item("rich_compost"))) {
                 BlockPos soil = state.getBlock() instanceof CropBlock ? pos.below() : pos;
-                if (!(level.getBlockState(soil).getBlock() instanceof FarmBlock)) return InteractionResult.PASS;
+                if (!(level.getBlockState(soil).getBlock() instanceof FarmlandBlock)) return InteractionResult.PASS;
                 if (level instanceof ServerLevel sl) {
                     fertile.add(key(sl, soil));
                     if (!player.isCreative()) stack.shrink(1);
@@ -113,7 +113,7 @@ public final class Farming {
                 if (level instanceof ServerLevel sl) {
                     if (!player.isCreative()) stack.shrink(1);
                     Fx.burst(sl, ParticleTypes.HAPPY_VILLAGER, Vec3.atCenterOf(pos), 8, 0.4, 0.02);
-                    if (sl.random.nextFloat() < 0.4f) sapling.grow(sl, pos, sl.random);
+                    if (sl.getRandom().nextFloat() < 0.4f) sapling.grow(sl, pos, sl.getRandom());
                 }
                 return InteractionResult.SUCCESS;
             }
@@ -129,7 +129,7 @@ public final class Farming {
             if (!level.isClientSide()) {
                 if (!player.isCreative()) stack.shrink(1);
                 ItemStack milk = new ItemStack(Food.item(goat ? "goat_milk" : "milk_bottle"));
-                if (!player.getInventory().add(milk)) player.drop(milk, false);
+                if (!player.getInventory().add(milk)) ModContent.drop(player, milk);
                 level.playSound(null, entity.blockPosition(), goat ? SoundEvents.GOAT_MILK : SoundEvents.COW_MILK, net.minecraft.sounds.SoundSource.PLAYERS, 1f, 1f);
             }
             return InteractionResult.SUCCESS;
@@ -178,7 +178,7 @@ public final class Farming {
                 return true;
             }
         }
-        if (s.getBlock() instanceof FarmBlocks.FruitSapling sapling) return sapling.grow(level, pos, level.random);
+        if (s.getBlock() instanceof FarmBlocks.FruitSapling sapling) return sapling.grow(level, pos, level.getRandom());
         if (s.getBlock() instanceof BonemealableBlock && !(s.getBlock() instanceof net.minecraft.world.level.block.GrassBlock)) {
             return dev.abps.classes.Harvester.grow(level, pos);
         }
@@ -190,11 +190,11 @@ public final class Farming {
         int helped = 0;
         for (BlockPos at : BlockPos.betweenClosed(pos.offset(-r, -1, -r), pos.offset(r, 0, r))) {
             BlockState s = level.getBlockState(at);
-            if (s.getBlock() instanceof FarmBlock && s.hasProperty(FarmBlock.MOISTURE) && s.getValue(FarmBlock.MOISTURE) < 7) {
-                level.setBlock(at, s.setValue(FarmBlock.MOISTURE, 7), 2);
+            if (s.getBlock() instanceof FarmlandBlock && s.hasProperty(FarmlandBlock.MOISTURE) && s.getValue(FarmlandBlock.MOISTURE) < 7) {
+                level.setBlock(at, s.setValue(FarmlandBlock.MOISTURE, 7), 2);
             }
             BlockPos crop = at.above();
-            if (level.getBlockState(crop).getBlock() instanceof CropBlock && level.random.nextFloat() < (season() == Season.WINTER ? 0.15f : 0.45f)) {
+            if (level.getBlockState(crop).getBlock() instanceof CropBlock && level.getRandom().nextFloat() < (season() == Season.WINTER ? 0.15f : 0.45f)) {
                 if (nudge(level, crop.immutable())) helped++;
             }
         }
@@ -209,7 +209,7 @@ public final class Farming {
             BlockState s = level.getBlockState(at);
             if (s.isAir()) continue;
             if (s.getBlock() instanceof CropBlock || s.getBlock() instanceof FarmBlocks.FruitSapling) {
-                if (level.random.nextFloat() < (season() == Season.WINTER ? 0.8f : 0.5f)) nudge(level, at);
+                if (level.getRandom().nextFloat() < (season() == Season.WINTER ? 0.8f : 0.5f)) nudge(level, at);
             }
             return;
         }
@@ -228,8 +228,8 @@ public final class Farming {
         for (int i = 0; i < n; i++) {
             ItemStack d = drops.get(i);
             if (!d.has(DataComponents.FOOD)) continue;
-            if ((rich || season() == Season.AUTUMN) && level.random.nextFloat() < 0.35f) d.grow(1);
-            double roll = level.random.nextDouble();
+            if ((rich || season() == Season.AUTUMN) && level.getRandom().nextFloat() < 0.35f) d.grow(1);
+            double roll = level.getRandom().nextDouble();
             if (roll < prime) quality(d, 2);
             else if (roll < prime + fine) quality(d, 1);
         }
@@ -268,13 +268,13 @@ public final class Farming {
         if (now == Season.SPRING && ticks % 100 == 0) {
             for (ServerPlayer p : players) {
                 for (int k = 0; k < 30; k++) {
-                    BlockPos at = p.blockPosition().offset(world.random.nextInt(49) - 24, world.random.nextInt(7) - 3, world.random.nextInt(49) - 24);
-                    if (world.getBlockState(at).getBlock() instanceof CropBlock && world.random.nextFloat() < 0.3f) nudge(world, at);
+                    BlockPos at = p.blockPosition().offset(world.getRandom().nextInt(49) - 24, world.getRandom().nextInt(7) - 3, world.getRandom().nextInt(49) - 24);
+                    if (world.getBlockState(at).getBlock() instanceof CropBlock && world.getRandom().nextFloat() < 0.3f) nudge(world, at);
                 }
             }
         }
         // Crows: in the daytime they peck at grown crops that no scarecrow is watching
-        long time = world.getDayTime() % 24000;
+        long time = Time.dayTime(world) % 24000;
         if (ticks % 2400 == 1200 && time < 12000) {
             for (ServerPlayer p : players) crows(world, p);
         }
@@ -284,10 +284,10 @@ public final class Farming {
         int pecked = 0;
         BlockPos where = null;
         for (int k = 0; k < 40; k++) {
-            BlockPos at = p.blockPosition().offset(world.random.nextInt(41) - 20, world.random.nextInt(7) - 3, world.random.nextInt(41) - 20);
+            BlockPos at = p.blockPosition().offset(world.getRandom().nextInt(41) - 20, world.getRandom().nextInt(7) - 3, world.getRandom().nextInt(41) - 20);
             BlockState s = world.getBlockState(at);
             if (!(s.getBlock() instanceof CropBlock crop) || !crop.isMaxAge(s) || !s.hasProperty(CropBlock.AGE)) continue;
-            if (!world.canSeeSky(at) || guarded(world, at) || world.random.nextFloat() > 0.3f) continue;
+            if (!world.canSeeSky(at) || guarded(world, at) || world.getRandom().nextFloat() > 0.3f) continue;
             world.setBlock(at, s.setValue(CropBlock.AGE, 4), 2);
             Fx.burst(world, ParticleTypes.POOF, Vec3.atCenterOf(at), 6, 0.3, 0.02);
             pecked++;

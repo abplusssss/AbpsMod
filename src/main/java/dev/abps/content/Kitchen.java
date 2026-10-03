@@ -220,7 +220,7 @@ public final class Kitchen {
             if (!p.isCreative()) {
                 ItemStack rest = hand.is(Items.MILK_BUCKET) ? new ItemStack(Items.BUCKET) : ItemStack.EMPTY;
                 hand.shrink(1);
-                if (!rest.isEmpty() && !p.getInventory().add(rest)) p.drop(rest, false);
+                if (!rest.isEmpty() && !p.getInventory().add(rest)) ModContent.drop(p, rest);
             }
             Fx.sound(level, Vec3.atCenterOf(pos), oven ? SoundEvents.WOOD_PLACE : SoundEvents.BUCKET_EMPTY, 0.5f, 1.4f);
             bar(p, "<gray>In the " + what + ": <white>" + list(s.contents));
@@ -235,7 +235,7 @@ public final class Kitchen {
         if (r == null) {
             for (Item i : s.contents) {
                 ItemStack back = new ItemStack(i);
-                if (!p.getInventory().add(back)) p.drop(back, false);
+                if (!p.getInventory().add(back)) ModContent.drop(p, back);
             }
             s.contents.clear();
             bar(p, "<gray>That's not a recipe. You take the ingredients back. <dark_gray>(Type !Recipes to see them all.)");
@@ -307,9 +307,9 @@ public final class Kitchen {
             return;
         }
         ItemStack result = out.copy();
-        if (isChef(p) && level.random.nextInt(3) == 0) result.grow(1);
+        if (isChef(p) && level.getRandom().nextInt(3) == 0) result.grow(1);
         if (!p.isCreative()) hand.shrink(1);
-        if (!p.getInventory().add(result) && !result.isEmpty()) p.drop(result, false);
+        if (!p.getInventory().add(result) && !result.isEmpty()) ModContent.drop(p, result);
         Fx.sound(level, Vec3.atCenterOf(pos), SoundEvents.WOOD_HIT, 0.8f, 1.6f);
         Fx.burst(level, ParticleTypes.CRIT, Vec3.atCenterOf(pos).add(0, 0.2, 0), 4, 0.2, 0.05);
     }
@@ -329,10 +329,10 @@ public final class Kitchen {
             if (now >= a.readyAt()) {
                 barrels.remove(k);
                 ItemStack done = new ItemStack((Item) rule[0], (int) rule[1] * a.count());
-                if (!p.getInventory().add(done)) p.drop(done, false);
+                if (!p.getInventory().add(done)) ModContent.drop(p, done);
                 if (itemOf(a.item()) == Items.MILK_BUCKET) {
                     ItemStack buckets = new ItemStack(Items.BUCKET, a.count());
-                    if (!p.getInventory().add(buckets)) p.drop(buckets, false);
+                    if (!p.getInventory().add(buckets)) ModContent.drop(p, buckets);
                 }
                 Fx.sound(level, Vec3.atCenterOf(pos), SoundEvents.BARREL_OPEN, 0.8f, 1f);
                 bar(p, "<gold>Ready! <gray>You take out <white>" + name((Item) rule[0]));
@@ -376,7 +376,7 @@ public final class Kitchen {
                 ItemStack out = new ItemStack(s.recipe.result(), s.recipe.count());
                 UUID cook = pending.remove(e.getKey());
                 ServerPlayer p = cook == null ? null : server.getPlayerList().getPlayer(cook);
-                if (p != null && isChef(p) && level.random.nextInt(3) == 0) out.grow(1);
+                if (p != null && isChef(p) && level.getRandom().nextInt(3) == 0) out.grow(1);
                 ItemEntity drop = new ItemEntity(level, top.x, top.y + 0.3, top.z, out);
                 drop.setDeltaMovement(0, 0.2, 0);
                 level.addFreshEntity(drop);
@@ -445,7 +445,7 @@ public final class Kitchen {
         boolean was = hasWellFed(p);
         Mods.toggle(p, wellFed, Attributes.MAX_HEALTH, "well_fed", 4, Mods.ADD);
         if (wellFed && !was) AbpsMod.service().actionBar(p, "<#69F0AE>Well Fed! <gray>A varied diet gives you +2 hearts.");
-        else if (diet.size() >= 6 && distinct.size() <= 2 && level.random.nextInt(3) == 0)
+        else if (diet.size() >= 6 && distinct.size() <= 2 && level.getRandom().nextInt(3) == 0)
             AbpsMod.service().actionBar(p, "<gray>You're getting tired of the same food. Mix it up to become <#69F0AE>Well Fed</#69F0AE>.");
     }
 

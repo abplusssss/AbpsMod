@@ -154,7 +154,7 @@ public abstract class Game {
     /** Gives a game item that is taken back when the game ends. */
     void give(ServerPlayer p, ItemStack stack) {
         net.minecraft.world.item.component.CustomData.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA, stack, tagged());
-        if (!p.getInventory().add(stack)) p.drop(stack, false);
+        if (!p.getInventory().add(stack)) dev.abps.content.ModContent.drop(p, stack);
     }
 
     private static net.minecraft.nbt.CompoundTag tagged() {
