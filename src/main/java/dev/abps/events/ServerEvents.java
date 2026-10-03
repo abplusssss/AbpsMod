@@ -220,6 +220,7 @@ public final class ServerEvents {
             PlayerData d = data(p);
             DamageHooks.tickTap(p, d);
             Teleports.tick(p, d);
+            dev.abps.content.SetBonuses.tick(p, ticks);
             if (ticks % 20 == 0) d.playSeconds++;
             if (!slow) continue;
             AttributeClass c = s.active(d);

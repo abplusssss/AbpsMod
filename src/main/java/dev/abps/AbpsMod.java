@@ -29,6 +29,7 @@ public class AbpsMod implements ModInitializer {
 		dev.abps.util.FxTypes.register();
 		Net.register();
 		Classes.init();
+		dev.abps.content.ModContent.register();
 		dev.abps.items.CustomItems.registerTab();
 		ServerEvents.register();
 		Commands.register();

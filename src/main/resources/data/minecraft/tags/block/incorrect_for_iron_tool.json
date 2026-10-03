@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "#abpsmod:needs_ruby_tool",
+    "#abpsmod:needs_netherite_tool"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "#": "abpsmod:endite_shard",
+    "C": "minecraft:end_stone",
+    "S": "abpsmod:endite_upgrade_smithing_template"
+  },
+  "pattern": [
+    "#S#",
+    "#C#",
+    "###"
+  ],
+  "result": {
+    "id": "abpsmod:endite_upgrade_smithing_template",
+    "count": 2
+  }
+}

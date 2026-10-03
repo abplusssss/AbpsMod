@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smelting",
+  "cookingtime": 200,
+  "experience": 2.0,
+  "ingredient": "abpsmod:endite_ore",
+  "result": {
+    "id": "abpsmod:endite_shard"
+  }
+}

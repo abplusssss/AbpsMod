@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:scattered_ore",
+  "discard_chance_on_air_exposure": 0.8,
+  "size": 3,
+  "targets": [
+    {
+      "state": "abpsmod:endite_ore",
+      "target": {
+        "predicate_type": "minecraft:block_match",
+        "block": "minecraft:end_stone"
+      }
+    }
+  ]
+}

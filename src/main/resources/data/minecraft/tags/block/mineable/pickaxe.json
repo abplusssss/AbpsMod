@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "abpsmod:ruby_ore",
+    "abpsmod:deepslate_ruby_ore",
+    "abpsmod:ruby_block",
+    "abpsmod:ruby_bricks",
+    "abpsmod:ruby_lamp",
+    "abpsmod:endite_ore",
+    "abpsmod:endite_block",
+    "abpsmod:endite_plating",
+    "abpsmod:ruby_brick_stairs",
+    "abpsmod:endite_plating_stairs",
+    "abpsmod:ruby_brick_slab",
+    "abpsmod:endite_plating_slab"
+  ]
+}

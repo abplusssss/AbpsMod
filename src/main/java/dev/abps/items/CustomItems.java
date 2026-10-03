@@ -175,6 +175,7 @@ public final class CustomItems {
                     return icon;
                 })
                 .displayItems((params, output) -> {
+                    for (net.minecraft.world.item.Item it : dev.abps.content.ModContent.ITEMS) output.accept(new ItemStack(it));
                     for (String id : ALL.keySet()) {
                         ItemStack s = create(id, params.holders());
                         if (!s.isEmpty()) output.accept(s);

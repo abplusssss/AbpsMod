@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab",
+  "textures": {
+    "bottom": "abpsmod:block/ruby_bricks",
+    "side": "abpsmod:block/ruby_bricks",
+    "top": "abpsmod:block/ruby_bricks"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smithing_transform",
+  "addition": "abpsmod:endite_ingot",
+  "base": "minecraft:netherite_chestplate",
+  "result": {
+    "id": "abpsmod:endite_chestplate"
+  },
+  "template": "abpsmod:endite_upgrade_smithing_template"
+}

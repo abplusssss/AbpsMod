@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "R": "abpsmod:ruby",
+    "G": "minecraft:glowstone"
+  },
+  "pattern": [
+    " R ",
+    "RGR",
+    " R "
+  ],
+  "result": {
+    "id": "abpsmod:ruby_lamp"
+  }
+}

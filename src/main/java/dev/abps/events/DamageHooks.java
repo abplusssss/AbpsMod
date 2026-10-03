@@ -100,6 +100,7 @@ public final class DamageHooks {
 
     /** Decides if damage happens at all. Called by the Fabric ALLOW_DAMAGE event. */
     public static boolean allowDamage(LivingEntity victim, DamageSource source, float amount) {
+        if (victim instanceof ServerPlayer sp && !dev.abps.content.SetBonuses.allowDamage(sp, source)) return false;
         if (!AbpsMod.running()) return true;
         Entity src = source.getEntity();
         // Minions never hurt their owner or each other, and owners can't hurt their own minions

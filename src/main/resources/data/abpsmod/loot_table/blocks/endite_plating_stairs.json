@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "abpsmod:endite_plating_stairs"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "abpsmod:blocks/endite_plating_stairs"
+}

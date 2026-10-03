@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smithing_transform",
+  "addition": "abpsmod:endite_ingot",
+  "base": "minecraft:netherite_pickaxe",
+  "result": {
+    "id": "abpsmod:endite_pickaxe"
+  },
+  "template": "abpsmod:endite_upgrade_smithing_template"
+}

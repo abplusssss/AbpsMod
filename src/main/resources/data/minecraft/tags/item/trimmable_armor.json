@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "abpsmod:ruby_helmet",
+    "abpsmod:ruby_chestplate",
+    "abpsmod:ruby_leggings",
+    "abpsmod:ruby_boots",
+    "abpsmod:endite_helmet",
+    "abpsmod:endite_chestplate",
+    "abpsmod:endite_leggings",
+    "abpsmod:endite_boots"
+  ]
+}

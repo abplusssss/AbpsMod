@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "abpsmod:ruby"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "abpsmod:ruby"
+      }
+    ]
+  }
+}

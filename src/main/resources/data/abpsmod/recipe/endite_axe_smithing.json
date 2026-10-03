@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smithing_transform",
+  "addition": "abpsmod:endite_ingot",
+  "base": "minecraft:netherite_axe",
+  "result": {
+    "id": "abpsmod:endite_axe"
+  },
+  "template": "abpsmod:endite_upgrade_smithing_template"
+}
