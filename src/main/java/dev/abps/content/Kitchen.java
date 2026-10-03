@@ -138,7 +138,6 @@ public final class Kitchen {
     // ------------------------------------------------------------------ wiring
 
     public static void register() {
-        recipes();
         UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
             BlockState state = level.getBlockState(hit.getBlockPos());
             Block b = state.getBlock();
@@ -157,6 +156,10 @@ public final class Kitchen {
             if (a != null) Block.popResource(sl, pos, new ItemStack(itemOf(a.item()), a.count()));
         });
         ServerTickEvents.END_SERVER_TICK.register(Kitchen::tick);
+        // Item stacks can only be made once the game has finished loading, so the recipe book is filled then
+        ServerLifecycleEvents.SERVER_STARTING.register(s -> {
+            if (POT.isEmpty()) recipes();
+        });
         ServerLifecycleEvents.SERVER_STARTED.register(s -> load());
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> save());
     }
