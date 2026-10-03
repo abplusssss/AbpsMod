@@ -121,7 +121,7 @@ final class CaptureTheFlag extends Game {
     void begin() {
         for (ServerPlayer p : online()) {
             Team t = team.get(p.getUUID());
-            AbpsMod.service().send(p, "<gray>You're on the " + t.tag + "<bold>" + t.title + "</bold></" + "> <gray>team. Walk into the other team's wool to grab it, then bring it back to your own stand.");
+            AbpsMod.service().send(p, "<gray>You're on the " + t.tag + "<bold>" + t.title + "</bold><reset> <gray>team. Walk into the other team's wool to grab it, then bring it back to your own stand.");
         }
         tell("<gray>Teams: " + names(Team.RED) + " <dark_gray>vs</dark_gray> " + names(Team.BLUE) + "<gray>. First to " + GOAL + " captures wins.");
     }
@@ -142,7 +142,7 @@ final class CaptureTheFlag extends Game {
         long left = Math.max(0, LIMIT_MS - (System.currentTimeMillis() - startedAt));
         String flags = (carrier.get(Team.RED) == null ? "<#FF5252>⚑ home" : "<#FF5252>⚑ taken") + " <dark_gray>·</dark_gray> "
                 + (carrier.get(Team.BLUE) == null ? "<#40C4FF>⚑ home" : "<#40C4FF>⚑ taken");
-        return "<#FF5252>Red " + score.get(Team.RED) + "</" + "> <gray>-</gray> <#40C4FF>" + score.get(Team.BLUE) + " Blue</" + "> <gray>(" + dev.abps.util.Text.time(left) + ")|" + flags;
+        return "<#FF5252>Red " + score.get(Team.RED) + "<reset> <gray>-</gray> <#40C4FF>" + score.get(Team.BLUE) + " Blue<reset> <gray>(" + dev.abps.util.Text.time(left) + ")|" + flags;
     }
 
     @Override
@@ -157,7 +157,7 @@ final class CaptureTheFlag extends Game {
                 carrier.put(enemy, p.getUUID());
                 level.setBlock(stand(enemy).above(), Blocks.AIR.defaultBlockState(), 3);
                 p.setGlowingTag(true);
-                tell(t.tag + p.getName().getString() + "</" + "> <gray>grabbed the " + enemy.tag + enemy.title + "</" + "> <gray>flag!");
+                tell(t.tag + p.getName().getString() + "<reset> <gray>grabbed the " + enemy.tag + enemy.title + "<reset> <gray>flag!");
                 sound(SoundEvents.NOTE_BLOCK_PLING.value(), 1f, 1.6f);
             }
             // Bring it home (your own flag must be home too)
@@ -197,7 +197,7 @@ final class CaptureTheFlag extends Game {
             if (p.getUUID().equals(carrier.get(t))) {
                 returnFlag(t);
                 p.setGlowingTag(false);
-                tell("<gray>The " + t.tag + t.title + "</" + "> <gray>flag returned to its base.");
+                tell("<gray>The " + t.tag + t.title + "<reset> <gray>flag returned to its base.");
             }
         }
     }

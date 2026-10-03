@@ -228,7 +228,7 @@ final class Siege extends Game {
         String obj = prep > 0 ? (wave == 0 ? "Build towers! First wave in " : "Next wave in ") + (prep / 20 + 1) + "s"
                 : "Wave " + wave + "/" + waves + ": " + mobs.size() + " raiders left";
         String heartCol = heart > 60 ? "<#69F0AE>" : heart > 30 ? "<#FFD54F>" : "<#FF5252>";
-        return obj + "|" + heartCol + "❤ Heart " + heart + "/" + heartMax + "</" + "> <dark_gray>·</dark_gray> <gold>⛃ " + coins + " coins";
+        return obj + "|" + heartCol + "❤ Heart " + heart + "/" + heartMax + "<reset> <dark_gray>·</dark_gray> <gold>⛃ " + coins + " coins";
     }
 
     @Override
@@ -245,6 +245,7 @@ final class Siege extends Game {
             if (queue.isEmpty() && mobs.isEmpty()) waveCleared();
         }
         if (ticks % 10 == 0) steer();
+        if (lost || closing >= 0) return;
         for (Tower t : towers) fire(t);
         if (ticks % 20 == 0) {
             sendHud(Math.max(1, wave), waves, 0);
@@ -300,7 +301,8 @@ final class Siege extends Game {
     /** Raiders go for the Heart unless a player is right in their face. */
     private void steer() {
         Vec3 h = heartPos();
-        for (UUID id : mobs) {
+        for (UUID id : new ArrayList<>(mobs)) {
+            if (lost || closing >= 0) return;
             if (!(level.getEntity(id) instanceof Mob mob)) continue;
             LivingEntity t = mob.getTarget();
             double toHeart = Math.hypot(mob.getX() - h.x, mob.getZ() - h.z);
@@ -388,8 +390,8 @@ final class Siege extends Game {
             t.level = lvl;
         }
         raise(t);
-        tell("<gray>" + p.getName().getString() + " " + (lvl == 1 ? "built" : "upgraded") + " a " + dev.abps.util.Text.colorTag(type.color) + type.title
-                + "</" + "> <gray>(level " + lvl + ", -" + cost + " coins)");
+        tell("<gray>" + p.getName().getString() + " " + (lvl == 1 ? "built" : "upgraded") + ("AEIOU".indexOf(type.title.charAt(0)) >= 0 ? " an " : " a ") + dev.abps.util.Text.colorTag(type.color) + type.title
+                + "<reset> <gray>(level " + lvl + ", -" + cost + " coins)");
         Fx.sound(level, Vec3.atCenterOf(pad), SoundEvents.ANVIL_USE, 0.6f, 1.4f);
         return true;
     }
@@ -491,6 +493,10 @@ final class Siege extends Game {
 
     @Override
     boolean allowDeath(ServerPlayer p) {
+        if (lost || closing >= 0) {
+            respawn(p);
+            return false;
+        }
         heart = Math.max(0, heart - 3);
         tell("<red>☠ " + p.getName().getString() + " fell!</red> <gray>The Heart loses 3 as they're pulled back to it.");
         respawn(p);
@@ -519,7 +525,7 @@ final class Siege extends Game {
     }
 
     private void killAll() {
-        for (UUID id : mobs) {
+        for (UUID id : new ArrayList<>(mobs)) {
             var e = level.getEntity(id);
             if (e != null) e.discard();
         }

@@ -160,7 +160,6 @@ public final class Kitchen {
         ServerLifecycleEvents.SERVER_STARTING.register(s -> {
             if (POT.isEmpty()) recipes();
         });
-        ServerLifecycleEvents.SERVER_STARTED.register(s -> load());
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> save());
     }
 
@@ -480,7 +479,7 @@ public final class Kitchen {
         return AbpsMod.data().root().resolve("kitchen.json");
     }
 
-    private static void load() {
+    static void load() {
         try {
             if (Files.exists(file())) {
                 Map<String, Aging> m = GSON.fromJson(Files.readString(file()), new TypeToken<HashMap<String, Aging>>() {
@@ -493,6 +492,7 @@ public final class Kitchen {
     }
 
     public static void save() {
+        if (AbpsMod.data() == null) return;
         try {
             Files.writeString(file(), GSON.toJson(barrels));
         } catch (Exception e) {

@@ -122,7 +122,6 @@ public final class Fishing {
             return InteractionResult.SUCCESS;
         });
         ServerTickEvents.END_SERVER_TICK.register(Fishing::tick);
-        ServerLifecycleEvents.SERVER_STARTED.register(s -> load());
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> save());
     }
 
@@ -467,7 +466,7 @@ public final class Fishing {
         for (Fish f : FISH) {
             Integer cm = j.get(f.id());
             out.add(cm == null ? " <dark_gray>??? <dark_gray>(" + RARITY[f.rarity()].replaceAll("<[^>]+>", "") + ", " + hint(f) + ")"
-                    : " " + RARITY[f.rarity()] + "</" + "> <white>" + f.name() + " <gray>" + cm + " cm");
+                    : " " + RARITY[f.rarity()] + "<reset> <white>" + f.name() + " <gray>" + cm + " cm");
         }
         return out;
     }
@@ -593,7 +592,7 @@ public final class Fishing {
         return AbpsMod.data().root().resolve("fishing.json");
     }
 
-    private static void load() {
+    static void load() {
         try {
             if (Files.exists(file())) {
                 Map<String, Map<String, Integer>> m = GSON.fromJson(Files.readString(file()), new TypeToken<HashMap<String, LinkedHashMap<String, Integer>>>() {
@@ -606,6 +605,7 @@ public final class Fishing {
     }
 
     private static void save() {
+        if (AbpsMod.data() == null) return;
         try {
             Files.writeString(file(), GSON.toJson(journal));
         } catch (Exception e) {

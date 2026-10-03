@@ -49,6 +49,7 @@ public class AbpsMod implements ModInitializer {
 		shops = new dev.abps.shop.Shops(s, data.root());
 		service = new Service(s);
 		dev.abps.dungeon.Dungeons.load();
+		dev.abps.content.ModContent.loadData();
 		SelfTest.maybeRun(s);
 		checkForUpdate();
 	}

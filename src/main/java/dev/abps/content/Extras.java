@@ -186,7 +186,6 @@ public final class Extras {
             if (entity.entityTags().contains(SEAT_TAG) && entity.getPassengers().isEmpty()) entity.discard();
         });
         ServerTickEvents.END_SERVER_TICK.register(Extras::tick);
-        ServerLifecycleEvents.SERVER_STARTED.register(s -> load());
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> save());
     }
 
@@ -750,7 +749,7 @@ public final class Extras {
     private record Saved(List<Waystone> waystones, Map<String, Set<Long>> discovered) {
     }
 
-    private static void load() {
+    static void load() {
         try {
             if (Files.exists(file())) {
                 Saved s = GSON.fromJson(Files.readString(file()), Saved.class);
@@ -765,6 +764,7 @@ public final class Extras {
     }
 
     private static void save() {
+        if (AbpsMod.data() == null) return;
         try {
             Files.writeString(file(), GSON.toJson(new Saved(waystones, discovered)));
         } catch (Exception e) {

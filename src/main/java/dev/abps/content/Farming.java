@@ -140,7 +140,6 @@ public final class Farming {
         });
         loot();
         ServerTickEvents.END_SERVER_TICK.register(Farming::tick);
-        ServerLifecycleEvents.SERVER_STARTED.register(s -> load());
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> save());
     }
 
@@ -313,7 +312,7 @@ public final class Farming {
         return AbpsMod.data().root().resolve("farming.json");
     }
 
-    private static void load() {
+    static void load() {
         try {
             if (Files.exists(file())) {
                 Set<String> s = GSON.fromJson(Files.readString(file()), new TypeToken<HashSet<String>>() {
@@ -326,6 +325,7 @@ public final class Farming {
     }
 
     private static void save() {
+        if (AbpsMod.data() == null) return;
         try {
             Files.writeString(file(), GSON.toJson(fertile));
         } catch (Exception e) {

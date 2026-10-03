@@ -236,4 +236,12 @@ public final class ModContent {
 
     @SuppressWarnings("unused")
     private static final Class<?> KEEP = PlacedFeature.class;
+
+    /** Reads the saved kitchen, farm, fishing and waystone data. Called once the data folder exists. */
+    public static void loadData() {
+        Kitchen.load();
+        Farming.load();
+        Fishing.load();
+        Extras.load();
+    }
 }
