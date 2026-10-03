@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "cookingtime": 200,
+  "experience": 0.35,
+  "ingredient": "abpsmod:raw_patty",
+  "result": {
+    "id": "abpsmod:cooked_patty"
+  }
+}

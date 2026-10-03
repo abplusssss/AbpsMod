@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:bone_meal",
+    "minecraft:bone_meal",
+    "minecraft:rotten_flesh",
+    "minecraft:dirt"
+  ],
+  "result": {
+    "id": "abpsmod:rich_compost",
+    "count": 2
+  }
+}

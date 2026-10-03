@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:stick",
+    "abpsmod:cooked_patty",
+    "abpsmod:onion",
+    "abpsmod:chili_pepper"
+  ],
+  "result": {
+    "id": "abpsmod:kebab",
+    "count": 2
+  }
+}

@@ -199,6 +199,7 @@ public final class DamageHooks {
             if (c != null) c.modifyDrops(p, d, state, drops);
             dev.abps.items.CustomItems.modifyDrops(p, state, drops);
         }
+        dev.abps.content.Farming.modifyDrops(p, state, drops);
         dev.abps.content.Enchants.modifyDrops(p, drops);
         return drops;
     }

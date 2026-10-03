@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "abpsmod:block/aging_barrel_top",
+    "bottom": "abpsmod:block/aging_barrel_bottom",
+    "side": "abpsmod:block/aging_barrel_side"
+  }
+}

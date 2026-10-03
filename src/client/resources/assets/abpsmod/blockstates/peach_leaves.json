@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "ripe=false": {
+      "model": "abpsmod:block/peach_leaves"
+    },
+    "ripe=true": {
+      "model": "abpsmod:block/peach_leaves_ripe"
+    }
+  }
+}

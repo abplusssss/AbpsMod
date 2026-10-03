@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "abpsmod:tomato_crop",
+    "abpsmod:corn_crop",
+    "abpsmod:onion_crop",
+    "abpsmod:cabbage_crop",
+    "abpsmod:chili_pepper_crop",
+    "abpsmod:strawberry_crop"
+  ]
+}

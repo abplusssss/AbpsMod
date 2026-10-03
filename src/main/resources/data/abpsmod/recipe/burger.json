@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:bread",
+    "abpsmod:cooked_patty",
+    "abpsmod:cabbage",
+    "abpsmod:tomato"
+  ],
+  "result": {
+    "id": "abpsmod:burger"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:apple",
+    "minecraft:apple",
+    "minecraft:sugar",
+    "minecraft:glass_bottle"
+  ],
+  "result": {
+    "id": "abpsmod:apple_cider"
+  }
+}

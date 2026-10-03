@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "cookingtime": 200,
+  "experience": 0.35,
+  "ingredient": "abpsmod:fish_fillet",
+  "result": {
+    "id": "abpsmod:cooked_fillet"
+  }
+}

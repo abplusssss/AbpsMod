@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:barrel",
+    "minecraft:iron_ingot",
+    "minecraft:iron_ingot",
+    "minecraft:honeycomb"
+  ],
+  "result": {
+    "id": "abpsmod:aging_barrel"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:bread",
+    "minecraft:cooked_porkchop",
+    "abpsmod:onion"
+  ],
+  "result": {
+    "id": "abpsmod:hot_dog",
+    "count": 2
+  }
+}

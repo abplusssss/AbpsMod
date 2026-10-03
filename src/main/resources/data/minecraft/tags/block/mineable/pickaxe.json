@@ -3,6 +3,10 @@
   "values": [
     "abpsmod:ruby_ore",
     "abpsmod:deepslate_ruby_ore",
-    "abpsmod:endite_ore"
+    "abpsmod:endite_ore",
+    "abpsmod:cooking_pot",
+    "abpsmod:stone_oven",
+    "abpsmod:sprinkler",
+    "abpsmod:quality_sprinkler"
   ]
 }

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "abpsmod:lemon",
+    "abpsmod:lemon",
+    "minecraft:sugar",
+    "minecraft:glass_bottle"
+  ],
+  "result": {
+    "id": "abpsmod:lemonade"
+  }
+}

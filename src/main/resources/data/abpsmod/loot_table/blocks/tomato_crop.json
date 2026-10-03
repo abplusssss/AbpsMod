@@ -1,0 +1,66 @@
+{
+  "type": "minecraft:block",
+  "modifier": {
+    "type": "minecraft:explosion_decay"
+  },
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:alternatives",
+          "children": [
+            {
+              "type": "minecraft:item",
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "abpsmod:tomato_crop",
+                "state": {
+                  "age": "7"
+                }
+              },
+              "name": "abpsmod:tomato",
+              "modifier": {
+                "type": "minecraft:set_count",
+                "count": {
+                  "type": "minecraft:uniform",
+                  "max": 3,
+                  "min": 1
+                }
+              }
+            },
+            {
+              "type": "minecraft:item",
+              "name": "abpsmod:tomato_seeds"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "condition": {
+        "type": "minecraft:match_block",
+        "blocks": "abpsmod:tomato_crop",
+        "state": {
+          "age": "7"
+        }
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "abpsmod:tomato_seeds",
+          "modifier": {
+            "type": "minecraft:set_count",
+            "count": {
+              "type": "minecraft:uniform",
+              "max": 2,
+              "min": 0
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "random_sequence": "abpsmod:blocks/tomato_crop"
+}

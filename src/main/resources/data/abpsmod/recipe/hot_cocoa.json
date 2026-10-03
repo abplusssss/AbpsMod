@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:cocoa_beans",
+    "minecraft:cocoa_beans",
+    "minecraft:sugar",
+    "abpsmod:milk_bottle"
+  ],
+  "result": {
+    "id": "abpsmod:hot_cocoa"
+  }
+}

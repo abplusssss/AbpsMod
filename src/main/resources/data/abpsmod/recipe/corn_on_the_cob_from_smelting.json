@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "cookingtime": 200,
+  "experience": 0.35,
+  "ingredient": "abpsmod:corn",
+  "result": {
+    "id": "abpsmod:corn_on_the_cob"
+  }
+}

@@ -301,6 +301,7 @@ public final class Draw {
             case "samurai" -> new String[]{"iron_sword", "bamboo", "shield", "blaze_powder", "netherite_sword"};
             case "overlord" -> new String[]{"lightning_rod", "wither_skeleton_skull", "ender_pearl", "clock", "nether_star"};
             case "harvester" -> new String[]{"wheat", "iron_hoe", "bone_meal", "golden_carrot", "hay_block"};
+            case "chef" -> new String[]{"bread", "blaze_powder", "cake", "furnace", "golden_apple"};
             case "lumberjack" -> new String[]{"iron_axe", "oak_sapling", "oak_log", "leather_chestplate", "diamond_axe"};
             case "angler" -> new String[]{"fishing_rod", "cod", "nautilus_shell", "prismarine_shard", "heart_of_the_sea"};
             case "explorer" -> new String[]{"compass", "spyglass", "map", "leather_boots", "filled_map"};

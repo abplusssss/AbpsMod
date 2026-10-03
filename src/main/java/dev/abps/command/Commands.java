@@ -93,6 +93,8 @@ public final class Commands {
         add(new Entry("Spawn", "", "Teleports you to spawn.", "tp", "hub", "lobby"));
         add(new Entry("Back", "", "Goes back to where you last teleported or died.", "tp", "return"));
         // Dungeons
+        add(new Entry("Recipes", "", "Every Cooking Pot, Stone Oven, Cutting Board and Aging Barrel recipe.", "dungeon", "recipe", "cooking", "kitchen"));
+        add(new Entry("Season", "", "Shows the season and what it does to your crops.", "dungeon", "seasons", "farm"));
         add(new Entry("Dungeon", "[start <id> | leave | list]", "Opens the Party tab: Siege and party games. Start one or leave.", "dungeon", "dungeons", "dg", "raid", "games", "game", "siege", "minigames"));
         add(new Entry("Party", "[invite <name> | accept | decline | leave | kick <name>]", "Your dungeon party (up to 4 players).", "dungeon", "team", "group", "dparty"));
         add(new Entry("Powers", "[on | off]", "Turns your whole attribute off or back on (abilities, passives and weaknesses).", "attr",
@@ -341,6 +343,15 @@ public final class Commands {
             case "SetHome" -> {
                 ServerPlayer p = needPlayer(s);
                 if (p != null) Teleports.setHome(p, args.length > 0 ? args[0] : "home");
+            }
+            case "Recipes" -> {
+                Service.send(s, "<gold><bold>Kitchen recipes</bold></gold> <gray>(pots need heat underneath, ovens need coal)");
+                for (String line : dev.abps.content.Kitchen.recipeLines()) Service.raw(s, " " + line);
+            }
+            case "Season" -> {
+                var season = dev.abps.content.Farming.season();
+                Service.send(s, "<" + season.color + "><bold>" + season.title + "</bold></" + season.color + "> <gray>(day " + dev.abps.content.Farming.seasonDay()
+                        + " of " + dev.abps.content.Farming.DAYS_PER_SEASON + "): " + season.perk);
             }
             case "Meteors" -> {
                 dev.abps.content.Meteors.start(AbpsMod.server());

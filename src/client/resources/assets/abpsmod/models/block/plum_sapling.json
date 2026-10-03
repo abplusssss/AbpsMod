@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cross",
+  "textures": {
+    "cross": "abpsmod:block/plum_sapling"
+  }
+}

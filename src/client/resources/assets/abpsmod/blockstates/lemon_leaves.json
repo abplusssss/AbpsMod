@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "ripe=false": {
+      "model": "abpsmod:block/lemon_leaves"
+    },
+    "ripe=true": {
+      "model": "abpsmod:block/lemon_leaves_ripe"
+    }
+  }
+}

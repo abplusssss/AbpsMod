@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "ripe=false": {
+      "model": "abpsmod:block/plum_leaves"
+    },
+    "ripe=true": {
+      "model": "abpsmod:block/plum_leaves_ripe"
+    }
+  }
+}

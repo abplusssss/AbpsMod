@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "abpsmod:block/stone_oven_side",
+    "down": "abpsmod:block/stone_oven_top",
+    "up": "abpsmod:block/stone_oven_top",
+    "north": "abpsmod:block/stone_oven_front",
+    "south": "abpsmod:block/stone_oven_front",
+    "west": "abpsmod:block/stone_oven_side",
+    "east": "abpsmod:block/stone_oven_side"
+  }
+}

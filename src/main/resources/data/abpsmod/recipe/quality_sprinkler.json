@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "abpsmod:sprinkler",
+    "abpsmod:ruby",
+    "abpsmod:ruby",
+    "minecraft:gold_ingot",
+    "minecraft:gold_ingot"
+  ],
+  "result": {
+    "id": "abpsmod:quality_sprinkler"
+  }
+}

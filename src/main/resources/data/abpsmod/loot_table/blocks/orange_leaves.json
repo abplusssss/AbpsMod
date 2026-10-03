@@ -1,0 +1,43 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:alternatives",
+          "children": [
+            {
+              "type": "minecraft:item",
+              "condition": {
+                "type": "minecraft:any_of",
+                "terms": [
+                  "minecraft:tool/can_shear",
+                  "minecraft:tool/can_silk_touch"
+                ]
+              },
+              "name": "abpsmod:orange_leaves"
+            },
+            {
+              "type": "minecraft:item",
+              "condition": {
+                "type": "minecraft:random_chance",
+                "chance": 0.06
+              },
+              "name": "abpsmod:orange_sapling"
+            },
+            {
+              "type": "minecraft:item",
+              "condition": {
+                "type": "minecraft:random_chance",
+                "chance": 0.05
+              },
+              "name": "minecraft:stick"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "random_sequence": "abpsmod:blocks/orange_leaves"
+}

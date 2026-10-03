@@ -431,7 +431,7 @@ public final class MenuScreen extends Screen {
         y = section(g, "New in " + dev.abps.Updater.current(), 0xFFD54F, x, y);
         String[] big = {
                 "<white><gold>Skill Tree</gold> replaces straight upgrades. Every level gives points (max level fills the tree): unlock abilities and pick damage, utility or defense skills. Reset it for free.",
-                "<white><green>Two roles at once</green>: a <#FF5252>PvP</#FF5252> attribute and a <#69F0AE>Gatherer</#69F0AE> attribute, each with its own level and skills. Switch any time (Overview, !Role or <yellow>" + AbpsClient.roleKey.getTranslatedKeyMessage().getString() + "</yellow>). New gatherers: Harvester, Lumberjack, Angler, Explorer.",
+                "<white><green>Two roles at once</green>: a <#FF5252>PvP</#FF5252> attribute and a <#69F0AE>Gatherer</#69F0AE> attribute, each with its own level and skills. Switch any time (Overview, !Role or <yellow>" + AbpsClient.roleKey.getTranslatedKeyMessage().getString() + "</yellow>). New gatherers: Harvester, Lumberjack, Angler, Explorer, Chef.",
                 "<white>Turn your whole attribute off (Settings or <yellow>!Powers off</yellow>), and Pyromancers can turn off their heat aura (<yellow>!Aura off</yellow>)."};
         for (String n : big) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
         button(g, mx, my, x, y + 1, 120, 18, "<white><bold>Open Skill Tree", 0xFFD54F, true, () -> switchTab(Tab.SKILLS));
@@ -445,6 +445,16 @@ public final class MenuScreen extends Screen {
                 "<white><gold>18 new enchantments</gold>: Lifesteal, Executioner, Venom, Frostbite, Thunderstrike, Dodge, Timber, Excavator, Smelting Touch, Magnetic, Replanting, Explosive Shot, Leaping, Night Owl, Second Wind, plus treasure-only Vein Miner, Homing and Soulbound.",
                 "<white><#FFC107>Miner</#FFC107> buff: faster mining, shorter cooldowns and the new Prospector passive."};
         for (String n : ores) y += Draw.wrapped(g, "<#FF5370>•</#FF5370> " + n, x, y, w, Draw.TEXT) + 3;
+        y += 6;
+        y = section(g, "Cooking & Farming", 0x9CCC65, x, y);
+        String[] farm = {
+                "<white><#9CCC65>6 new crops</#9CCC65> (tomato, corn, onion, cabbage, chili, strawberry): their seeds turn up in grass. <#FF8C1A>Fruit trees</#FF8C1A> (orange, lemon, peach, plum) grow from saplings that fall from leaves; right-click ripe leaves to pick.",
+                "<white><gold>Kitchen</gold>: a <white>Cooking Pot</white> over fire, a <white>Stone Oven</white> fed with coal, a <white>Cutting Board</white> and an <white>Aging Barrel</white>. Add ingredients by right-clicking, then right-click empty-handed to cook. <yellow>!Recipes</yellow> lists them all.",
+                "<white>Meals and drinks give buffs, feasts feed everyone nearby, and eating 6 different foods makes you <#69F0AE>Well Fed</#69F0AE> (+2 hearts). Street food: burgers, tacos, fries, kebabs, hot dogs, popcorn.",
+                "<white><#80DEEA>Seasons</#80DEEA> change every 7 days (<yellow>!Season</yellow>). Sprinklers water and grow crops, greenhouse glass speeds up what's under it, rich compost makes better soil, and Fine and Prime quality crops fill you up more.",
+                "<white>Crows peck at grown crops unless a <white>Scarecrow</white> is nearby. Use a glass bottle on cows and goats for milk.",
+                "<white>New gatherer attribute: the <#FFAB40>Chef</#FFAB40>. Faster kitchens, extra servings, longer meal buffs and party-feeding abilities."};
+        for (String n : farm) y += Draw.wrapped(g, "<#9CCC65>•</#9CCC65> " + n, x, y, w, Draw.TEXT) + 3;
         y += 6;
         y = section(g, "Siege & Party Games", 0xB388FF, x, y);
         String[] games = {

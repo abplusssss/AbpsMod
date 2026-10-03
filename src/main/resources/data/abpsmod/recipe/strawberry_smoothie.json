@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "abpsmod:strawberry",
+    "abpsmod:strawberry",
+    "minecraft:sugar",
+    "abpsmod:milk_bottle"
+  ],
+  "result": {
+    "id": "abpsmod:strawberry_smoothie"
+  }
+}

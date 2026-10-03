@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "abpsmod:tomato_seeds",
+    "abpsmod:corn_seeds",
+    "abpsmod:onion_seeds",
+    "abpsmod:cabbage_seeds",
+    "abpsmod:chili_pepper_seeds",
+    "abpsmod:strawberry_seeds"
+  ]
+}

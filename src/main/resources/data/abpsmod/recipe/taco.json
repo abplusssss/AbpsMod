@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "abpsmod:flour",
+    "abpsmod:cooked_patty",
+    "abpsmod:cabbage",
+    "abpsmod:chili_pepper"
+  ],
+  "result": {
+    "id": "abpsmod:taco",
+    "count": 2
+  }
+}

@@ -54,6 +54,7 @@ public final class Classes {
         add(new Samurai());
         // Gatherers
         add(new Harvester());
+        add(new dev.abps.classes.Chef());
         add(new Lumberjack());
         add(new Angler());
         add(new Explorer());

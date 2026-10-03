@@ -1,0 +1,286 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/hay_block_side",
+    "post": "minecraft:block/oak_log",
+    "hay": "minecraft:block/hay_block_side",
+    "hay_top": "minecraft:block/hay_block_top",
+    "face": "minecraft:block/carved_pumpkin",
+    "pumpkin": "minecraft:block/pumpkin_side",
+    "pumpkin_top": "minecraft:block/pumpkin_top"
+  },
+  "elements": [
+    {
+      "from": [
+        7,
+        0,
+        7
+      ],
+      "to": [
+        9,
+        6,
+        9
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            7,
+            7,
+            9,
+            9
+          ],
+          "texture": "#post"
+        },
+        "up": {
+          "uv": [
+            7,
+            7,
+            9,
+            9
+          ],
+          "texture": "#post"
+        },
+        "north": {
+          "uv": [
+            7,
+            10,
+            9,
+            16
+          ],
+          "texture": "#post"
+        },
+        "south": {
+          "uv": [
+            7,
+            10,
+            9,
+            16
+          ],
+          "texture": "#post"
+        },
+        "west": {
+          "uv": [
+            7,
+            10,
+            9,
+            16
+          ],
+          "texture": "#post"
+        },
+        "east": {
+          "uv": [
+            7,
+            10,
+            9,
+            16
+          ],
+          "texture": "#post"
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        6,
+        6
+      ],
+      "to": [
+        11,
+        11,
+        10
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            5,
+            6,
+            11,
+            10
+          ],
+          "texture": "#hay_top"
+        },
+        "up": {
+          "uv": [
+            5,
+            6,
+            11,
+            10
+          ],
+          "texture": "#hay_top"
+        },
+        "north": {
+          "uv": [
+            5,
+            5,
+            11,
+            10
+          ],
+          "texture": "#hay"
+        },
+        "south": {
+          "uv": [
+            5,
+            5,
+            11,
+            10
+          ],
+          "texture": "#hay"
+        },
+        "west": {
+          "uv": [
+            6,
+            5,
+            10,
+            10
+          ],
+          "texture": "#hay"
+        },
+        "east": {
+          "uv": [
+            6,
+            5,
+            10,
+            10
+          ],
+          "texture": "#hay"
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        9,
+        7
+      ],
+      "to": [
+        15,
+        10,
+        9
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            1,
+            7,
+            15,
+            9
+          ],
+          "texture": "#post"
+        },
+        "up": {
+          "uv": [
+            1,
+            7,
+            15,
+            9
+          ],
+          "texture": "#post"
+        },
+        "north": {
+          "uv": [
+            1,
+            6,
+            15,
+            7
+          ],
+          "texture": "#post"
+        },
+        "south": {
+          "uv": [
+            1,
+            6,
+            15,
+            7
+          ],
+          "texture": "#post"
+        },
+        "west": {
+          "uv": [
+            7,
+            6,
+            9,
+            7
+          ],
+          "texture": "#post"
+        },
+        "east": {
+          "uv": [
+            7,
+            6,
+            9,
+            7
+          ],
+          "texture": "#post"
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        11,
+        5
+      ],
+      "to": [
+        11,
+        16,
+        11
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ],
+          "texture": "#pumpkin_top"
+        },
+        "up": {
+          "uv": [
+            5,
+            5,
+            11,
+            11
+          ],
+          "texture": "#pumpkin_top"
+        },
+        "north": {
+          "uv": [
+            5,
+            0,
+            11,
+            5
+          ],
+          "texture": "#face"
+        },
+        "south": {
+          "uv": [
+            5,
+            0,
+            11,
+            5
+          ],
+          "texture": "#pumpkin"
+        },
+        "west": {
+          "uv": [
+            5,
+            0,
+            11,
+            5
+          ],
+          "texture": "#pumpkin"
+        },
+        "east": {
+          "uv": [
+            5,
+            0,
+            11,
+            5
+          ],
+          "texture": "#pumpkin"
+        }
+      }
+    }
+  ]
+}

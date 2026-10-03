@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": "minecraft:glass",
+    "D": "minecraft:green_dye"
+  },
+  "pattern": [
+    "GGG",
+    "GDG",
+    "GGG"
+  ],
+  "result": {
+    "id": "abpsmod:greenhouse_glass",
+    "count": 8
+  }
+}
