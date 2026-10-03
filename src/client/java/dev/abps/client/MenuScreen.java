@@ -456,6 +456,15 @@ public final class MenuScreen extends Screen {
                 "<white>New gatherer attribute: the <#FFAB40>Chef</#FFAB40>. Faster kitchens, extra servings, longer meal buffs and party-feeding abilities."};
         for (String n : farm) y += Draw.wrapped(g, "<#9CCC65>•</#9CCC65> " + n, x, y, w, Draw.TEXT) + 3;
         y += 6;
+        y = section(g, "Fishing & Exploration", 0x40C4FF, x, y);
+        String[] fishing = {
+                "<white><#40C4FF>43 fish</#40C4FF> from common to legendary, each biting in its own biome, time or weather. Big ones start a reel-in minigame: press <yellow>sneak</yellow> when the marker is in the green.",
+                "<white>Fish in <#FF8A65>lava</#FF8A65> with a Magma Rod and in the <#B388FF>End's void</#B388FF> with a Void Rod. Bait in your off hand (worm, glow, golden) brings rarer fish; the Ruby Rod adds luck.",
+                "<white>A fish journal (<yellow>!FishJournal</yellow>) with rewards, fishing tournaments every few hours, and Trophy Mounts to put your best catch on the wall.",
+                "<white>New in the wild: ruined watchtowers, abandoned camps, desert obelisks with hidden rooms, sunken shrines and <#CE93D8>Crystal Hollows</#CE93D8> deep underground, all with loot.",
+                "<white><gold>Treasure maps</gold> (from fishing, chests and caravans) lead to buried chests. Caravan merchants stop by with seeds, saplings, rubies and rods. Butterflies, fireflies and birds liven things up."};
+        for (String n : fishing) y += Draw.wrapped(g, "<#40C4FF>•</#40C4FF> " + n, x, y, w, Draw.TEXT) + 3;
+        y += 6;
         y = section(g, "Siege & Party Games", 0xB388FF, x, y);
         String[] games = {
                 "<white>Dungeons are gone. In their place: <gold>Siege</gold>, co-op tower defense. Hold the Heart through 10, 15 or 20 waves of raiders; kills earn coins for Archer, Frost, Bombard and Healing towers.",

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "abpsmod:worm_bait",
+    "minecraft:glow_berries"
+  ],
+  "result": {
+    "id": "abpsmod:glow_bait"
+  }
+}

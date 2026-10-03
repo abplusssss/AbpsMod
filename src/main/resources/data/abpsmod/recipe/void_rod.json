@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "/": "minecraft:end_rod",
+    "S": "minecraft:string",
+    "E": "abpsmod:endite_shard"
+  },
+  "pattern": [
+    "  /",
+    " /S",
+    "/ E"
+  ],
+  "result": {
+    "id": "abpsmod:void_rod"
+  }
+}

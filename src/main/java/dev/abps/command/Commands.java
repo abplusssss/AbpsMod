@@ -94,6 +94,8 @@ public final class Commands {
         add(new Entry("Back", "", "Goes back to where you last teleported or died.", "tp", "return"));
         // Dungeons
         add(new Entry("Recipes", "", "Every Cooking Pot, Stone Oven, Cutting Board and Aging Barrel recipe.", "dungeon", "recipe", "cooking", "kitchen"));
+        add(new Entry("FishJournal", "", "Every fish you've caught, and hints for the rest.", "dungeon", "fish", "journal", "fishing"));
+        add(new Entry("Tournament", "", "Starts a 5 minute fishing tournament.", "admin", "fishingtournament"));
         add(new Entry("Season", "", "Shows the season and what it does to your crops.", "dungeon", "seasons", "farm"));
         add(new Entry("Dungeon", "[start <id> | leave | list]", "Opens the Party tab: Siege and party games. Start one or leave.", "dungeon", "dungeons", "dg", "raid", "games", "game", "siege", "minigames"));
         add(new Entry("Party", "[invite <name> | accept | decline | leave | kick <name>]", "Your dungeon party (up to 4 players).", "dungeon", "team", "group", "dparty"));
@@ -348,6 +350,11 @@ public final class Commands {
                 Service.send(s, "<gold><bold>Kitchen recipes</bold></gold> <gray>(pots need heat underneath, ovens need coal)");
                 for (String line : dev.abps.content.Kitchen.recipeLines()) Service.raw(s, " " + line);
             }
+            case "FishJournal" -> {
+                ServerPlayer p = needPlayer(s);
+                if (p != null) for (String line : dev.abps.content.Fishing.journalLines(p)) Service.raw(s, line);
+            }
+            case "Tournament" -> dev.abps.content.Fishing.startTournament(AbpsMod.server());
             case "Season" -> {
                 var season = dev.abps.content.Farming.season();
                 Service.send(s, "<" + season.color + "><bold>" + season.title + "</bold></" + season.color + "> <gray>(day " + dev.abps.content.Farming.seasonDay()

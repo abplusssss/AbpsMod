@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "/": "minecraft:blaze_rod",
+    "S": "minecraft:string",
+    "M": "minecraft:magma_cream"
+  },
+  "pattern": [
+    "  /",
+    " /S",
+    "/ M"
+  ],
+  "result": {
+    "id": "abpsmod:magma_rod"
+  }
+}

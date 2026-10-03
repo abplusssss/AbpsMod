@@ -1,0 +1,303 @@
+[
+ {
+  "id": "sardine",
+  "name": "Sardine",
+  "rarity": 1,
+  "where": "ocean",
+  "when": "any"
+ },
+ {
+  "id": "anchovy",
+  "name": "Anchovy",
+  "rarity": 1,
+  "where": "ocean",
+  "when": "any"
+ },
+ {
+  "id": "perch",
+  "name": "Perch",
+  "rarity": 1,
+  "where": "river",
+  "when": "any"
+ },
+ {
+  "id": "trout",
+  "name": "Trout",
+  "rarity": 1,
+  "where": "river",
+  "when": "any"
+ },
+ {
+  "id": "carp",
+  "name": "Carp",
+  "rarity": 1,
+  "where": "river",
+  "when": "any"
+ },
+ {
+  "id": "bluegill",
+  "name": "Bluegill",
+  "rarity": 1,
+  "where": "river",
+  "when": "day"
+ },
+ {
+  "id": "catfish",
+  "name": "Catfish",
+  "rarity": 1,
+  "where": "swamp",
+  "when": "any"
+ },
+ {
+  "id": "herring",
+  "name": "Herring",
+  "rarity": 1,
+  "where": "cold",
+  "when": "any"
+ },
+ {
+  "id": "mackerel",
+  "name": "Mackerel",
+  "rarity": 1,
+  "where": "ocean",
+  "when": "day"
+ },
+ {
+  "id": "minnow",
+  "name": "Minnow",
+  "rarity": 1,
+  "where": "river",
+  "when": "any"
+ },
+ {
+  "id": "bass",
+  "name": "Bass",
+  "rarity": 2,
+  "where": "river",
+  "when": "any"
+ },
+ {
+  "id": "pike",
+  "name": "Pike",
+  "rarity": 2,
+  "where": "river",
+  "when": "any"
+ },
+ {
+  "id": "snapper",
+  "name": "Red Snapper",
+  "rarity": 2,
+  "where": "warm",
+  "when": "any"
+ },
+ {
+  "id": "tilapia",
+  "name": "Tilapia",
+  "rarity": 2,
+  "where": "swamp",
+  "when": "any"
+ },
+ {
+  "id": "eel",
+  "name": "Eel",
+  "rarity": 2,
+  "where": "ocean",
+  "when": "night"
+ },
+ {
+  "id": "flounder",
+  "name": "Flounder",
+  "rarity": 2,
+  "where": "ocean",
+  "when": "any"
+ },
+ {
+  "id": "grouper",
+  "name": "Grouper",
+  "rarity": 2,
+  "where": "warm",
+  "when": "any"
+ },
+ {
+  "id": "rainbow_trout",
+  "name": "Rainbow Trout",
+  "rarity": 2,
+  "where": "river",
+  "when": "rain"
+ },
+ {
+  "id": "arctic_char",
+  "name": "Arctic Char",
+  "rarity": 2,
+  "where": "cold",
+  "when": "any"
+ },
+ {
+  "id": "piranha",
+  "name": "Piranha",
+  "rarity": 2,
+  "where": "jungle",
+  "when": "any"
+ },
+ {
+  "id": "tuna",
+  "name": "Tuna",
+  "rarity": 3,
+  "where": "ocean",
+  "when": "any"
+ },
+ {
+  "id": "swordfish",
+  "name": "Swordfish",
+  "rarity": 3,
+  "where": "ocean",
+  "when": "day"
+ },
+ {
+  "id": "lionfish",
+  "name": "Lionfish",
+  "rarity": 3,
+  "where": "warm",
+  "when": "any"
+ },
+ {
+  "id": "angelfish",
+  "name": "Angelfish",
+  "rarity": 3,
+  "where": "warm",
+  "when": "day"
+ },
+ {
+  "id": "clownfish",
+  "name": "Clownfish",
+  "rarity": 3,
+  "where": "warm",
+  "when": "any"
+ },
+ {
+  "id": "ghost_carp",
+  "name": "Ghost Carp",
+  "rarity": 3,
+  "where": "river",
+  "when": "night"
+ },
+ {
+  "id": "frost_minnow",
+  "name": "Frost Minnow",
+  "rarity": 3,
+  "where": "cold",
+  "when": "any"
+ },
+ {
+  "id": "mudfish",
+  "name": "Mudfish",
+  "rarity": 3,
+  "where": "swamp",
+  "when": "rain"
+ },
+ {
+  "id": "blindfish",
+  "name": "Cave Blindfish",
+  "rarity": 3,
+  "where": "cave",
+  "when": "any"
+ },
+ {
+  "id": "glowfin",
+  "name": "Glowfin",
+  "rarity": 3,
+  "where": "cave",
+  "when": "any"
+ },
+ {
+  "id": "sturgeon",
+  "name": "Sturgeon",
+  "rarity": 4,
+  "where": "river",
+  "when": "rain"
+ },
+ {
+  "id": "marlin",
+  "name": "Marlin",
+  "rarity": 4,
+  "where": "ocean",
+  "when": "day"
+ },
+ {
+  "id": "golden_koi",
+  "name": "Golden Koi",
+  "rarity": 4,
+  "where": "river",
+  "when": "any"
+ },
+ {
+  "id": "moonfish",
+  "name": "Moonfish",
+  "rarity": 4,
+  "where": "ocean",
+  "when": "night"
+ },
+ {
+  "id": "storm_eel",
+  "name": "Storm Eel",
+  "rarity": 4,
+  "where": "ocean",
+  "when": "rain"
+ },
+ {
+  "id": "magma_cod",
+  "name": "Magma Cod",
+  "rarity": 2,
+  "where": "lava",
+  "when": "any"
+ },
+ {
+  "id": "blaze_snapper",
+  "name": "Blaze Snapper",
+  "rarity": 3,
+  "where": "lava",
+  "when": "any"
+ },
+ {
+  "id": "obsidian_angler",
+  "name": "Obsidian Angler",
+  "rarity": 4,
+  "where": "lava",
+  "when": "any"
+ },
+ {
+  "id": "void_minnow",
+  "name": "Void Minnow",
+  "rarity": 3,
+  "where": "void",
+  "when": "any"
+ },
+ {
+  "id": "chorus_guppy",
+  "name": "Chorus Guppy",
+  "rarity": 4,
+  "where": "void",
+  "when": "any"
+ },
+ {
+  "id": "sea_dragon",
+  "name": "Sea Dragon",
+  "rarity": 5,
+  "where": "ocean",
+  "when": "night"
+ },
+ {
+  "id": "phoenix_koi",
+  "name": "Phoenix Koi",
+  "rarity": 5,
+  "where": "lava",
+  "when": "any"
+ },
+ {
+  "id": "end_leviathan",
+  "name": "End Leviathan",
+  "rarity": 5,
+  "where": "void",
+  "when": "any"
+ }
+]

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "abpsmod:worm_bait",
+    "minecraft:gold_nugget",
+    "minecraft:gold_nugget"
+  ],
+  "result": {
+    "id": "abpsmod:golden_bait"
+  }
+}

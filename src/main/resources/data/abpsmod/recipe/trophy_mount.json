@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": "#minecraft:planks",
+    "F": "minecraft:item_frame",
+    "G": "minecraft:gold_ingot"
+  },
+  "pattern": [
+    "PPP",
+    "PFP",
+    "PGP"
+  ],
+  "result": {
+    "id": "abpsmod:trophy_mount"
+  }
+}

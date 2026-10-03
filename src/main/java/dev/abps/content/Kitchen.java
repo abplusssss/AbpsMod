@@ -301,6 +301,7 @@ public final class Kitchen {
     private static void chop(ServerPlayer p, ServerLevel level, BlockPos pos) {
         ItemStack hand = p.getMainHandItem();
         ItemStack out = CHOP.get(hand.getItem());
+        if (out == null && Fishing.fishOf(hand) != null) out = new ItemStack(f("fish_fillet"), 2);
         if (out == null) {
             bar(p, "<gray>Hold something to chop: vegetables, beef, pork, fish, wheat, milk bottles or melons.");
             return;

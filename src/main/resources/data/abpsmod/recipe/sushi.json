@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "abpsmod:fish_fillet",
+    "minecraft:kelp"
+  ],
+  "result": {
+    "id": "abpsmod:sushi",
+    "count": 2
+  }
+}
