@@ -121,8 +121,6 @@ public final class Run {
     final List<EntityType<? extends Mob>> mobs;
     /** The dungeon's own monsters in this run and what they're doing. */
     final List<MobKit.Brain> brains = new ArrayList<>();
-    /** The bodies of the dungeon's own monsters and bosses, by mob. */
-    final Map<UUID, Rig> rigs = new HashMap<>();
 
     State state = State.BUILDING;
     int current;
@@ -226,17 +224,6 @@ public final class Run {
             }
         }
         return x;
-    }
-
-    /** Gives the boss its own body, and makes up for the weapon it no longer visibly holds. */
-    private void dressBoss(DungeonDef.Boss type) {
-        if (brain == null || brain.boss == null) return;
-        Rig.Model model = RigModels.get(type.name().toLowerCase());
-        if (model == null) return;
-        double scale = brain.boss.getAttributeBaseValue(net.minecraft.world.entity.ai.attributes.Attributes.SCALE);
-        if (type == DungeonDef.Boss.HOLLOW_KING && brain.boss.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE) != null)
-            Mods.scaleBase(brain.boss, net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE, 1.6);
-        rigs.put(brain.boss.getUUID(), Rig.attach(level, brain.boss, model, (float) scale, -1));
     }
 
     /** A few extra details so rooms look different from each other. */
@@ -396,7 +383,6 @@ public final class Run {
         ticks++;
         if (state == State.BUILDING) return;
         if (state == State.OVER) return;
-        rigs.values().removeIf(rig -> !rig.tick());
         List<ServerPlayer> ps = online();
         if (ps.isEmpty()) {
             // Everyone left or logged off: the run ends
@@ -497,7 +483,6 @@ public final class Run {
             }
             case BOSS -> {
                 brain = BossBrain.create(this, boss, r);
-                dressBoss(boss);
                 bar = new ServerBossEvent(UUID.randomUUID(), dev.abps.util.Text.mm("<bold>" + boss.title + "</bold>"), barColor(), BossEvent.BossBarOverlay.NOTCHED_10);
                 for (ServerPlayer p : online()) bar.addPlayer(p);
                 // Seal the way back in
@@ -665,7 +650,6 @@ public final class Run {
             DungeonDef.Boss[] all = DungeonDef.Boss.values();
             DungeonDef.Boss b = all[(wave / 10 - 1) % all.length];
             brain = BossBrain.create(this, b, r);
-            dressBoss(b);
             bar = new ServerBossEvent(UUID.randomUUID(), dev.abps.util.Text.mm("<bold>" + b.title + "</bold> <gray>wave " + wave), BossEvent.BossBarColor.PURPLE,
                     BossEvent.BossBarOverlay.NOTCHED_10);
             for (ServerPlayer p : ps) bar.addPlayer(p);
@@ -759,8 +743,6 @@ public final class Run {
         }
         if (brain != null) brain.remove();
         brains.clear();
-        for (Rig rig : rigs.values()) rig.remove();
-        rigs.clear();
         for (Entity e : level.getEntitiesOfClass(Entity.class, new AABB(origin.getX() - 4, origin.getY() - 4, origin.getZ() - 40, maxX + 4, origin.getY() + 34, origin.getZ() + 40),
                 e -> !(e instanceof ServerPlayer))) e.discard();
         // Tear down: one big queued fill, a few thousand blocks a tick

@@ -439,7 +439,7 @@ public final class MenuScreen extends Screen {
         y += 26;
         y = section(g, "Dungeons", 0xB388FF, x, y);
         String[] dungeons = {
-                "<white><gold>Real dungeon monsters</gold>: every monster and boss has its own animated body (knights, a giant spider, ice golems, wraiths, imps, a walking furnace, a lava colossus and more). Find every custom item in the new <yellow>AbpsMod</yellow> creative tab.",
+                "<white>Find every custom item in the new <yellow>AbpsMod</yellow> creative tab.",
                 "<white><gold>Rebuilt dungeon halls</gold>: round domed boss and arena halls with galleries, column rings, chandeliers and lantern circles; vaulted octagon rooms with lit lattice walls, grand gateways and arched corridors.",
                 "<white>Five dungeons: three story dungeons with a boss each, <light_purple>The Shifting Depths</light_purple> (new rooms and a random boss every run) and the <gold>Endless Arena</gold>.",
                 "<white>Go alone or with a party of up to 4. The party leader starts the run from the <yellow>Dungeons</yellow> tab.",
