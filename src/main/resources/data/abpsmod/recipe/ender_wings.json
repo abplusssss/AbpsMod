@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:elytra",
+    "abpsmod:endite_ingot",
+    "minecraft:ender_eye",
+    "minecraft:ender_eye"
+  ],
+  "result": {
+    "id": "abpsmod:ender_wings"
+  }
+}

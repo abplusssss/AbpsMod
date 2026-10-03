@@ -7,6 +7,8 @@
     "abpsmod:cooking_pot",
     "abpsmod:stone_oven",
     "abpsmod:sprinkler",
-    "abpsmod:quality_sprinkler"
+    "abpsmod:quality_sprinkler",
+    "abpsmod:waystone",
+    "abpsmod:display_pedestal"
   ]
 }

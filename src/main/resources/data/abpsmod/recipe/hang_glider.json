@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "P": "minecraft:phantom_membrane",
+    "S": "minecraft:stick",
+    "L": "minecraft:leather"
+  },
+  "pattern": [
+    "PPP",
+    "SLS",
+    " S "
+  ],
+  "result": {
+    "id": "abpsmod:hang_glider"
+  }
+}

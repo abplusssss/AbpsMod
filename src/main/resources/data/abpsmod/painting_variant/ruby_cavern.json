@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:ruby_cavern",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.ruby_cavern.author"
+  },
+  "height": 1,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.ruby_cavern.title"
+  },
+  "width": 1
+}

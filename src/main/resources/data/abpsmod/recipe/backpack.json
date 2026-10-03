@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "L": "minecraft:leather",
+    "S": "minecraft:string",
+    "C": "minecraft:chest"
+  },
+  "pattern": [
+    "LSL",
+    "LCL",
+    "LLL"
+  ],
+  "result": {
+    "id": "abpsmod:backpack"
+  }
+}

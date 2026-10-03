@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:fishing_pier",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.fishing_pier.author"
+  },
+  "height": 1,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.fishing_pier.title"
+  },
+  "width": 2
+}

@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:crystal_hollows",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.crystal_hollows.author"
+  },
+  "height": 2,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.crystal_hollows.title"
+  },
+  "width": 2
+}

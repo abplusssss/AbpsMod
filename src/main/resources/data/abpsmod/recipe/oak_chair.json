@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "P": "minecraft:oak_planks",
+    "S": "minecraft:stick"
+  },
+  "pattern": [
+    "P  ",
+    "PPP",
+    "S S"
+  ],
+  "result": {
+    "id": "abpsmod:oak_chair",
+    "count": 2
+  }
+}

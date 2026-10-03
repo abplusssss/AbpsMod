@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": "minecraft:amethyst_shard",
+    "S": "minecraft:stone_bricks",
+    "E": "minecraft:ender_pearl"
+  },
+  "pattern": [
+    " A ",
+    "SES",
+    "SSS"
+  ],
+  "result": {
+    "id": "abpsmod:waystone"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:harvest_moon",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.harvest_moon.author"
+  },
+  "height": 2,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.harvest_moon.title"
+  },
+  "width": 1
+}

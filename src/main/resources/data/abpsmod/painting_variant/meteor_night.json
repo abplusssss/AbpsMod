@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:meteor_night",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.meteor_night.author"
+  },
+  "height": 1,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.meteor_night.title"
+  },
+  "width": 2
+}

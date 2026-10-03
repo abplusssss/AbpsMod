@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "W": "#minecraft:wool",
+    "P": "minecraft:oak_planks",
+    "S": "minecraft:stick"
+  },
+  "pattern": [
+    "W",
+    "P",
+    "S"
+  ],
+  "result": {
+    "id": "abpsmod:oak_stool",
+    "count": 2
+  }
+}

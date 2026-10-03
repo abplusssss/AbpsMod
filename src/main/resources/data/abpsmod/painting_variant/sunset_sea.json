@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:sunset_sea",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.sunset_sea.author"
+  },
+  "height": 1,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.sunset_sea.title"
+  },
+  "width": 2
+}

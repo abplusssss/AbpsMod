@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:siege",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.siege.author"
+  },
+  "height": 2,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.siege.title"
+  },
+  "width": 4
+}

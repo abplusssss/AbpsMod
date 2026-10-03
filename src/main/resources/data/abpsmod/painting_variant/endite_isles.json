@@ -1,0 +1,13 @@
+{
+  "asset_id": "abpsmod:endite_isles",
+  "author": {
+    "color": "gray",
+    "translate": "painting.abpsmod.endite_isles.author"
+  },
+  "height": 2,
+  "title": {
+    "color": "yellow",
+    "translate": "painting.abpsmod.endite_isles.title"
+  },
+  "width": 2
+}

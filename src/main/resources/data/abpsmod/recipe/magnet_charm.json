@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "R": "minecraft:redstone",
+    "B": "minecraft:lapis_lazuli",
+    "I": "minecraft:iron_ingot",
+    "G": "minecraft:gold_ingot"
+  },
+  "pattern": [
+    "R B",
+    "I I",
+    " G "
+  ],
+  "result": {
+    "id": "abpsmod:magnet_charm"
+  }
+}

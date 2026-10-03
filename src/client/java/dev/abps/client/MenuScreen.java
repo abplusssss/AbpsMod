@@ -465,6 +465,14 @@ public final class MenuScreen extends Screen {
                 "<white><gold>Treasure maps</gold> (from fishing, chests and caravans) lead to buried chests. Caravan merchants stop by with seeds, saplings, rubies and rods. Butterflies, fireflies and birds liven things up."};
         for (String n : fishing) y += Draw.wrapped(g, "<#40C4FF>•</#40C4FF> " + n, x, y, w, Draw.TEXT) + 3;
         y += 6;
+        y = section(g, "Extras", 0xFFD54F, x, y);
+        String[] extras = {
+                "<white><gold>Backpacks</gold> (27 slots, or 54 for the Ruby Backpack), a <gold>Grappling Hook</gold>, a <gold>Magnet Charm</gold> (right-click to switch on), a <gold>Builder's Wand</gold> that extends the face you click, the <#FF5370>Ruby Apple</#FF5370> and a <gold>Sleeping Bag</gold>.",
+                "<white><#B388FF>Waystones</#B388FF>: right-click to discover, sneak-right-click to pick a destination, right-click to travel (1 level). <#B388FF>Ender Wings</#B388FF> glide like an elytra (tap sneak for a boost) and the <gold>Hang Glider</gold> slows your fall.",
+                "<white>Sit on chairs, stools, stairs and slabs (right-click with an empty hand). Tables, display pedestals and 8 new paintings.",
+                "<white>Right-click ripe crops to harvest and replant. Hitting a mob shows its health. Rare <gold>mob trophies</gold>. <yellow>!Ping</yellow> marks a spot for your party and <yellow>!Sort</yellow> tidies a chest or your inventory."};
+        for (String n : extras) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
+        y += 6;
         y = section(g, "Siege & Party Games", 0xB388FF, x, y);
         String[] games = {
                 "<white>Dungeons are gone. In their place: <gold>Siege</gold>, co-op tower defense. Hold the Heart through 10, 15 or 20 waves of raiders; kills earn coins for Archer, Frost, Bombard and Healing towers.",

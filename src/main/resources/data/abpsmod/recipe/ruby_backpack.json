@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "abpsmod:backpack",
+    "abpsmod:ruby",
+    "abpsmod:ruby",
+    "abpsmod:ruby",
+    "abpsmod:ruby",
+    "minecraft:chest"
+  ],
+  "result": {
+    "id": "abpsmod:ruby_backpack"
+  }
+}

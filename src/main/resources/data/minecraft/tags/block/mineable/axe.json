@@ -3,6 +3,11 @@
   "values": [
     "abpsmod:cutting_board",
     "abpsmod:aging_barrel",
-    "abpsmod:scarecrow"
+    "abpsmod:scarecrow",
+    "abpsmod:oak_chair",
+    "abpsmod:spruce_chair",
+    "abpsmod:oak_stool",
+    "abpsmod:oak_table",
+    "abpsmod:spruce_table"
   ]
 }

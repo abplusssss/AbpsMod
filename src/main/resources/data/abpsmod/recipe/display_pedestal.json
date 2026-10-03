@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "S": "minecraft:smooth_stone_slab",
+    "G": "minecraft:gold_ingot",
+    "A": "minecraft:polished_andesite"
+  },
+  "pattern": [
+    "SGS",
+    " A ",
+    "AAA"
+  ],
+  "result": {
+    "id": "abpsmod:display_pedestal"
+  }
+}
