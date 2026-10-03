@@ -104,6 +104,7 @@ public final class AbpsClient implements ClientModInitializer {
             ClientState.dungeonHud = p.active() ? p : null;
             ClientState.dungeonHudAt = System.currentTimeMillis();
         });
+        ClientPlayNetworking.registerGlobalReceiver(Net.PartyPayload.TYPE, (p, ctx) -> ClientState.party = p.names().isEmpty() ? null : p);
         ClientPlayNetworking.registerGlobalReceiver(Net.VanishPayload.TYPE, (p, ctx) -> {
             ClientState.vanished.clear();
             ClientState.vanished.addAll(p.ids());

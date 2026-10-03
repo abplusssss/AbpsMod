@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "servings=4": {
+      "model": "abpsmod:block/seafood_feast"
+    },
+    "servings=3": {
+      "model": "abpsmod:block/seafood_feast"
+    },
+    "servings=2": {
+      "model": "abpsmod:block/seafood_feast_half"
+    },
+    "servings=1": {
+      "model": "abpsmod:block/seafood_feast_last"
+    }
+  }
+}

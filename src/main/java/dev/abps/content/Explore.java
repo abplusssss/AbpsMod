@@ -52,9 +52,14 @@ public final class Explore {
     private static final Random RND = new Random();
     private static final ConcurrentLinkedQueue<long[]> PENDING = new ConcurrentLinkedQueue<>();
     private static final String CARAVAN_TAG = "abps_caravan";
+    private static final ConcurrentLinkedQueue<long[]> END_PENDING = new ConcurrentLinkedQueue<>();
 
     public static void register() {
         ServerChunkEvents.CHUNK_LOAD.register((level, chunk, generated) -> {
+            if (generated && level.dimension() == Level.END && RND.nextInt(3) == 0) {
+                END_PENDING.add(new long[]{chunk.getPos().getMinBlockX() + 8, chunk.getPos().getMinBlockZ() + 8});
+                return;
+            }
             if (!generated || level.dimension() != Level.OVERWORLD) return;
             int roll = RND.nextInt(900);
             if (roll < 4) PENDING.add(new long[]{chunk.getPos().getMinBlockX() + 8, chunk.getPos().getMinBlockZ() + 8, 0});
@@ -270,6 +275,30 @@ public final class Explore {
         chest(level, floor, 2);
     }
 
+    /** The Crystal Hollows End biome: crystal spires rising out of the end stone. */
+    private static void endCrystals(ServerLevel level, int x, int z) {
+        if (!level.hasChunkAt(new BlockPos(x, 64, z))) return;
+        if (!level.getBiome(new BlockPos(x, 64, z)).is(ModContent.CRYSTAL_HOLLOWS)) return;
+        for (int k = 0; k < 2 + RND.nextInt(3); k++) {
+            int sx = x + RND.nextInt(13) - 6, sz = z + RND.nextInt(13) - 6;
+            int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, sx, sz);
+            if (y <= level.getMinY() + 1 || !level.getBlockState(new BlockPos(sx, y - 1, sz)).is(Blocks.END_STONE)) continue;
+            int h = 3 + RND.nextInt(6);
+            for (int i = 0; i < h; i++) {
+                int w = i < h / 3 ? 1 : 0;
+                for (int dx = -w; dx <= w; dx++)
+                    for (int dz = -w; dz <= w; dz++) {
+                        if (w == 1 && Math.abs(dx) + Math.abs(dz) == 2) continue;
+                        set(level, new BlockPos(sx + dx, y + i, sz + dz), i == h - 1 ? Blocks.AMETHYST_BLOCK.defaultBlockState()
+                                : RND.nextInt(5) == 0 ? Blocks.PURPUR_BLOCK.defaultBlockState() : Blocks.AMETHYST_BLOCK.defaultBlockState());
+                    }
+            }
+            set(level, new BlockPos(sx, y + h, sz), Blocks.AMETHYST_CLUSTER.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.AmethystClusterBlock.FACING, Direction.UP));
+            if (RND.nextInt(4) == 0) set(level, new BlockPos(sx + 1, y, sz), ModContent.ENDITE_ORE.defaultBlockState());
+        }
+    }
+
     // ------------------------------------------------------------------ treasure maps
 
     private static void readMap(ServerPlayer p, ServerLevel level, ItemStack map) {
@@ -455,6 +484,8 @@ public final class Explore {
             build(world, (int) job[0], (int) job[1], (int) job[2]);
             built++;
         }
+        ServerLevel end = server.getLevel(Level.END);
+        if (end != null && (job = END_PENDING.poll()) != null) endCrystals(end, (int) job[0], (int) job[1]);
         for (ServerPlayer p : world.players()) {
             if (ticks % 10 == 0) followMap(p, world);
             if (ticks % 20 == 0) wildlife(world, p);

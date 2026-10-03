@@ -123,6 +123,48 @@ public final class FarmBlocks {
         }
     }
 
+    /** Ruby rail: a rail that keeps minecarts moving at full speed without redstone (see Extras). */
+    public static class RubyRail extends net.minecraft.world.level.block.RailBlock {
+        public RubyRail(BlockBehaviour.Properties props) {
+            super(props);
+        }
+    }
+
+    /** A feast on a platter: four servings, each one feeds whoever takes it and shares the feast's buffs. */
+    public static class Feast extends Shaped {
+        public static final net.minecraft.world.level.block.state.properties.IntegerProperty SERVINGS =
+                net.minecraft.world.level.block.state.properties.IntegerProperty.create("servings", 1, 4);
+        private final java.util.List<net.minecraft.world.effect.MobEffectInstance> effects;
+
+        public Feast(java.util.List<net.minecraft.world.effect.MobEffectInstance> effects, BlockBehaviour.Properties props) {
+            super(Block.box(1, 0, 1, 15, 7, 15), props);
+            this.effects = effects;
+            registerDefaultState(stateDefinition.any().setValue(SERVINGS, 4));
+        }
+
+        @Override
+        protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+            super.createBlockStateDefinition(builder);
+            builder.add(SERVINGS);
+        }
+
+        @Override
+        protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+            if (level instanceof ServerLevel sl) {
+                var food = player.getFoodData();
+                food.setFoodLevel(Math.min(20, food.getFoodLevel() + 8));
+                food.setSaturation(Math.min(food.getFoodLevel(), food.getSaturationLevel() + 10));
+                for (var e : effects) player.addEffect(new net.minecraft.world.effect.MobEffectInstance(e));
+                int left = state.getValue(SERVINGS) - 1;
+                if (left <= 0) sl.removeBlock(pos, false);
+                else sl.setBlock(pos, state.setValue(SERVINGS, left), 3);
+                sl.playSound(null, pos, SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 0.8f, 1f);
+                sl.sendParticles(ParticleTypes.HEART, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5, 4, 0.3, 0.2, 0.3, 0.02);
+            }
+            return InteractionResult.SUCCESS;
+        }
+    }
+
     /** A fruit tree sapling: grows into a small tree of oak logs and fruit leaves. */
     public static class FruitSapling extends Block {
         private static final VoxelShape SHAPE = Block.box(2, 0, 2, 14, 12, 14);

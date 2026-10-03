@@ -1,0 +1,18 @@
+{
+  "asset_id": "abpsmod:entity/pig/wild_boar",
+  "baby_asset_id": "abpsmod:entity/pig/wild_boar_baby",
+  "spawn_conditions": [
+    {
+      "condition": {
+        "type": "minecraft:biome",
+        "biomes": [
+          "minecraft:forest",
+          "minecraft:dark_forest",
+          "minecraft:birch_forest",
+          "minecraft:old_growth_birch_forest"
+        ]
+      },
+      "priority": 2
+    }
+  ]
+}

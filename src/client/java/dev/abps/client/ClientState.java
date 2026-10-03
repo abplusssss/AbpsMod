@@ -27,6 +27,7 @@ public final class ClientState {
     public static Net.DungeonsPayload dungeons;
     /** The run panel. Null or inactive when you're not in a dungeon. */
     public static Net.DungeonHudPayload dungeonHud;
+    public static Net.PartyPayload party;
     public static long dungeonHudAt;
     /** True while the run's clock is moving, so the panel can count between updates. */
     public static boolean dungeonClock;

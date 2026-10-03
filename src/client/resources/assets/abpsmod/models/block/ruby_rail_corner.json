@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/rail_curved",
+  "textures": {
+    "rail": "abpsmod:block/ruby_rail_corner"
+  }
+}

@@ -42,8 +42,36 @@ public final class Hud implements HudElement {
             panel(g, s, c, pos[0], pos[1]);
             g.pose().popMatrix();
         }
-        if (!(mc.gui.screen() instanceof MenuScreen)) dungeon(g);
+        if (!(mc.gui.screen() instanceof MenuScreen)) {
+            dungeon(g);
+            party(g);
+        }
         banners(g);
+    }
+
+    // ---------------- Party panel ----------------
+
+    /** Your party's health bars, in the corner opposite the HUD panel (below the run panel when one is up). */
+    private static void party(GuiGraphicsExtractor g) {
+        Net.PartyPayload p = ClientState.party;
+        if (p == null || p.names().isEmpty()) return;
+        ClientPrefs prefs = ClientPrefs.get();
+        int w = 110, row = 13, hh = 14 + p.names().size() * row;
+        int x = prefs.hudOnRight ? 4 : g.guiWidth() - w - 4;
+        int y = (g.guiWidth() < 182 + 2 * (RUN_WIDTH + 8) ? 44 : 4) + (ClientState.dungeonHud != null ? 56 : 0);
+        int c1 = 0x00E5FF;
+        Draw.window(g, x, y, w, hh, c1, Text.lerp(c1, 0x000000, 0.45f), 0xE80E0D14);
+        Draw.text(g, "<bold>" + Draw.gradient(c1, 0xFFFFFF, "Party") + "</bold>", x + 5, y + 4);
+        for (int i = 0; i < p.names().size(); i++) {
+            int yy = y + 14 + i * row;
+            int hp = p.health().get(i), max = Math.max(1, p.max().get(i));
+            float f = Math.max(0, Math.min(1, hp / (float) max));
+            int col = f > 0.5f ? 0xFF69F0AE : f > 0.25f ? 0xFFFFD54F : 0xFFFF5252;
+            Draw.textFit(g, "<white>" + p.names().get(i), x + 5, yy, 52);
+            int bx = x + 60, bw = w - 66;
+            g.fill(bx, yy + 2, bx + bw, yy + 6, 0xFF26262E);
+            g.fill(bx, yy + 2, bx + (int) (bw * f), yy + 6, col);
+        }
     }
 
     // ---------------- Dungeon run panel ----------------

@@ -182,8 +182,6 @@ ITEMS = {
     "strawberry_pie": ("Strawberry Pie", "item/pumpkin_pie", [(ORANGE, "#E8405F")]),
     "corn_bread": ("Corn Bread", "item/bread", [(ANY, "#E9BC4C")]),
     "grilled_cheese": ("Grilled Cheese", "item/bread", [(ANY, "#D8963A")]),
-    "roast_feast": ("Roast Feast", "item/cooked_chicken", [(ANY, "#B86A2E")]),
-    "seafood_feast": ("Seafood Feast", "item/cooked_salmon", [(ANY, "#F08A5D")]),
     # Street food made in a furnace
     "corn_on_the_cob": ("Corn on the Cob", "item/carrot", [(ORANGE, "#E3A83A")]),
     # Drinks

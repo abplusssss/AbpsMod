@@ -1,0 +1,148 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "particle": "minecraft:block/quartz_block_top",
+    "plate": "minecraft:block/quartz_block_top",
+    "meat": "minecraft:block/stripped_mangrove_log",
+    "side": "minecraft:block/honeycomb_block",
+    "garnish": "minecraft:block/moss_block"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        1
+      ],
+      "to": [
+        15,
+        1,
+        15
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#plate"
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#plate"
+        },
+        "north": {
+          "uv": [
+            1,
+            15,
+            15,
+            16
+          ],
+          "texture": "#plate"
+        },
+        "south": {
+          "uv": [
+            1,
+            15,
+            15,
+            16
+          ],
+          "texture": "#plate"
+        },
+        "west": {
+          "uv": [
+            1,
+            15,
+            15,
+            16
+          ],
+          "texture": "#plate"
+        },
+        "east": {
+          "uv": [
+            1,
+            15,
+            15,
+            16
+          ],
+          "texture": "#plate"
+        }
+      }
+    },
+    {
+      "from": [
+        5,
+        1,
+        5
+      ],
+      "to": [
+        8,
+        3,
+        9
+      ],
+      "faces": {
+        "down": {
+          "uv": [
+            5,
+            5,
+            8,
+            9
+          ],
+          "texture": "#meat"
+        },
+        "up": {
+          "uv": [
+            5,
+            5,
+            8,
+            9
+          ],
+          "texture": "#meat"
+        },
+        "north": {
+          "uv": [
+            5,
+            13,
+            8,
+            15
+          ],
+          "texture": "#meat"
+        },
+        "south": {
+          "uv": [
+            5,
+            13,
+            8,
+            15
+          ],
+          "texture": "#meat"
+        },
+        "west": {
+          "uv": [
+            5,
+            13,
+            9,
+            15
+          ],
+          "texture": "#meat"
+        },
+        "east": {
+          "uv": [
+            5,
+            13,
+            9,
+            15
+          ],
+          "texture": "#meat"
+        }
+      }
+    }
+  ]
+}

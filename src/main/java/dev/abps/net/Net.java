@@ -572,6 +572,36 @@ public final class Net {
         }
     }
 
+    /** Your party members' health, for the small party panel. Empty lists hide it. */
+    public record PartyPayload(List<String> names, List<Integer> health, List<Integer> max) implements CustomPacketPayload {
+        public static final Type<PartyPayload> TYPE = newType("party");
+        public static final StreamCodec<RegistryFriendlyByteBuf, PartyPayload> CODEC = CustomPacketPayload.codec(
+                (p, buf) -> {
+                    buf.writeVarInt(p.names.size());
+                    for (int i = 0; i < p.names.size(); i++) {
+                        buf.writeUtf(p.names.get(i));
+                        buf.writeVarInt(p.health.get(i));
+                        buf.writeVarInt(p.max.get(i));
+                    }
+                },
+                buf -> {
+                    int n = buf.readVarInt();
+                    List<String> names = new java.util.ArrayList<>();
+                    List<Integer> hp = new java.util.ArrayList<>(), max = new java.util.ArrayList<>();
+                    for (int i = 0; i < n; i++) {
+                        names.add(buf.readUtf());
+                        hp.add(buf.readVarInt());
+                        max.add(buf.readVarInt());
+                    }
+                    return new PartyPayload(names, hp, max);
+                });
+
+        @Override
+        public Type<PartyPayload> type() {
+            return TYPE;
+        }
+    }
+
     public record ProfilePayload(String name, List<String> labels, List<String> values, int streak, boolean canClaim,
                                  long nextClaimIn, List<List<net.minecraft.world.item.ItemStack>> rewards, boolean dailyEnabled)
             implements CustomPacketPayload {
@@ -613,6 +643,7 @@ public final class Net {
         PayloadTypeRegistry.clientboundPlay().register(ProfilePayload.TYPE, ProfilePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().registerLarge(DungeonsPayload.TYPE, DungeonsPayload.CODEC, 1024 * 1024);
         PayloadTypeRegistry.clientboundPlay().register(DungeonHudPayload.TYPE, DungeonHudPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PartyPayload.TYPE, PartyPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VfxPayload.TYPE, VfxPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VanishPayload.TYPE, VanishPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(CastPayload.TYPE, CastPayload.CODEC);

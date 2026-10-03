@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "X": "abpsmod:ruby",
+    "#": "minecraft:stick",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "X X",
+    "X#X",
+    "XRX"
+  ],
+  "result": {
+    "id": "abpsmod:ruby_rail",
+    "count": 12
+  }
+}

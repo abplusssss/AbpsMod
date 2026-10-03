@@ -471,6 +471,12 @@ public final class MenuScreen extends Screen {
                 "<white><#B388FF>Waystones</#B388FF>: right-click to discover, sneak-right-click to pick a destination, right-click to travel (1 level). <#B388FF>Ender Wings</#B388FF> glide like an elytra (tap sneak for a boost) and the <gold>Hang Glider</gold> slows your fall.",
                 "<white>Sit on chairs, stools, stairs and slabs (right-click with an empty hand). Tables, display pedestals and 8 new paintings.",
                 "<white>Right-click ripe crops to harvest and replant. Hitting a mob shows its health. Rare <gold>mob trophies</gold>. <yellow>!Ping</yellow> marks a spot for your party and <yellow>!Sort</yellow> tidies a chest or your inventory."};
+        String[] more = {
+                "<white><#FF5370>Ruby Rails</#FF5370> keep minecarts at full speed with no redstone. A party panel shows your party's health while you're grouped.",
+                "<white>Feasts are now placed on a table: four servings, each one feeds whoever takes it with the feast's buffs.",
+                "<white>New animals in the wild: <#8A6A4A>ducks</#8A6A4A> by rivers and swamps, ginger <#C8662A>highland cows</#C8662A> in the hills and <#5E3E2A>wild boars</#5E3E2A> in forests.",
+                "<white>The <#CE93D8>Crystal Hollows</#CE93D8> is now a biome in the End's highlands: amethyst spires with endite at their feet."};
+        for (String n : more) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
         for (String n : extras) y += Draw.wrapped(g, "<gold>•</gold> " + n, x, y, w, Draw.TEXT) + 3;
         y += 6;
         y = section(g, "Siege & Party Games", 0xB388FF, x, y);

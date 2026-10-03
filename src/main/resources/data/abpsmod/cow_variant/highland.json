@@ -1,0 +1,19 @@
+{
+  "asset_id": "abpsmod:entity/cow/highland",
+  "baby_asset_id": "abpsmod:entity/cow/highland_baby",
+  "spawn_conditions": [
+    {
+      "condition": {
+        "type": "minecraft:biome",
+        "biomes": [
+          "minecraft:meadow",
+          "minecraft:windswept_hills",
+          "minecraft:windswept_gravelly_hills",
+          "minecraft:windswept_forest"
+        ]
+      },
+      "priority": 2
+    }
+  ],
+  "model": "cold"
+}

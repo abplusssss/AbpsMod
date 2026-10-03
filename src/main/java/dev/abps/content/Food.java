@@ -152,10 +152,11 @@ public final class Food {
         food("strawberry_pie", 8, 0.6f, Kind.SNACK, fx(MobEffects.SPEED, 120, 0), fx(MobEffects.JUMP_BOOST, 120, 0));
         food("corn_bread", 6, 0.7f, Kind.SNACK, fx(MobEffects.HASTE, 60, 0));
         food("grilled_cheese", 8, 0.8f, Kind.SNACK, fx(MobEffects.ABSORPTION, 120, 0));
-        Item roast = food("roast_feast", 14, 1.0f, Kind.SNACK);
-        Item seafood = food("seafood_feast", 14, 1.0f, Kind.SNACK);
-        FEASTS.put(roast, List.of(fx(MobEffects.REGENERATION, 20, 1), fx(MobEffects.STRENGTH, 180, 0), fx(MobEffects.HEALTH_BOOST, 300, 1)));
-        FEASTS.put(seafood, List.of(fx(MobEffects.REGENERATION, 20, 1), fx(MobEffects.WATER_BREATHING, 300, 0), fx(MobEffects.LUCK, 300, 0)));
+        // Feasts are placed on a table: four servings for the party
+        List<MobEffectInstance> roast = List.of(fx(MobEffects.REGENERATION, 20, 1), fx(MobEffects.STRENGTH, 180, 0), fx(MobEffects.HEALTH_BOOST, 300, 1));
+        List<MobEffectInstance> seafood = List.of(fx(MobEffects.REGENERATION, 20, 1), fx(MobEffects.WATER_BREATHING, 300, 0), fx(MobEffects.LUCK, 300, 0));
+        block("roast_feast", p -> new FarmBlocks.Feast(roast, p), BlockBehaviour.Properties.ofFullCopy(Blocks.CAKE).noOcclusion(), true);
+        block("seafood_feast", p -> new FarmBlocks.Feast(seafood, p), BlockBehaviour.Properties.ofFullCopy(Blocks.CAKE).noOcclusion(), true);
 
         // Street food
         food("burger", 10, 0.8f, Kind.SNACK, fx(MobEffects.ABSORPTION, 30, 0));
@@ -178,6 +179,7 @@ public final class Food {
         food("plum_cordial", 6, 0.8f, Kind.DRINK, fx(MobEffects.NIGHT_VISION, 300, 0), fx(MobEffects.LUCK, 300, 0));
 
         // Kitchen and farm blocks
+        block("ruby_rail", FarmBlocks.RubyRail::new, BlockBehaviour.Properties.ofFullCopy(Blocks.POWERED_RAIL), true);
         block("cooking_pot", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.CAULDRON).noOcclusion(), true);
         block("stone_oven", Block::new, BlockBehaviour.Properties.ofFullCopy(Blocks.BRICKS), true);
         block("cutting_board", p -> new FarmBlocks.Shaped(Block.box(1, 0, 3, 15, 2, 13), p), BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS).noOcclusion(), true);

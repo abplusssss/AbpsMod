@@ -207,10 +207,13 @@ public final class ModContent {
         }
     }
 
+    public static final ResourceKey<net.minecraft.world.level.biome.Biome> CRYSTAL_HOLLOWS = ResourceKey.create(Registries.BIOME, AbpsMod.id("crystal_hollows"));
+
     /** Ruby ore deep in the overworld; endite ore in the End's outer islands (never on the dragon's island). */
     private static void worldgen() {
         BiomeModifications.addFeature(BiomeSelectors.foundInOverworld(), GenerationStep.Decoration.UNDERGROUND_ORES,
                 ResourceKey.create(Registries.PLACED_FEATURE, AbpsMod.id("ore_ruby")));
+        net.fabricmc.fabric.api.biome.v1.TheEndBiomes.addHighlandsBiome(CRYSTAL_HOLLOWS, 0.5);
         BiomeModifications.addFeature(BiomeSelectors.foundInTheEnd().and(BiomeSelectors.excludeByKey(Biomes.THE_END)),
                 GenerationStep.Decoration.UNDERGROUND_ORES, ResourceKey.create(Registries.PLACED_FEATURE, AbpsMod.id("ore_endite")));
     }

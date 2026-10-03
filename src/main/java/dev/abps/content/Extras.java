@@ -638,6 +638,8 @@ public final class Extras {
     private static void tick(MinecraftServer server) {
         ticks++;
         if (ticks % 20 == 0) checkSleepers(server);
+        if (ticks % 10 == 0) partyPanel(server);
+        boostCarts(server);
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             ServerLevel level = (ServerLevel) p.level();
             // Magnet charm: pull loose items and experience in
@@ -689,6 +691,55 @@ public final class Extras {
                             d -> d.entityTags().contains(SEAT_TAG) && d.getPassengers().isEmpty())) seat.discard();
                 }
             }
+        }
+    }
+
+    // ------------------------------------------------------------------ ruby rails
+
+    private static final Set<net.minecraft.world.entity.EntityType<?>> CARTS = Set.of(EntityTypes.MINECART, EntityTypes.CHEST_MINECART,
+            EntityTypes.FURNACE_MINECART, EntityTypes.HOPPER_MINECART, EntityTypes.TNT_MINECART);
+
+    /** Minecarts on ruby rail are pushed along at full speed, no redstone needed. */
+    private static void boostCarts(MinecraftServer server) {
+        Block rail = Food.block("ruby_rail");
+        Set<Entity> done = new HashSet<>();
+        for (ServerLevel l : server.getAllLevels()) {
+            for (ServerPlayer p : l.players()) {
+                for (Entity cart : l.getEntitiesOfClass(Entity.class, p.getBoundingBox().inflate(64), e -> CARTS.contains(e.getType()))) {
+                    if (!done.add(cart) || !l.getBlockState(cart.blockPosition()).is(rail)) continue;
+                    Vec3 v = cart.getDeltaMovement();
+                    double speed = Math.sqrt(v.x * v.x + v.z * v.z);
+                    if (speed < 0.02) continue;
+                    double want = Math.min(2.0, Math.max(speed * 1.25, 0.4));
+                    cart.setDeltaMovement(v.x / speed * want, v.y, v.z / speed * want);
+                    if (l.random.nextInt(4) == 0) Fx.burst(l, ParticleTypes.ELECTRIC_SPARK, cart.position(), 1, 0.2, 0.02);
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ party panel
+
+    private static final Set<UUID> PANEL_SHOWN = new HashSet<>();
+
+    /** Sends each party member everyone else's health for the party panel. */
+    private static void partyPanel(MinecraftServer server) {
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (!net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.canSend(p, dev.abps.net.Net.PartyPayload.TYPE)) continue;
+            var party = dev.abps.dungeon.Party.of(p);
+            List<String> names = new ArrayList<>();
+            List<Integer> hp = new ArrayList<>(), max = new ArrayList<>();
+            if (party != null && party.size() > 1) {
+                for (ServerPlayer m : party.online()) {
+                    if (m == p) continue;
+                    names.add(m.getName().getString());
+                    hp.add((int) Math.ceil(m.getHealth()));
+                    max.add((int) Math.ceil(m.getMaxHealth()));
+                }
+            }
+            if (names.isEmpty() && !PANEL_SHOWN.remove(p.getUUID())) continue;
+            if (!names.isEmpty()) PANEL_SHOWN.add(p.getUUID());
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(p, new dev.abps.net.Net.PartyPayload(names, hp, max));
         }
     }
 

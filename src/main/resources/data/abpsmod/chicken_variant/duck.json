@@ -1,0 +1,18 @@
+{
+  "asset_id": "abpsmod:entity/chicken/duck",
+  "baby_asset_id": "abpsmod:entity/chicken/duck_baby",
+  "spawn_conditions": [
+    {
+      "condition": {
+        "type": "minecraft:biome",
+        "biomes": [
+          "minecraft:river",
+          "minecraft:frozen_river",
+          "minecraft:swamp",
+          "minecraft:mangrove_swamp"
+        ]
+      },
+      "priority": 2
+    }
+  ]
+}

@@ -121,8 +121,6 @@
   "item.abpsmod.strawberry_pie": "Strawberry Pie",
   "item.abpsmod.corn_bread": "Corn Bread",
   "item.abpsmod.grilled_cheese": "Grilled Cheese",
-  "item.abpsmod.roast_feast": "Roast Feast",
-  "item.abpsmod.seafood_feast": "Seafood Feast",
   "item.abpsmod.corn_on_the_cob": "Corn on the Cob",
   "item.abpsmod.orange_juice": "Orange Juice",
   "item.abpsmod.lemonade": "Lemonade",
@@ -232,5 +230,9 @@
   "painting.abpsmod.siege.title": "The Siege",
   "painting.abpsmod.siege.author": "Abps Studio",
   "painting.abpsmod.meteor_night.title": "Meteor Night",
-  "painting.abpsmod.meteor_night.author": "Abps Studio"
+  "painting.abpsmod.meteor_night.author": "Abps Studio",
+  "block.abpsmod.ruby_rail": "Ruby Rail",
+  "block.abpsmod.roast_feast": "Roast Feast",
+  "block.abpsmod.seafood_feast": "Seafood Feast",
+  "biome.abpsmod.crystal_hollows": "Crystal Hollows"
 }
