@@ -51,13 +51,10 @@ jobs:
           JAR: ${{ steps.jar.outputs.path }}
           VERSION: ${{ steps.jar.outputs.version }}
         run: |
-          SHORT=$(git rev-parse --short HEAD)
           gh release delete latest --yes --cleanup-tag || true
           git push origin :refs/tags/latest || true
           gh release create latest "$JAR" \
             --target "$GITHUB_SHA" \
-            --title "AbpsMod $VERSION (latest build)" \
+            --title "AbpsMod $VERSION" \
             --latest \
-            --notes "Built automatically from \`${GITHUB_REF_NAME}\` @ \`$SHORT\`.
-
-          **Install:** download \`$(basename "$JAR")\` below and put it in your \`mods\` folder along with Fabric API (Minecraft 26.3, Fabric Loader, Java 26)."
+            --notes "**Install:** download \`$(basename "$JAR")\` below and put it in your \`mods\` folder along with Fabric API (Minecraft 26.3, Fabric Loader, Java 26)."
